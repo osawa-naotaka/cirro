@@ -4,7 +4,7 @@
     "private": true,
     "type": "module",
     "scripts": {
-        "dev": "vite",
+        "dev": "bun scripts/dev-server.ts",
         "build": "vite build && bun scripts/build-ssg.ts",
         "build:ssg": "bun scripts/build-ssg.ts",
         "preview": "vite preview",
