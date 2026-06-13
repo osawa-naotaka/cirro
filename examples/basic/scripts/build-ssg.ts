@@ -1,5 +1,5 @@
 import { renderToStaticMarkup } from "react-dom/server";
-import { expandRoutes, urlToFilePath } from "../src/router";
+import { expandRoutes, urlToFilePath } from "cirro";
 import { routes } from "../src/routes";
 
 // Vite が出力した manifest から、島クライアントエントリの最終ファイル名を取得する。

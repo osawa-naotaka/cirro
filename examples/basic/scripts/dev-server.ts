@@ -1,4 +1,5 @@
 import { createServer as createHttpServer } from "node:http";
+import { expandRoutes } from "cirro";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createServer as createViteServer } from "vite";
 
@@ -16,9 +17,8 @@ const httpServer = createHttpServer((req, res) => {
     vite.middlewares(req, res, async () => {
         const rawUrl = req.url ?? "/";
         try {
-            // ssrLoadModule で最新の routes / router を読む（HMR と整合）。
+            // routes は ssrLoadModule で最新を読む（HMR と整合）。expandRoutes は cirro パッケージから。
             const { routes } = await vite.ssrLoadModule("/src/routes.ts");
-            const { expandRoutes } = await vite.ssrLoadModule("/src/router.ts");
             const pages = expandRoutes(routes);
 
             const pathname = new URL(rawUrl, "http://localhost").pathname;

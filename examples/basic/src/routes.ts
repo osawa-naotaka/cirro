@@ -1,7 +1,7 @@
 import { AboutPage } from "./pages/about";
 import { HomePage } from "./pages/home";
 import { PostPage } from "./pages/post";
-import { type AnyRoute, route } from "./router";
+import { type AnyRoute, route } from "cirro";
 
 // サイトのルート定義（Config Base Routing）。
 export const routes: AnyRoute[] = [

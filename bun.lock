@@ -4,7 +4,12 @@
   "workspaces": {
     "": {
       "name": "cirro",
+    },
+    "examples/basic": {
+      "name": "@cirro-examples/basic",
+      "version": "0.0.0",
       "dependencies": {
+        "cirro": "workspace:*",
         "react": "19.2.7",
         "react-dom": "19.2.7",
       },
@@ -18,8 +23,23 @@
         "vite": "8.0.16",
       },
     },
+    "packages/cirro": {
+      "name": "cirro",
+      "version": "0.0.0",
+      "devDependencies": {
+        "@types/react": "19.2.17",
+        "@types/react-dom": "19.2.3",
+      },
+      "peerDependencies": {
+        "react": "^19.0.0",
+        "react-dom": "^19.0.0",
+        "vite": "^8.0.0",
+      },
+    },
   },
   "packages": {
+    "@cirro-examples/basic": ["@cirro-examples/basic@workspace:examples/basic"],
+
     "@cloudflare/kv-asset-handler": ["@cloudflare/kv-asset-handler@0.5.0", "", {}, "sha512-jxQYkj8dSIzc0cD6cMMNdOc1UVjqSqu8BZdor5s8cGjW2I8BjODt/kWPVdY+u9zj3ms75Q5qaZgnxUad83+eAg=="],
 
     "@cloudflare/unenv-preset": ["@cloudflare/unenv-preset@2.16.1", "", { "peerDependencies": { "unenv": "2.0.0-rc.24", "workerd": ">1.20260305.0 <2.0.0-0" }, "optionalPeers": ["workerd"] }, "sha512-ECxObrMfyTl5bhQf/lZCXwo5G6xX9IAUo+nDMKK4SZ8m4Jvvxp52vilxyySSWh2YTZz8+HQ07qGH/2rEom1vDw=="],
@@ -213,6 +233,8 @@
     "blake3-wasm": ["blake3-wasm@2.1.5", "", {}, "sha512-F1+K8EbfOZE49dtoPtmxUQrpXaBIl3ICvasLh+nJta0xkz+9kF/7uet9fLnwKqhDrmj6g+6K3Tw9yQPUg2ka5g=="],
 
     "bun-types": ["bun-types@1.3.14", "", { "dependencies": { "@types/node": "*" } }, "sha512-4N0ig0fEomHt5R0KCFWjovxow98rIoRwKolrYdCcknNwMekCXRnWEUvgu5soYV8QXtVsrUD8B95MBOZGPvr6KQ=="],
+
+    "cirro": ["cirro@workspace:packages/cirro"],
 
     "cookie": ["cookie@1.1.1", "", {}, "sha512-ei8Aos7ja0weRpFzJnEA9UHJ/7XQmqglbRwnf2ATjcB9Wq874VKH9kfjjirM6UhU2/E5fFYadylyhFldcqSidQ=="],
 
