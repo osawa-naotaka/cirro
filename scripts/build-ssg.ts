@@ -1,5 +1,5 @@
 import { createElement } from "react";
-import { renderToString } from "react-dom/server";
+import { renderToStaticMarkup } from "react-dom/server";
 import { Page } from "../src/pages/index.tsx";
 
 // Vite が出力した manifest から、島クライアントエントリの最終ファイル名を取得する。
@@ -11,9 +11,9 @@ if (!entry) {
 }
 const scriptSrc = `/${entry.file}`;
 
-// 島を含むため、ハイドレーション用マーカー付きの HTML を生成する（renderToString）。
-// renderToString はインラインスクリプトを出力しないため、CSP 厳格性は維持される。
-const bodyHtml = renderToString(createElement(Page));
+// 本文は純粋な静的 HTML（マーカーなし）として描画する。
+// 島だけは <Island> 内の renderToString でマーカー付き HTML が埋め込まれる。
+const bodyHtml = renderToStaticMarkup(createElement(Page));
 
 // 外部スクリプトを 1 本だけ注入する（インラインスクリプトは一切使わない）。
 const html = `<!DOCTYPE html>${bodyHtml.replace("</body>", `<script type="module" src="${scriptSrc}"></script></body>`)}`;

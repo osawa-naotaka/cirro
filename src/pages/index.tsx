@@ -1,9 +1,8 @@
-import { Counter } from "../islands/Counter";
+import { Island } from "../Island";
 
-// ページ全体（本文は静的、Counter だけが島）。
-// 島のプレースホルダには初期描画 HTML も入れておき、クライアントで hydrateRoot する。
+// ページ全体（本文は静的 HTML、Counter だけが島）。
+// 島は <Island> が renderToString でマーカー付き描画し、本文は renderToStaticMarkup で純静的に保つ。
 export function Page() {
-    const counterProps = { initial: 3 };
     return (
         <html lang="ja">
             <head>
@@ -14,9 +13,7 @@ export function Page() {
             <body>
                 <h1>cirro プロトタイプ</h1>
                 <p>この本文は静的 HTML です。下のカウンターだけがクライアントで動く「島」です。</p>
-                <div data-island="counter" data-props={JSON.stringify(counterProps)}>
-                    <Counter {...counterProps} />
-                </div>
+                <Island name="counter" props={{ initial: 3 }} />
             </body>
         </html>
     );

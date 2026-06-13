@@ -1,21 +1,14 @@
 import { createElement } from "react";
-import type { ComponentType } from "react";
 import { hydrateRoot } from "react-dom/client";
-import { Counter } from "./islands/Counter";
-
-// 島レジストリ: data-island の名前 → コンポーネント
-// biome-ignore lint/suspicious/noExplicitAny: プロトタイプ用の緩い props 型
-const registry: Record<string, ComponentType<any>> = {
-    counter: Counter,
-};
+import { islands } from "./islands/registry";
 
 // data-island を持つ要素だけを個別の root としてハイドレートする（島アーキテクチャ）。
+// 島の名前は共有レジストリ (islands/registry.ts) で解決する。
 // props は data-props 属性から JSON で読み取る（インラインスクリプトを使わない）。
 for (const el of document.querySelectorAll<HTMLElement>("[data-island]")) {
     const name = el.dataset.island;
-    if (!name) continue;
-    const Component = registry[name];
-    if (!Component) continue;
+    if (!name || !(name in islands)) continue;
+    const Component = islands[name as keyof typeof islands];
     const props = el.dataset.props ? JSON.parse(el.dataset.props) : {};
     hydrateRoot(el, createElement(Component, props));
 }

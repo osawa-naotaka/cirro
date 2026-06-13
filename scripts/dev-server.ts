@@ -1,6 +1,6 @@
 import { createServer as createHttpServer } from "node:http";
 import { createElement } from "react";
-import { renderToString } from "react-dom/server";
+import { renderToStaticMarkup } from "react-dom/server";
 import { createServer as createViteServer } from "vite";
 
 // Vite を middleware モードで起動し、SSR + HMR の開発サーバを構成する。
@@ -17,7 +17,7 @@ const httpServer = createHttpServer((req, res) => {
         const url = req.url ?? "/";
         try {
             const { Page } = await vite.ssrLoadModule("/src/pages/index.tsx");
-            const appHtml = renderToString(createElement(Page));
+            const appHtml = renderToStaticMarkup(createElement(Page));
             let html = `<!DOCTYPE html>${appHtml}`.replace("</body>", `<script type="module" src="/src/client.tsx"></script></body>`);
             // Vite の HMR クライアント・preamble を注入する。
             html = await vite.transformIndexHtml(url, html);
