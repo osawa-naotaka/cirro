@@ -1,6 +1,6 @@
-import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { Page } from "../src/pages/index.tsx";
+import { expandRoutes, urlToFilePath } from "../src/router";
+import { routes } from "../src/routes";
 
 // Vite が出力した manifest から、島クライアントエントリの最終ファイル名を取得する。
 const manifestPath = "dist/.vite/manifest.json";
@@ -11,12 +11,13 @@ if (!entry) {
 }
 const scriptSrc = `/${entry.file}`;
 
-// 本文は純粋な静的 HTML（マーカーなし）として描画する。
-// 島だけは <Island> 内の renderToString でマーカー付き HTML が埋め込まれる。
-const bodyHtml = renderToStaticMarkup(createElement(Page));
-
-// 外部スクリプトを 1 本だけ注入する（インラインスクリプトは一切使わない）。
-const html = `<!DOCTYPE html>${bodyHtml.replace("</body>", `<script type="module" src="${scriptSrc}"></script></body>`)}`;
-
-await Bun.write("dist/index.html", html);
-console.log(`wrote dist/index.html (script: ${scriptSrc})`);
+// 全ルートを展開し、各ページを純粋な静的 HTML として書き出す。
+// 本文は renderToStaticMarkup（マーカーなし）。島だけ <Island> 内の renderToString でマーカー付き。
+for (const page of expandRoutes(routes)) {
+    const bodyHtml = renderToStaticMarkup(page.render());
+    // 外部スクリプトを 1 本だけ注入する（インラインスクリプトは一切使わない）。
+    const html = `<!DOCTYPE html>${bodyHtml.replace("</body>", `<script type="module" src="${scriptSrc}"></script></body>`)}`;
+    const filePath = `dist/${urlToFilePath(page.url)}`;
+    await Bun.write(filePath, html);
+    console.log(`wrote ${filePath} (url: ${page.url})`);
+}
