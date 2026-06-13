@@ -5,7 +5,8 @@
     "type": "module",
     "scripts": {
         "dev": "bun scripts/dev-server.ts",
-        "build": "vite build && bun scripts/build-ssg.ts",
+        "typecheck": "tsc",
+        "build": "tsc && vite build && bun scripts/build-ssg.ts",
         "build:ssg": "bun scripts/build-ssg.ts",
         "preview": "vite preview",
         "lint": "biome check ."

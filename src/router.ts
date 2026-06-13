@@ -15,7 +15,8 @@ export type DynamicRoute<P extends Params = Params> = {
     component: (props: { params: P }) => ReactElement;
 };
 
-export type AnyRoute = StaticRoute | DynamicRoute<Params>;
+// biome-ignore lint/suspicious/noExplicitAny: ルート集合では各動的ルートの params 型を消す必要がある
+export type AnyRoute = StaticRoute | DynamicRoute<any>;
 
 // 動的ルートの型パラメータ P を保持するための型推論ヘルパー。
 export function route<P extends Params>(def: DynamicRoute<P>): DynamicRoute<P>;
@@ -31,14 +32,12 @@ export type ResolvedPage = { url: string; render: () => ReactElement };
 export function expandRoutes(routes: AnyRoute[]): ResolvedPage[] {
     const pages: ResolvedPage[] = [];
     for (const r of routes) {
-        if (typeof r.path === "string") {
-            const staticRoute = r;
-            pages.push({ url: staticRoute.path, render: () => staticRoute.component({ params: {} }) });
-        } else {
-            const dynamicRoute = r;
-            for (const params of dynamicRoute.getStaticPaths()) {
-                pages.push({ url: dynamicRoute.path(params), render: () => dynamicRoute.component({ params }) });
+        if ("getStaticPaths" in r) {
+            for (const params of r.getStaticPaths()) {
+                pages.push({ url: r.path(params), render: () => r.component({ params }) });
             }
+        } else {
+            pages.push({ url: r.path, render: () => r.component({ params: {} }) });
         }
     }
     return pages;
