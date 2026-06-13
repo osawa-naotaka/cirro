@@ -33,7 +33,7 @@ const httpServer = createHttpServer((req, res) => {
             }
 
             const appHtml = renderToStaticMarkup(page.render());
-            let html = `<!DOCTYPE html>${appHtml}`.replace("</body>", `<script type="module" src="/src/client.tsx"></script></body>`);
+            let html = `<!DOCTYPE html>${appHtml}`.replace("</body>", `<script type="module" src="/@id/__x00__virtual:cirro/client"></script></body>`);
             // Vite の HMR クライアント・preamble を注入する。
             html = await vite.transformIndexHtml(rawUrl, html);
             res.statusCode = 200;

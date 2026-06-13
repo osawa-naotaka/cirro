@@ -1,4 +1,4 @@
-import { Island } from "../Island";
+import { Island } from "../islands/Island";
 
 // ホームページ（本文は静的 HTML、Counter だけが島）。
 export function HomePage() {

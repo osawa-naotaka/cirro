@@ -5,9 +5,9 @@ import { routes } from "../src/routes";
 // Vite が出力した manifest から、島クライアントエントリの最終ファイル名を取得する。
 const manifestPath = "dist/.vite/manifest.json";
 const manifest = JSON.parse(await Bun.file(manifestPath).text());
-const entry = manifest["src/client.tsx"];
+const entry = manifest["virtual:cirro/client"];
 if (!entry) {
-    throw new Error(`manifest entry "src/client.tsx" not found in ${manifestPath}`);
+    throw new Error(`manifest entry "virtual:cirro/client" not found in ${manifestPath}`);
 }
 const scriptSrc = `/${entry.file}`;
 
