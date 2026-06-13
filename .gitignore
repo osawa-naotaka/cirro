@@ -1,0 +1,7 @@
+node_modules
+.direnv
+.wrangler
+.dev.vars*
+dist
+wrangler.jsonc
+.claude/agent-memory
