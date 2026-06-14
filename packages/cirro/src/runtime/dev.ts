@@ -81,14 +81,16 @@ export async function runDev(port = 5173) {
     //
     // ページ・ルート定義（.tsx/.ts）だけでなく、Markdown などビルド時に SSR で HTML 化される
     // 「コンテンツ」も対象にする。これらはクライアント HMR の境界を持たないため、ファイル拡張子で
-    // 絞らず、islands 以外の src 配下の変更はすべて full-reload とする。
+    // 絞らず、islands 以外の監視ディレクトリ配下の変更はすべて full-reload とする。
     // full-reload で SSR を再実行させる前に、変更ファイルとその参照元（routes 等）の SSR モジュール
     // キャッシュを無効化しておく。これをしないと Module Runner が古い Markdown を返す可能性がある。
-    const srcDir = `${root.replaceAll("\\", "/").replace(/\/+$/, "")}/src/`;
+    //
+    // 監視ディレクトリは config の watchDir（既定 "./src"）で設定する。
+    const watchDir = `${resolve(root, options.watchDir ?? "./src").replaceAll("\\", "/").replace(/\/+$/, "")}/`;
     vite.watcher.on("change", (file) => {
         const f = file.replaceAll("\\", "/");
         if (f.startsWith(islandsDir)) return; // 島は Fast Refresh に任せる
-        if (!f.startsWith(srcDir)) return; // プロジェクトのソース外は無視
+        if (!f.startsWith(watchDir)) return; // 監視ディレクトリ外は無視
         invalidateModuleAndImporters(vite, file);
         vite.ws.send({ type: "full-reload" });
     });
