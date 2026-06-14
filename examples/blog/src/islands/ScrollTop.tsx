@@ -1,12 +1,32 @@
 import { useEffect, useState } from "react";
+import { css } from "../../styled-system/css";
 
 // 「ページ上部へ戻る」ボタン（クライアントで動く島）。
 //
-// あえて Material UI（emotion）を使わずプレーンな React + style 属性で実装している。
-// 島は createIsland 内の renderToString で個別に描画されるため、ここで emotion を使うと
-// 外側ページの renderToStaticMarkup とスタイル収集が二重になりうる。島を MUI 非依存に
-// 保つことでその複雑さを避けつつ、クライアントスクリプトは外部 JS として配信される
-// （script-src 'self' を維持）。
+// 見た目はすべて Panda の css() で静的クラス化している。表示/非表示の切り替えも、
+// 両方の状態を静的な css() で定義しておき className を差し替えるだけなので、
+// クライアントで再レンダリングされても <style> やインライン style 属性を一切注入しない
+// （style-src 'self' を維持）。クラスはビルド時に styles.css へ抽出される。
+const base = css({
+    position: "fixed",
+    right: "6",
+    bottom: "6",
+    w: "12",
+    h: "12",
+    borderRadius: "full",
+    border: "none",
+    cursor: "pointer",
+    bg: "primary",
+    color: "white",
+    fontSize: "xl",
+    lineHeight: 1,
+    boxShadow: "0 4px 12px rgba(0,0,0,0.25)",
+    transition: "opacity .2s ease, transform .2s ease",
+});
+
+const shown = css({ opacity: 1, transform: "translateY(0)", pointerEvents: "auto" });
+const hidden = css({ opacity: 0, transform: "translateY(8px)", pointerEvents: "none" });
+
 export function ScrollTop() {
     const [visible, setVisible] = useState(false);
 
@@ -22,25 +42,7 @@ export function ScrollTop() {
             type="button"
             aria-label="ページ上部へ戻る"
             onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-            style={{
-                position: "fixed",
-                right: 24,
-                bottom: 24,
-                width: 48,
-                height: 48,
-                borderRadius: "50%",
-                border: "none",
-                cursor: "pointer",
-                background: "#1565c0",
-                color: "#fff",
-                fontSize: 22,
-                lineHeight: 1,
-                boxShadow: "0 4px 12px rgba(0,0,0,0.25)",
-                opacity: visible ? 1 : 0,
-                transform: visible ? "translateY(0)" : "translateY(8px)",
-                transition: "opacity .2s ease, transform .2s ease",
-                pointerEvents: visible ? "auto" : "none",
-            }}
+            className={`${base} ${visible ? shown : hidden}`}
         >
             ↑
         </button>

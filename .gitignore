@@ -1,5 +1,7 @@
 node_modules
 .direnv
+styled-system
+examples/*/public/styles.css
 .wrangler
 .dev.vars*
 dist

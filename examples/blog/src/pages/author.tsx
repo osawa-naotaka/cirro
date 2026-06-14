@@ -1,4 +1,4 @@
-import { Avatar, Box, Paper, Stack, Typography } from "@mui/material";
+import { css } from "../../styled-system/css";
 import { Layout } from "../components/Layout";
 import { PostList } from "../components/PostList";
 import { getAuthor } from "../lib/authors";
@@ -11,26 +11,35 @@ export function AuthorPage({ params }: { params: { id: string } }) {
 
     return (
         <Layout title={`${author.name} — Cirro Blog`} description={author.bio}>
-            <Paper variant="outlined" sx={{ p: { xs: 3, md: 4 }, mb: 5, borderRadius: 3 }}>
-                <Stack direction={{ xs: "column", sm: "row" }} spacing={3} alignItems={{ sm: "center" }}>
-                    <Avatar sx={{ width: 72, height: 72, bgcolor: "primary.main", fontSize: 28 }}>
+            <div className={css({ border: "1px solid token(colors.border)", borderRadius: "panel", p: { base: "6", md: "8" }, mb: "10" })}>
+                <div className={css({ display: "flex", flexDir: { base: "column", sm: "row" }, gap: "6", alignItems: { sm: "center" } })}>
+                    <div
+                        className={css({
+                            flexShrink: 0,
+                            w: "18",
+                            h: "18",
+                            borderRadius: "full",
+                            bg: "primary",
+                            color: "white",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontSize: "1.75rem",
+                        })}
+                    >
                         {author.name.charAt(0)}
-                    </Avatar>
-                    <Box>
-                        <Typography variant="h4" component="h1" sx={{ fontWeight: 700 }}>
-                            {author.name}
-                        </Typography>
-                        <Typography color="primary" sx={{ mb: 1 }}>
-                            {author.role}
-                        </Typography>
-                        <Typography color="text.secondary">{author.bio}</Typography>
-                    </Box>
-                </Stack>
-            </Paper>
+                    </div>
+                    <div>
+                        <h1 className={css({ fontSize: "2rem", fontWeight: 700 })}>{author.name}</h1>
+                        <p className={css({ color: "primary", mb: "1" })}>{author.role}</p>
+                        <p className={css({ color: "fg.muted" })}>{author.bio}</p>
+                    </div>
+                </div>
+            </div>
 
-            <Typography variant="h5" component="h2" sx={{ fontWeight: 700, mb: 2 }}>
+            <h2 className={css({ fontSize: "xl", fontWeight: 700, mb: "4" })}>
                 {author.name} の記事（{written.length} 件）
-            </Typography>
+            </h2>
             <PostList posts={written} empty="まだ記事がありません。" />
         </Layout>
     );

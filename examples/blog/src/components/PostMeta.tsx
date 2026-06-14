@@ -1,4 +1,5 @@
-import { Box, Chip, Link, Stack, Typography } from "@mui/material";
+import { css } from "../../styled-system/css";
+import { chip } from "../../styled-system/recipes";
 import { getAuthor } from "../lib/authors";
 import { formatDate } from "../lib/format";
 import type { Post } from "../lib/types";
@@ -7,40 +8,29 @@ import type { Post } from "../lib/types";
 // size="small" で一覧用、size="medium" で記事ヘッダ用に使い分ける。
 export function PostMeta({ post, size = "small" }: { post: Post; size?: "small" | "medium" }) {
     const author = getAuthor(post.author);
-    const labelVariant = size === "medium" ? "body2" : "caption";
+    const labelClass = css({ color: "fg.muted", fontSize: size === "medium" ? "sm" : "xs" });
 
     return (
-        <Stack spacing={1}>
-            <Stack direction="row" spacing={1.5} alignItems="center" useFlexGap flexWrap="wrap">
-                <Typography variant={labelVariant} color="text.secondary">
-                    <Link href={`/authors/${author.id}`} underline="hover" color="inherit">
+        <div className={css({ display: "flex", flexDir: "column", gap: "2" })}>
+            <div className={css({ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "3" })}>
+                <span className={labelClass}>
+                    <a href={`/authors/${author.id}`} className={css({ color: "inherit", textDecoration: "none", _hover: { textDecoration: "underline" } })}>
                         {author.name}
-                    </Link>
-                </Typography>
-                <Typography variant={labelVariant} color="text.secondary">
-                    ・
-                </Typography>
-                <Typography variant={labelVariant} color="text.secondary" component="time">
-                    {formatDate(post.date)}
-                </Typography>
-            </Stack>
+                    </a>
+                </span>
+                <span className={labelClass}>・</span>
+                <time className={labelClass}>{formatDate(post.date)}</time>
+            </div>
 
             {post.tags.length > 0 ? (
-                <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75 }}>
+                <div className={css({ display: "flex", flexWrap: "wrap", gap: "1.5" })}>
                     {post.tags.map((tag) => (
-                        <Chip
-                            key={tag}
-                            label={tag}
-                            size="small"
-                            variant="outlined"
-                            color="primary"
-                            component="a"
-                            href={`/tags/${tag}`}
-                            clickable
-                        />
+                        <a key={tag} href={`/tags/${tag}`} className={chip()}>
+                            {tag}
+                        </a>
                     ))}
-                </Box>
+                </div>
             ) : null}
-        </Stack>
+        </div>
     );
 }

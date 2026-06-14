@@ -18,7 +18,7 @@ export const authors: Author[] = [
         id: "taro",
         name: "鈴木 太郎",
         role: "フロントエンドエンジニア",
-        bio: "React と Material UI を使った UI 設計が得意です。アクセシビリティとデザインシステムに興味があります。",
+        bio: "React と Panda CSS を使った UI 設計が得意です。アクセシビリティとデザインシステムに興味があります。",
     },
 ];
 

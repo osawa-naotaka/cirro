@@ -1,4 +1,5 @@
-import { Box, Button, Chip, Divider, Paper, Stack, Typography } from "@mui/material";
+import { css } from "../../styled-system/css";
+import { button, chip } from "../../styled-system/recipes";
 import { Layout } from "../components/Layout";
 import { PostList } from "../components/PostList";
 import { allTags, posts } from "../lib/content";
@@ -13,61 +14,48 @@ export function HomePage() {
             title="Cirro Blog — セキュリティ第一の軽量 SSG"
             description="React の島アーキテクチャと厳格な CSP を実現する軽量 SSG「Cirro」の公式サンプルブログ。"
         >
-            <Paper
-                elevation={0}
-                sx={{
-                    p: { xs: 3, md: 5 },
-                    mb: 5,
-                    borderRadius: 3,
+            <section
+                className={css({
+                    p: { base: "6", md: "10" },
+                    mb: "10",
+                    borderRadius: "panel",
                     background: "linear-gradient(135deg, #1565c0 0%, #00897b 100%)",
-                    color: "#fff",
-                }}
+                    color: "white",
+                })}
             >
-                <Typography variant="h3" component="h1" gutterBottom sx={{ fontWeight: 700 }}>
-                    Cirro Blog
-                </Typography>
-                <Typography variant="h6" component="p" sx={{ fontWeight: 400, opacity: 0.95, mb: 3 }}>
+                <h1 className={css({ fontSize: { base: "2.25rem", md: "3rem" }, fontWeight: 700, mb: "3" })}>Cirro Blog</h1>
+                <p className={css({ fontSize: "lg", opacity: 0.95, mb: "6" })}>
                     インラインスクリプトを一切生成せず、<code>script-src 'self'</code> の厳格な CSP を満たす。
                     React だけで書ける、軽量な静的サイトジェネレーター。
-                </Typography>
-                <Stack direction="row" spacing={2}>
-                    <Button href="/blog" variant="contained" color="inherit" sx={{ color: "primary.main" }}>
+                </p>
+                <div className={css({ display: "flex", flexWrap: "wrap", gap: "4" })}>
+                    <a href="/blog" className={button({ variant: "contrast" })}>
                         記事を読む
-                    </Button>
-                    <Button href="/about" variant="outlined" color="inherit">
+                    </a>
+                    <a href="/about" className={button({ variant: "outline" })}>
                         Cirro について
-                    </Button>
-                </Stack>
-            </Paper>
+                    </a>
+                </div>
+            </section>
 
-            <Stack direction="row" justifyContent="space-between" alignItems="baseline" sx={{ mb: 2 }}>
-                <Typography variant="h5" component="h2" sx={{ fontWeight: 700 }}>
-                    最新の記事
-                </Typography>
-                <Button href="/blog" size="small">
+            <div className={css({ display: "flex", justifyContent: "space-between", alignItems: "baseline", mb: "4" })}>
+                <h2 className={css({ fontSize: "xl", fontWeight: 700 })}>最新の記事</h2>
+                <a href="/blog" className={button({ variant: "text", size: "sm" })}>
                     すべて見る
-                </Button>
-            </Stack>
+                </a>
+            </div>
             <PostList posts={recent} />
 
-            <Divider sx={{ my: 5 }} />
+            <hr className={css({ border: "0", borderTop: "1px solid token(colors.border)", my: "10" })} />
 
-            <Typography variant="h5" component="h2" sx={{ fontWeight: 700, mb: 2 }}>
-                タグから探す
-            </Typography>
-            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+            <h2 className={css({ fontSize: "xl", fontWeight: 700, mb: "4" })}>タグから探す</h2>
+            <div className={css({ display: "flex", flexWrap: "wrap", gap: "2" })}>
                 {tags.map(({ tag, count }) => (
-                    <Chip
-                        key={tag}
-                        label={`${tag} (${count})`}
-                        component="a"
-                        href={`/tags/${tag}`}
-                        clickable
-                        color="primary"
-                        variant="outlined"
-                    />
+                    <a key={tag} href={`/tags/${tag}`} className={chip()}>
+                        {tag} ({count})
+                    </a>
                 ))}
-            </Box>
+            </div>
         </Layout>
     );
 }

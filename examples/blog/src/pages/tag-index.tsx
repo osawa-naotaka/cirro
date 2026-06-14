@@ -1,4 +1,5 @@
-import { Box, Chip, Typography } from "@mui/material";
+import { css } from "../../styled-system/css";
+import { chip } from "../../styled-system/recipes";
 import { Layout } from "../components/Layout";
 import { allTags } from "../lib/content";
 
@@ -8,26 +9,15 @@ export function TagIndexPage() {
 
     return (
         <Layout title="タグ一覧 — Cirro Blog" description="Cirro Blog の全タグ一覧。" island={false}>
-            <Typography variant="h4" component="h1" sx={{ fontWeight: 700, mb: 1 }}>
-                タグ一覧
-            </Typography>
-            <Typography color="text.secondary" sx={{ mb: 4 }}>
-                全 {tags.length} 個のタグ
-            </Typography>
-            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1.5 }}>
+            <h1 className={css({ fontSize: "2rem", fontWeight: 700, mb: "1" })}>タグ一覧</h1>
+            <p className={css({ color: "fg.muted", mb: "8" })}>全 {tags.length} 個のタグ</p>
+            <div className={css({ display: "flex", flexWrap: "wrap", gap: "3" })}>
                 {tags.map(({ tag, count }) => (
-                    <Chip
-                        key={tag}
-                        label={`${tag} (${count})`}
-                        component="a"
-                        href={`/tags/${tag}`}
-                        clickable
-                        color="primary"
-                        variant="outlined"
-                        sx={{ fontSize: "0.95rem", py: 2 }}
-                    />
+                    <a key={tag} href={`/tags/${tag}`} className={chip({ size: "md" })}>
+                        {tag} ({count})
+                    </a>
                 ))}
-            </Box>
+            </div>
         </Layout>
     );
 }

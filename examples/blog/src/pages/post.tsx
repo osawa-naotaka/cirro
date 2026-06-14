@@ -1,9 +1,12 @@
-import { Avatar, Box, Breadcrumbs, Divider, Link, Paper, Stack, Typography } from "@mui/material";
+import { css } from "../../styled-system/css";
 import { ArticleBody } from "../components/ArticleBody";
 import { Layout } from "../components/Layout";
 import { PostMeta } from "../components/PostMeta";
 import { getAuthor } from "../lib/authors";
 import { getPost } from "../lib/content";
+
+const hr = css({ border: "0", borderTop: "1px solid token(colors.border)", my: "10" });
+const crumbLink = css({ color: "fg.muted", textDecoration: "none", _hover: { textDecoration: "underline" } });
 
 // ブログ個別記事ページ（/blog/[slug]）。
 export function PostPage({ params }: { params: { slug: string } }) {
@@ -12,10 +15,10 @@ export function PostPage({ params }: { params: { slug: string } }) {
     if (!post) {
         return (
             <Layout title="記事が見つかりません — Cirro Blog" island={false}>
-                <Typography variant="h4" component="h1">
-                    記事が見つかりません
-                </Typography>
-                <Link href="/blog">← 記事一覧へ</Link>
+                <h1 className={css({ fontSize: "2rem", fontWeight: 700, mb: "4" })}>記事が見つかりません</h1>
+                <a href="/blog" className={css({ color: "primary" })}>
+                    ← 記事一覧へ
+                </a>
             </Layout>
         );
     }
@@ -24,54 +27,58 @@ export function PostPage({ params }: { params: { slug: string } }) {
 
     return (
         <Layout title={`${post.title} — Cirro Blog`} description={post.description}>
-            <Breadcrumbs sx={{ mb: 3 }}>
-                <Link href="/blog" underline="hover" color="inherit">
+            <nav className={css({ display: "flex", alignItems: "center", gap: "2", fontSize: "sm", mb: "6" })}>
+                <a href="/blog" className={crumbLink}>
                     記事一覧
-                </Link>
-                <Typography color="text.primary" noWrap sx={{ maxWidth: 240 }}>
-                    {post.title}
-                </Typography>
-            </Breadcrumbs>
+                </a>
+                <span className={css({ color: "fg.muted" })}>/</span>
+                <span className={css({ color: "fg", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxW: "60" })}>{post.title}</span>
+            </nav>
 
-            <Box component="article">
-                <Typography variant="h3" component="h1" sx={{ fontWeight: 700, mb: 2, lineHeight: 1.3 }}>
-                    {post.title}
-                </Typography>
-                <Box sx={{ mb: 4 }}>
+            <article>
+                <h1 className={css({ fontSize: { base: "1.9rem", md: "2.5rem" }, fontWeight: 700, mb: "4", lineHeight: 1.3 })}>{post.title}</h1>
+                <div className={css({ mb: "8" })}>
                     <PostMeta post={post} size="medium" />
-                </Box>
+                </div>
 
-                <Divider sx={{ mb: 4 }} />
+                <hr className={css({ border: "0", borderTop: "1px solid token(colors.border)", mb: "8" })} />
 
                 <ArticleBody html={post.html} />
-            </Box>
+            </article>
 
-            <Divider sx={{ my: 5 }} />
+            <hr className={hr} />
 
-            <Paper variant="outlined" sx={{ p: 3, borderRadius: 3 }}>
-                <Stack direction="row" spacing={2} alignItems="center">
-                    <Avatar
-                        component="a"
+            <div className={css({ border: "1px solid token(colors.border)", borderRadius: "panel", p: "6" })}>
+                <div className={css({ display: "flex", alignItems: "center", gap: "4" })}>
+                    <a
                         href={`/authors/${author.id}`}
-                        sx={{ width: 56, height: 56, bgcolor: "primary.main", textDecoration: "none" }}
+                        className={css({
+                            flexShrink: 0,
+                            w: "14",
+                            h: "14",
+                            borderRadius: "full",
+                            bg: "primary",
+                            color: "white",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontSize: "xl",
+                            textDecoration: "none",
+                        })}
                     >
                         {author.name.charAt(0)}
-                    </Avatar>
-                    <Box>
-                        <Typography variant="overline" color="text.secondary">
-                            この記事を書いた人
-                        </Typography>
-                        <Typography variant="h6" component="p">
-                            <Link href={`/authors/${author.id}`} underline="hover" color="inherit">
+                    </a>
+                    <div>
+                        <p className={css({ fontSize: "xs", color: "fg.muted", textTransform: "uppercase", letterSpacing: "wider" })}>この記事を書いた人</p>
+                        <p className={css({ fontSize: "lg", fontWeight: 700 })}>
+                            <a href={`/authors/${author.id}`} className={css({ color: "inherit", textDecoration: "none", _hover: { textDecoration: "underline" } })}>
                                 {author.name}
-                            </Link>
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                            {author.bio}
-                        </Typography>
-                    </Box>
-                </Stack>
-            </Paper>
+                            </a>
+                        </p>
+                        <p className={css({ fontSize: "sm", color: "fg.muted" })}>{author.bio}</p>
+                    </div>
+                </div>
+            </div>
         </Layout>
     );
 }

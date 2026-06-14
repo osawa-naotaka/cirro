@@ -1,4 +1,4 @@
-import { Typography } from "@mui/material";
+import { css } from "../../styled-system/css";
 import { Layout } from "../components/Layout";
 import { PostList } from "../components/PostList";
 import { posts } from "../lib/content";
@@ -7,12 +7,8 @@ import { posts } from "../lib/content";
 export function BlogIndexPage() {
     return (
         <Layout title="記事一覧 — Cirro Blog" description="Cirro Blog の全記事一覧。">
-            <Typography variant="h4" component="h1" sx={{ fontWeight: 700, mb: 1 }}>
-                記事一覧
-            </Typography>
-            <Typography color="text.secondary" sx={{ mb: 4 }}>
-                全 {posts.length} 件
-            </Typography>
+            <h1 className={css({ fontSize: "2rem", fontWeight: 700, mb: "1" })}>記事一覧</h1>
+            <p className={css({ color: "fg.muted", mb: "8" })}>全 {posts.length} 件</p>
             <PostList posts={posts} />
         </Layout>
     );

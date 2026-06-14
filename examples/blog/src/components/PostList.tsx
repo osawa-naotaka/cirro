@@ -1,21 +1,17 @@
-import { Stack, Typography } from "@mui/material";
+import { css } from "../../styled-system/css";
 import type { Post } from "../lib/types";
 import { PostCard } from "./PostCard";
 
 // 記事カードの縦並びリスト。空のときはメッセージを表示する。
 export function PostList({ posts, empty = "記事がありません。" }: { posts: Post[]; empty?: string }) {
     if (posts.length === 0) {
-        return (
-            <Typography color="text.secondary" sx={{ py: 4 }}>
-                {empty}
-            </Typography>
-        );
+        return <p className={css({ color: "fg.muted", py: "8" })}>{empty}</p>;
     }
     return (
-        <Stack spacing={2.5}>
+        <div className={css({ display: "flex", flexDir: "column", gap: "5" })}>
             {posts.map((post) => (
                 <PostCard key={post.slug} post={post} />
             ))}
-        </Stack>
+        </div>
     );
 }

@@ -1,7 +1,7 @@
-import { AppBar, Box, Button, Container, CssBaseline, ThemeProvider, Toolbar, Typography } from "@mui/material";
 import type { ReactNode } from "react";
+import { css } from "../../styled-system/css";
+import { button } from "../../styled-system/recipes";
 import { Island } from "../islands/Island";
-import { theme } from "../theme/theme";
 
 type LayoutProps = {
     title: string;
@@ -17,8 +17,12 @@ const NAV = [
     { href: "/about", label: "About" },
 ];
 
-// 全ページ共通のシェル。<html> 全体を返し、Material UI のテーマ・リセット・ナビゲーション・
-// フッターを提供する。本文はビルド時に静的 HTML 化される。
+// 横幅を md（約 56rem）に制限して中央寄せする共通コンテナ。MUI の <Container maxWidth="md"> 相当。
+const container = css({ width: "100%", maxW: "56rem", mx: "auto", px: "4" });
+
+// 全ページ共通のシェル。<html> 全体を返し、ナビゲーション・フッターを提供する。
+// スタイルは Panda がビルド時に生成した外部 CSS（/styles.css）から読み込むため、
+// インライン <style> も style="" 属性も一切生成しない（style-src 'self' を満たす）。
 export function Layout({ title, description, children, island = true }: LayoutProps) {
     return (
         <html lang="ja">
@@ -27,52 +31,35 @@ export function Layout({ title, description, children, island = true }: LayoutPr
                 <meta name="viewport" content="width=device-width, initial-scale=1" />
                 <title>{title}</title>
                 {description ? <meta name="description" content={description} /> : null}
-                <link rel="preconnect" href="https://fonts.googleapis.com" />
-                <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-                <link
-                    rel="stylesheet"
-                    href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Roboto:wght@400;500;700&display=swap"
-                />
+                <link rel="stylesheet" href="/styles.css" />
             </head>
             <body>
-                <ThemeProvider theme={theme}>
-                    <CssBaseline />
-                    <Box sx={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
-                        <AppBar position="static" elevation={0} color="primary">
-                            <Container maxWidth="md">
-                                <Toolbar disableGutters sx={{ gap: 1 }}>
-                                    <Typography
-                                        variant="h6"
-                                        component="a"
-                                        href="/"
-                                        sx={{ fontWeight: 700, color: "inherit", textDecoration: "none", flexGrow: 1 }}
-                                    >
-                                        Cirro Blog
-                                    </Typography>
-                                    {NAV.map((item) => (
-                                        <Button key={item.href} href={item.href} color="inherit">
-                                            {item.label}
-                                        </Button>
-                                    ))}
-                                </Toolbar>
-                            </Container>
-                        </AppBar>
+                <div className={css({ display: "flex", flexDir: "column", minH: "100vh" })}>
+                    <header className={css({ bg: "primary", color: "white" })}>
+                        <div className={`${container} ${css({ display: "flex", alignItems: "center", gap: "1", h: "16" })}`}>
+                            <a href="/" className={css({ flexGrow: 1, fontSize: "lg", fontWeight: 700, color: "inherit", textDecoration: "none" })}>
+                                Cirro Blog
+                            </a>
+                            {NAV.map((item) => (
+                                <a key={item.href} href={item.href} className={button({ variant: "text" })}>
+                                    {item.label}
+                                </a>
+                            ))}
+                        </div>
+                    </header>
 
-                        <Container component="main" maxWidth="md" sx={{ flexGrow: 1, py: { xs: 4, md: 6 } }}>
-                            {children}
-                        </Container>
+                    <main className={`${container} ${css({ flexGrow: 1, py: { base: "8", md: "12" } })}`}>{children}</main>
 
-                        <Box component="footer" sx={{ borderTop: 1, borderColor: "divider", py: 3, mt: 4 }}>
-                            <Container maxWidth="md">
-                                <Typography variant="body2" color="text.secondary" align="center">
-                                    © 2026 Cirro Blog — セキュリティ第一の軽量 SSG「Cirro」で構築
-                                </Typography>
-                            </Container>
-                        </Box>
-                    </Box>
+                    <footer className={css({ borderTop: "1px solid token(colors.border)", py: "6", mt: "8" })}>
+                        <div className={container}>
+                            <p className={css({ textAlign: "center", fontSize: "sm", color: "fg.muted" })}>
+                                © 2026 Cirro Blog — セキュリティ第一の軽量 SSG「Cirro」で構築
+                            </p>
+                        </div>
+                    </footer>
+                </div>
 
-                    {island ? <Island name="scrollTop" props={{}} /> : null}
-                </ThemeProvider>
+                {island ? <Island name="scrollTop" props={{}} /> : null}
             </body>
         </html>
     );
