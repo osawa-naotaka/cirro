@@ -15,6 +15,7 @@ export function createIsland<R extends IslandRegistry>(islands: R) {
         return createElement("div", {
             "data-island": name,
             "data-props": JSON.stringify(props),
+            // biome-ignore lint/security/noDangerouslySetInnerHtml: アイランドの初期DOMの注入
             dangerouslySetInnerHTML: { __html: html },
         });
     };

@@ -1,7 +1,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
-import { build as viteBuild, createServer as createViteServer, createServerModuleRunner } from "vite";
+import { createServerModuleRunner, createServer as createViteServer, build as viteBuild } from "vite";
 import { expandRoutes, urlToFilePath } from "../router.js";
 import { appendClientScript } from "./head.js";
 import { getCirroOptions } from "./options.js";

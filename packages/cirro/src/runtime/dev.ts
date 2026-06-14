@@ -1,7 +1,7 @@
 import { createServer as createHttpServer } from "node:http";
 import { dirname, resolve } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
-import { createServer as createViteServer, createServerModuleRunner, type ViteDevServer } from "vite";
+import { createServerModuleRunner, createServer as createViteServer, type ViteDevServer } from "vite";
 import { expandRoutes } from "../router.js";
 import { appendClientScript } from "./head.js";
 import { getCirroOptions } from "./options.js";
@@ -86,7 +86,9 @@ export async function runDev(port = 5173) {
     // キャッシュを無効化しておく。これをしないと Module Runner が古い Markdown を返す可能性がある。
     //
     // 監視ディレクトリは config の watchDir（既定 "./src"）で設定する。
-    const watchDir = `${resolve(root, options.watchDir ?? "./src").replaceAll("\\", "/").replace(/\/+$/, "")}/`;
+    const watchDir = `${resolve(root, options.watchDir ?? "./src")
+        .replaceAll("\\", "/")
+        .replace(/\/+$/, "")}/`;
     vite.watcher.on("change", (file) => {
         const f = file.replaceAll("\\", "/");
         if (f.startsWith(islandsDir)) return; // 島は Fast Refresh に任せる

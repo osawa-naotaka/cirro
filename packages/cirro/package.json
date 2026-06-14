@@ -29,7 +29,8 @@
     },
     "scripts": {
         "build": "tsc -p tsconfig.build.json && sed -i '1s|.*|#!/usr/bin/env node|' dist/cli.js && chmod +x dist/cli.js",
-        "typecheck": "tsc -p tsconfig.build.json --noEmit"
+        "typecheck": "tsc -p tsconfig.build.json --noEmit",
+        "format": "biome check --write ./src"
     },
     "peerDependencies": {
         "@vitejs/plugin-react": "^6.0.2",
@@ -38,6 +39,7 @@
         "vite": "^8.0.0"
     },
     "devDependencies": {
+        "@biomejs/biome": "2.5.0",
         "@types/node": "25.9.3",
         "@types/react": "19.2.17",
         "@types/react-dom": "19.2.3",
