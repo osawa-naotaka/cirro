@@ -4,10 +4,9 @@
     "private": true,
     "type": "module",
     "scripts": {
-        "dev": "bun scripts/dev-server.ts",
+        "dev": "cirro dev",
         "typecheck": "tsc",
-        "build": "tsc && vite build && bun scripts/build-ssg.ts",
-        "build:ssg": "bun scripts/build-ssg.ts",
+        "build": "tsc && cirro build",
         "preview": "vite preview"
     },
     "dependencies": {

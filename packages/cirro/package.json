@@ -6,6 +6,9 @@
         ".": "./src/index.ts",
         "./vite": "./src/vite.ts"
     },
+    "bin": {
+        "cirro": "./src/cli.ts"
+    },
     "dependencies": {
         "@vitejs/plugin-react": "6.0.2"
     },

@@ -20,6 +20,8 @@ export function cirro(options: CirroOptions): PluginOption {
         react(),
         {
             name: "cirro",
+            // CLI (cirro dev / build) が解決済み config から routes/islands を取得するために公開する。
+            api: { options },
             config() {
                 return {
                     build: {
