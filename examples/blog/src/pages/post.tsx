@@ -1,12 +1,69 @@
 import { css } from "../../styled-system/css";
-import { ArticleBody } from "../components/ArticleBody";
 import { Layout } from "../components/Layout";
 import { PostMeta } from "../components/PostMeta";
+import { TableOfContents } from "../components/TableOfContents";
 import { getAuthor } from "../lib/authors";
 import { getPost } from "../lib/content";
+import { renderMarkdown } from "../lib/markdown";
 
 const hr = css({ border: "0", borderTop: "1px solid token(colors.border)", my: "10" });
 const crumbLink = css({ color: "fg.muted", textDecoration: "none", _hover: { textDecoration: "underline" } });
+
+// 本文（cirro の renderMarkdown が返すサニタイズ済み HTML）のコンテナ。
+// 見た目は css() の子孫セレクタで整え、Prism のトークン配色もここに含める。
+// スタイルはビルド時に外部 CSS へ抽出される（インライン style/style 属性を作らず style-src 'self' を満たす）。
+const article = css({
+    color: "fg",
+    fontSize: "1.05rem",
+    lineHeight: 1.9,
+    wordBreak: "break-word",
+    "& h2": { mt: "10", mb: "4", fontSize: "1.6rem", fontWeight: 700, lineHeight: 1.4, scrollMarginTop: "4" },
+    "& h3": { mt: "8", mb: "3", fontSize: "1.3rem", fontWeight: 700, scrollMarginTop: "4" },
+    "& p": { my: "4" },
+    "& a": { color: "primary", textDecoration: "underline" },
+    "& ul, & ol": { pl: "6", my: "4" },
+    "& li": { my: "1" },
+    "& blockquote": {
+        borderLeft: "4px solid token(colors.primary.light)",
+        bg: "hover",
+        m: "0",
+        my: "6",
+        px: "5",
+        py: "2",
+        color: "fg.muted",
+    },
+    "& code": {
+        bg: "hover",
+        px: "1.5",
+        py: "0.5",
+        borderRadius: "sm",
+        fontSize: "0.9em",
+        fontFamily: "mono",
+    },
+    "& pre": {
+        bg: "#0f172a",
+        color: "#e2e8f0",
+        p: "5",
+        borderRadius: "card",
+        overflowX: "auto",
+        my: "6",
+    },
+    "& pre code": { bg: "transparent", p: "0", color: "inherit", fontSize: "0.9rem" },
+    // Prism（rehype-prism）が付与するトークンクラスの配色。インライン style は使わない。
+    "& .token.comment, & .token.prolog, & .token.doctype, & .token.cdata": { color: "#64748b", fontStyle: "italic" },
+    "& .token.punctuation": { color: "#94a3b8" },
+    "& .token.keyword, & .token.attr-name, & .token.rule": { color: "#c084fc" },
+    "& .token.string, & .token.attr-value, & .token.char, & .token.inserted": { color: "#86efac" },
+    "& .token.number, & .token.boolean, & .token.constant, & .token.tag, & .token.deleted": { color: "#fca5a5" },
+    "& .token.function, & .token.property, & .token.builtin": { color: "#7dd3fc" },
+    "& .token.class-name, & .token.selector": { color: "#fcd34d" },
+    "& .token.operator": { color: "#e2e8f0" },
+    "& table": { borderCollapse: "collapse", width: "100%", my: "6" },
+    "& th, & td": { border: "1px solid token(colors.border)", px: "3", py: "2", textAlign: "left" },
+    "& th": { bg: "hover", fontWeight: 700 },
+    "& img": { maxW: "100%", h: "auto", borderRadius: "card" },
+    "& hr": { border: "0", borderTop: "1px solid token(colors.border)", my: "8" },
+});
 
 // ブログ個別記事ページ（/blog/[slug]）。
 export function PostPage({ params }: { params: { slug: string } }) {
@@ -24,6 +81,8 @@ export function PostPage({ params }: { params: { slug: string } }) {
     }
 
     const author = getAuthor(post.author);
+    // 本文を 1 パスでサニタイズ済み HTML（body）と目次（toc）に変換する。
+    const { body, toc } = renderMarkdown(post.content, { className: article });
 
     return (
         <Layout title={`${post.title} — Cirro Blog`} description={post.description}>
@@ -43,7 +102,9 @@ export function PostPage({ params }: { params: { slug: string } }) {
 
                 <hr className={css({ border: "0", borderTop: "1px solid token(colors.border)", mb: "8" })} />
 
-                <ArticleBody html={post.html} />
+                <TableOfContents toc={toc} />
+
+                {body}
             </article>
 
             <hr className={hr} />

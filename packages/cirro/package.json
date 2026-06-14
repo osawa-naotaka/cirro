@@ -32,6 +32,16 @@
         "typecheck": "tsc -p tsconfig.build.json --noEmit",
         "format": "biome check --write ./src"
     },
+    "dependencies": {
+        "hast-util-sanitize": "^5.0.2",
+        "rehype-prism": "^2.3.3",
+        "rehype-sanitize": "^6.0.0",
+        "rehype-stringify": "^10.0.1",
+        "remark-export-toc": "0.1.0-alpha.2",
+        "remark-parse": "^11.0.0",
+        "remark-rehype": "^11.1.2",
+        "unified": "^11.0.5"
+    },
     "peerDependencies": {
         "@vitejs/plugin-react": "^6.0.2",
         "react": "^19.2.7",

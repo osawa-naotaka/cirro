@@ -1,5 +1,4 @@
 import matter from "gray-matter";
-import { markdownToHtml } from "./markdown";
 import type { Post, TagCount } from "./types";
 
 // content/posts 配下の Markdown を raw 文字列としてビルド時に読み込む。
@@ -16,7 +15,7 @@ function slugFromPath(path: string): string {
     return name.replace(/\.md$/, "");
 }
 
-// 全記事。frontmatter をパースし本文を HTML 化したうえで、日付の新しい順に並べる。
+// 全記事。frontmatter をパースし本文 Markdown を保持したうえで、日付の新しい順に並べる。
 export const posts: Post[] = Object.entries(files)
     .map(([path, raw]) => {
         const { data, content } = matter(raw);
@@ -27,7 +26,7 @@ export const posts: Post[] = Object.entries(files)
             date: String(data.date ?? ""),
             tags: Array.isArray(data.tags) ? data.tags.map(String) : [],
             description: String(data.description ?? ""),
-            html: markdownToHtml(content),
+            content,
         } satisfies Post;
     })
     .sort((a, b) => b.date.localeCompare(a.date));

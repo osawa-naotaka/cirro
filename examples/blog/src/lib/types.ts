@@ -9,10 +9,12 @@ export type PostFrontmatter = {
     description: string; // 一覧やメタタグで使う要約
 };
 
-// frontmatter に本文 HTML と slug を加えた、ページ描画に使う記事データ。
+// frontmatter に本文 Markdown と slug を加えた、ページ描画に使う記事データ。
+// 本文は raw Markdown のまま保持し、HTML 化（とサニタイズ・目次抽出）は描画時に
+// cirro の renderMarkdown で行う。
 export type Post = PostFrontmatter & {
     slug: string;
-    html: string; // remark/rehype で変換済みの本文 HTML
+    content: string; // frontmatter を除いた本文 Markdown
 };
 
 // タグ一覧用の集計エントリ。

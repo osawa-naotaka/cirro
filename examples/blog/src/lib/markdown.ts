@@ -1,27 +1,23 @@
-import rehypeSlug from "rehype-slug";
-import rehypeStringify from "rehype-stringify";
+import { createMarkdown } from "cirro";
+// rehype-prism は prismjs コアの言語しかハイライトしないため、使う言語の文法を
+// 同一 prismjs シングルトンに登録しておく（tsx は jsx/typescript/markup に依存）。
+// @ts-expect-error prismjs/components/index.js は型定義を持たない Node 用ローダ。
+import loadPrismLanguages from "prismjs/components/index.js";
 import remarkGfm from "remark-gfm";
-import remarkParse from "remark-parse";
-import remarkRehype from "remark-rehype";
-import { unified } from "unified";
 
-// remark/rehype による Markdown → HTML 変換。
-//
-// 重要: この変換は「サイト側」で実行する。cirro 本体はまだ Markdown 変換 API を
-// 提供していないため、利用者が自前で unified パイプラインを組む。
-// 変換結果はビルド時に静的 HTML として埋め込まれ、クライアントへ JS は送られない。
-//
-// expandRoutes / component の描画は同期的に行われるため、ここでも非同期プラグインを
-// 使わず processSync で同期変換する（remark-parse / remark-rehype / rehype-stringify は
-// いずれも同期処理に対応している）。
-const processor = unified()
-    .use(remarkParse) // Markdown を mdast へ
-    .use(remarkGfm) // テーブル・打消し線・タスクリスト等の GFM 拡張
-    .use(remarkRehype) // mdast を hast へ（raw HTML は通さない＝コンテンツを実行可能にしない）
-    .use(rehypeSlug) // 見出しに id を付与（アンカーリンク用）
-    .use(rehypeStringify); // hast を HTML 文字列へ
+loadPrismLanguages(["markup", "css", "javascript", "typescript", "jsx", "tsx", "markdown", "bash", "json"]);
 
-// Markdown 本文を HTML 文字列に変換する。
-export function markdownToHtml(markdown: string): string {
-    return String(processor.processSync(markdown));
-}
+// cirro の Markdown 描画 API。サニタイズ（rehype-sanitize）は cirro が固定で強制するため、
+// ここでは「サニタイズの上流」に積むユーザープラグインと、組み込み機能の有効化だけを宣言する。
+//
+// - remarkPlugins: GFM（テーブル・打消し線・タスクリスト等）。サニタイズの上流で動く。
+// - toc: remark-export-toc による見出しへのシリアル id 付与 + 目次抽出（日本語見出しでも壊れない）。
+// - highlight: rehype-prism。インラインスタイルを生成せずクラスベースで色付けする（style-src 'self' と両立）。
+//
+// 変換はビルド時（renderToStaticMarkup は同期）に行われ、結果は静的 HTML として埋め込まれる。
+// クライアントへ unified 一式の JS は送られない。
+export const { render: renderMarkdown } = createMarkdown({
+    remarkPlugins: [remarkGfm],
+    toc: true,
+    highlight: true,
+});
