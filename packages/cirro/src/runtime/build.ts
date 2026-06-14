@@ -3,6 +3,7 @@ import { dirname, join, resolve } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 import { build as viteBuild, createServer as createViteServer, createServerModuleRunner } from "vite";
 import { expandRoutes, urlToFilePath } from "../router.js";
+import { appendClientScript } from "./head.js";
 import { getCirroOptions } from "./options.js";
 
 // `cirro build`: クライアントバンドルを作り、各ルートを静的 HTML として書き出す（node:fs のみ、bun 非依存）。
@@ -27,9 +28,10 @@ export async function runBuild() {
 
         const { routes } = await runner.import(routesPath);
         for (const page of expandRoutes(routes)) {
+            // クライアントスクリプトは React 要素ツリーを直接操作して <head> の末尾に挿入する（文字列置換しない）。
             // 本文は純粋な静的 HTML（マーカーなし）。島だけ <Island> 内の renderToString でマーカー付き。
-            const body = renderToStaticMarkup(page.render());
-            const html = `<!DOCTYPE html>${body.replace("</body>", `<script type="module" src="${scriptSrc}"></script></body>`)}`;
+            const tree = appendClientScript(page.render(), scriptSrc);
+            const html = `<!DOCTYPE html>${renderToStaticMarkup(tree)}`;
             const filePath = join(outDir, urlToFilePath(page.url));
             await mkdir(dirname(filePath), { recursive: true });
             await writeFile(filePath, html);

@@ -3,6 +3,7 @@ import { dirname, resolve } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createServer as createViteServer, createServerModuleRunner } from "vite";
 import { expandRoutes } from "../router.js";
+import { appendClientScript } from "./head.js";
 import { getCirroOptions } from "./options.js";
 
 // 仮想島マウンタ（virtual:cirro/client）の dev 配信 URL。
@@ -36,8 +37,9 @@ export async function runDev(port = 5173) {
                     return;
                 }
 
-                const appHtml = renderToStaticMarkup(page.render());
-                let html = `<!DOCTYPE html>${appHtml}`.replace("</body>", `<script type="module" src="${CLIENT_DEV_URL}"></script></body>`);
+                // クライアントスクリプトは React 要素ツリーを直接操作して <head> の末尾に挿入する（文字列置換しない）。
+                const tree = appendClientScript(page.render(), CLIENT_DEV_URL);
+                let html = `<!DOCTYPE html>${renderToStaticMarkup(tree)}`;
                 html = await vite.transformIndexHtml(rawUrl, html);
                 res.statusCode = 200;
                 res.setHeader("Content-Type", "text/html; charset=utf-8");
