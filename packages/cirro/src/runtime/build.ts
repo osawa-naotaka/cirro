@@ -1,7 +1,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
-import { build as viteBuild, createServer as createViteServer } from "vite";
+import { build as viteBuild, createServer as createViteServer, createServerModuleRunner } from "vite";
 import { expandRoutes, urlToFilePath } from "../router.js";
 import { getCirroOptions } from "./options.js";
 
@@ -12,6 +12,7 @@ export async function runBuild() {
 
     // 2. routes を評価するための一時 Vite server（ssrLoadModule）。
     const server = await createViteServer({ server: { middlewareMode: true, hmr: false }, appType: "custom" });
+    const runner = createServerModuleRunner(server.environments.ssr);
     try {
         const config = server.config;
         const options = getCirroOptions(config);
@@ -24,7 +25,7 @@ export async function runBuild() {
         if (!entry) throw new Error('cirro: manifest entry "virtual:cirro/client" not found');
         const scriptSrc = `/${entry.file}`;
 
-        const { routes } = await server.ssrLoadModule(routesPath);
+        const { routes } = await runner.import(routesPath);
         for (const page of expandRoutes(routes)) {
             // 本文は純粋な静的 HTML（マーカーなし）。島だけ <Island> 内の renderToString でマーカー付き。
             const body = renderToStaticMarkup(page.render());

@@ -1,7 +1,7 @@
 import { createServer as createHttpServer } from "node:http";
 import { dirname, resolve } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
-import { createServer as createViteServer } from "vite";
+import { createServer as createViteServer, createServerModuleRunner } from "vite";
 import { expandRoutes } from "../router.js";
 import { getCirroOptions } from "./options.js";
 
@@ -11,6 +11,7 @@ const CLIENT_DEV_URL = "/@id/__x00__virtual:cirro/client";
 // `cirro dev`: Vite を middleware モードで起動し、SSR + ルーティング + HMR を提供する。
 export async function runDev(port = 5173) {
     const vite = await createViteServer({ server: { middlewareMode: true }, appType: "custom" });
+    const runner = createServerModuleRunner(vite.environments.ssr);
     const options = getCirroOptions(vite.config);
     const root = vite.config.root;
     const routesPath = resolve(root, options.routes);
@@ -20,8 +21,8 @@ export async function runDev(port = 5173) {
         vite.middlewares(req, res, async () => {
             const rawUrl = req.url ?? "/";
             try {
-                // routes は ssrLoadModule で最新を読む（HMR と整合）。
-                const { routes } = await vite.ssrLoadModule(routesPath);
+                // routes は Module Runner で最新を読む（HMR と整合）。
+                const { routes } = await runner.import(routesPath);
                 const pages = expandRoutes(routes);
 
                 const pathname = new URL(rawUrl, "http://localhost").pathname;
@@ -42,7 +43,7 @@ export async function runDev(port = 5173) {
                 res.setHeader("Content-Type", "text/html; charset=utf-8");
                 res.end(html);
             } catch (err) {
-                vite.ssrFixStacktrace(err as Error);
+                // Module Runner はスタックトレースを自動補正するため ssrFixStacktrace は不要。
                 res.statusCode = 500;
                 res.end(String(err));
             }
