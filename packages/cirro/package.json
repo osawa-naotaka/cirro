@@ -31,10 +31,8 @@
         "build": "tsc -p tsconfig.build.json && sed -i '1s|.*|#!/usr/bin/env node|' dist/cli.js && chmod +x dist/cli.js",
         "typecheck": "tsc -p tsconfig.build.json --noEmit"
     },
-    "dependencies": {
-        "@vitejs/plugin-react": "6.0.2"
-    },
     "peerDependencies": {
+        "@vitejs/plugin-react": "^6.0.0",
         "react": "^19.0.0",
         "react-dom": "^19.0.0",
         "vite": "^8.0.0"
