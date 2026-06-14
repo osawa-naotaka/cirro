@@ -1,13 +1,35 @@
 {
     "name": "cirro",
     "version": "0.0.0",
+    "description": "React islands SSG with strict CSP (no unsafe-inline). Vite-based, MPA-first.",
+    "license": "MIT",
     "type": "module",
+    "files": ["dist", "README.md", "LICENSE"],
     "exports": {
         ".": "./src/index.ts",
         "./vite": "./src/vite.ts"
     },
     "bin": {
         "cirro": "./src/cli.ts"
+    },
+    "publishConfig": {
+        "exports": {
+            ".": {
+                "types": "./dist/index.d.ts",
+                "default": "./dist/index.js"
+            },
+            "./vite": {
+                "types": "./dist/vite.d.ts",
+                "default": "./dist/vite.js"
+            }
+        },
+        "bin": {
+            "cirro": "./dist/cli.js"
+        }
+    },
+    "scripts": {
+        "build": "tsc -p tsconfig.build.json && sed -i '1s|.*|#!/usr/bin/env node|' dist/cli.js && chmod +x dist/cli.js",
+        "typecheck": "tsc -p tsconfig.build.json --noEmit"
     },
     "dependencies": {
         "@vitejs/plugin-react": "6.0.2"
@@ -18,8 +40,10 @@
         "vite": "^8.0.0"
     },
     "devDependencies": {
+        "@types/node": "25.9.3",
         "@types/react": "19.2.17",
         "@types/react-dom": "19.2.3",
+        "typescript": "6.0.3",
         "vite": "8.0.16"
     }
 }

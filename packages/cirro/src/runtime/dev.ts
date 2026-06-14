@@ -2,8 +2,8 @@ import { createServer as createHttpServer } from "node:http";
 import { dirname, resolve } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createServer as createViteServer } from "vite";
-import { expandRoutes } from "../router";
-import { getCirroOptions } from "./options";
+import { expandRoutes } from "../router.js";
+import { getCirroOptions } from "./options.js";
 
 // 仮想島マウンタ（virtual:cirro/client）の dev 配信 URL。
 const CLIENT_DEV_URL = "/@id/__x00__virtual:cirro/client";

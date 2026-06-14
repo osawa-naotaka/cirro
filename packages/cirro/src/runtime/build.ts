@@ -2,8 +2,8 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 import { build as viteBuild, createServer as createViteServer } from "vite";
-import { expandRoutes, urlToFilePath } from "../router";
-import { getCirroOptions } from "./options";
+import { expandRoutes, urlToFilePath } from "../router.js";
+import { getCirroOptions } from "./options.js";
 
 // `cirro build`: クライアントバンドルを作り、各ルートを静的 HTML として書き出す（node:fs のみ、bun 非依存）。
 export async function runBuild() {
@@ -11,7 +11,7 @@ export async function runBuild() {
     await viteBuild();
 
     // 2. routes を評価するための一時 Vite server（ssrLoadModule）。
-    const server = await createViteServer({ server: { middlewareMode: true }, appType: "custom" });
+    const server = await createViteServer({ server: { middlewareMode: true, hmr: false }, appType: "custom" });
     try {
         const config = server.config;
         const options = getCirroOptions(config);

@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
-import { runBuild } from "./runtime/build";
-import { runDev } from "./runtime/dev";
+import { runBuild } from "./runtime/build.js";
+import { runDev } from "./runtime/dev.js";
 
 const cmd = process.argv[2];
 

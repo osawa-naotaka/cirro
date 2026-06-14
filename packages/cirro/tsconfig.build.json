@@ -1,0 +1,16 @@
+{
+    "compilerOptions": {
+        "outDir": "dist",
+        "rootDir": "src",
+        "declaration": true,
+        "module": "ESNext",
+        "moduleResolution": "bundler",
+        "target": "ESNext",
+        "jsx": "react-jsx",
+        "strict": true,
+        "skipLibCheck": true,
+        "verbatimModuleSyntax": true,
+        "lib": ["ESNext", "DOM", "DOM.Iterable"]
+    },
+    "include": ["src"]
+}
