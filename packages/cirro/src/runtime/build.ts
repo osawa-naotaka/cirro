@@ -2,9 +2,9 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createServerModuleRunner, createServer as createViteServer, build as viteBuild } from "vite";
-import { expandRoutes, urlToFilePath } from "../router.js";
-import { appendClientScript } from "./head.js";
-import { getCirroOptions } from "./options.js";
+import { expandRoutes, urlToFilePath } from "../router.ts";
+import { appendClientScript } from "./head.ts";
+import { getCirroOptions } from "./options.ts";
 
 // `cirro build`: クライアントバンドルを作り、各ルートを静的 HTML として書き出す（node:fs のみ、bun 非依存）。
 export async function runBuild() {

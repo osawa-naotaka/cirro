@@ -1,5 +1,5 @@
 import type { ResolvedConfig } from "vite";
-import type { CirroOptions } from "../vite.js";
+import type { CirroOptions } from "../vite.ts";
 
 // 解決済み Vite config から cirro プラグインのオプションを取り出す。
 // cirro() プラグインが `api: { options }` で公開している。
