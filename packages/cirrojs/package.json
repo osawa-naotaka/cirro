@@ -4,6 +4,10 @@
     "description": "React islands SSG with strict CSP (no unsafe-inline). Vite-based, MPA-first.",
     "license": "MIT",
     "type": "module",
+    "repository": {
+      "type": "git",
+      "url": "git+https://github.com/osawa-naotaka/cirro.git"
+    },
     "files": [
         "dist",
         "README.md",
