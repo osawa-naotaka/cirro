@@ -7,3 +7,4 @@ examples/*/public/styles.css
 dist
 wrangler.jsonc
 .claude/agent-memory
+cirrojs-*.tgz

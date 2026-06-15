@@ -12,8 +12,8 @@
   in {
     devShells.${system}.default = pkgs.mkShell {
       buildInputs = with pkgs; [
-        bun
-        nodejs_24
+        nodejs_26
+        pnpm
       ];
     };
   };
