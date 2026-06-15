@@ -1,4 +1,4 @@
-# cirro パッケージ（packages/cirro）を npm へ publish する。
+# cirrojs パッケージ（packages/cirrojs）を npm へ publish する。
 #
 # 認証は npm Trusted Publishers（GitHub Actions OIDC）を使う。NPM_TOKEN は不要。
 # 事前に npmjs.com 側で設定が必要:
@@ -9,7 +9,15 @@
 #   を登録しておく（このワークフローの environment / ファイル名と一致させること）。
 # 参考: https://docs.npmjs.com/trusted-publishers
 #
-# 注意: push のたびに publish を試みるため、公開前に packages/cirro/package.json の
+# publish 方式について:
+#   exports は開発時 src を指し、公開時に publishConfig.exports で dist へ差し替える。
+#   この差し替えは pnpm（pnpm pack / pnpm publish）でしか効かない。一方 pnpm 11 は
+#   OIDC trusted publishing が壊れている（pnpm#11513）。そのため
+#     1. `pnpm pack` で publishConfig 適用済み tarball を作る（dist 参照に書き換わる）
+#     2. `npm publish <tarball>` で OIDC publish する（provenance も自動付与）
+#   の 2 段構成にする。
+#
+# 注意: push のたびに publish を試みるため、公開前に packages/cirrojs/package.json の
 # version を上げておくこと（同一バージョンの再 publish は npm 側でエラーになる）。
 
 name: Publish cirro to npm
@@ -33,10 +41,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
         with:
-          bun-version: latest
+          version: 11.5.2
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
@@ -52,20 +60,24 @@ jobs:
         run: npm install -g npm@latest
 
       - name: Install dependencies
-        run: bun install --frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Type check
-        working-directory: packages/cirrojs
-        run: bun run typecheck
+        run: pnpm --filter cirrojs run typecheck
 
       - name: Build
+        run: pnpm --filter cirrojs run build
+
+      # publishConfig.exports を適用した tarball を作る（src → dist に書き換わり、
+      # publishConfig 自体は除去される）。出力先は npm publish から参照しやすい一時領域。
+      - name: Pack (apply publishConfig)
         working-directory: packages/cirrojs
-        run: bun run build
+        run: pnpm pack --pack-destination "$RUNNER_TEMP"
 
       # OIDC により認証され、provenance も自動付与される（--provenance は不要）。
+      # pack 済み tarball を直接 publish することで pnpm 11 の OIDC 不具合を回避する。
       - name: Publish to npm
-        working-directory: packages/cirrojs
-        run: npm publish --access public --tag latest
+        run: npm publish "$RUNNER_TEMP"/cirrojs-*.tgz --access public --tag latest
 
       - name: Publish Success
         if: success()
