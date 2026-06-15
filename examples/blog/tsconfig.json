@@ -8,6 +8,9 @@
         "verbatimModuleSyntax": true,
         "skipLibCheck": true,
         "noEmit": true,
+        // cirro を workspace のソース（src/*.ts）として解決するため、
+        // 拡張子付き import (.ts/.tsx) を許可する。
+        "allowImportingTsExtensions": true,
         "resolveJsonModule": true,
         "lib": ["ESNext", "DOM", "DOM.Iterable"],
         "types": ["vite/client"]
