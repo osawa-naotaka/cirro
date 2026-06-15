@@ -11,7 +11,7 @@
         "preview": "vite preview"
     },
     "dependencies": {
-        "cirro": "workspace:*",
+        "cirrojs": "workspace:*",
         "gray-matter": "4.0.3",
         "prismjs": "1.30.0",
         "react": "19.2.7",

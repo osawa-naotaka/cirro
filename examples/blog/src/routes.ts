@@ -1,4 +1,4 @@
-import { type AnyRoute, route } from "cirro";
+import { type AnyRoute, route } from "cirrojs";
 import { authors } from "./lib/authors";
 import { allTags, posts } from "./lib/content";
 import { AboutPage } from "./pages/about";
