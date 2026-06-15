@@ -13,7 +13,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
-- cirroスクリプトが正しくリンクされていなかった問題を解決
+## [0.0.3] - 2026-06-15
+
+### Fixed
+- Fixed the `cirro` CLI binary not being linked correctly on install.
 
 ## [0.0.2] - 2026-06-15
 
@@ -23,5 +26,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## 0.0.1 - 2026-06-15
 - initial release
 
-[Unreleased]: https://github.com/osawa-naotaka/cirro/compare/v0.0.2...HEAD
+[Unreleased]: https://github.com/osawa-naotaka/cirro/compare/v0.0.3...HEAD
+[0.0.3]: https://github.com/osawa-naotaka/cirro/compare/v0.0.2...v0.0.3
 [0.0.2]: https://github.com/osawa-naotaka/cirro/compare/v0.0.1...v0.0.2
