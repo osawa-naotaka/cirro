@@ -1,9 +1,9 @@
 {
     "compilerOptions": {
-        "ignoreDeprecations": "6.0",
         "outDir": "dist",
         "rootDir": "src",
         "declaration": true,
+        "allowImportingTsExtensions": true,
         "module": "ESNext",
         "moduleResolution": "bundler",
         "target": "ESNext",
