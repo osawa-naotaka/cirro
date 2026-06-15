@@ -25,8 +25,10 @@ export default defineConfig({
 
 ```jsonc
 // package.json
-"scripts": { "dev": "cirro dev", "build": "cirro build" }
+"scripts": { "dev": "cirro dev", "build": "tsc && cirro build", "preview": "vite preview" }
 ```
+
+CLI は `cirro dev`（SSR + ルーティング + HMR の開発サーバー）と `cirro build`（静的サイトを `dist/` へ生成）の 2 つ。プレビューは `vite preview` を使う。
 
 ```ts
 // src/islands/registry.ts — 島を登録（純データ）
@@ -58,6 +60,22 @@ export const routes: AnyRoute[] = [
 ```
 
 ページは完全な HTML 文書を返し、島は `<Island name="counter" props={{ initial: 3 }} />` のように型安全に配置する。
+
+## Markdown
+
+`createMarkdown()` でビルド時に Markdown を HTML 化する。`rehype-sanitize` を固定で強制し（ユーザープラグインは「サニタイズの上流」に積む）、目次抽出（`toc`）やクラスベースのシンタックスハイライト（`highlight`、インラインスタイルを出さず `style-src 'self'` と両立）に対応する。unified 一式はクライアントへ送られない。
+
+```ts
+import { createMarkdown } from "cirro";
+import remarkGfm from "remark-gfm";
+
+const { render } = createMarkdown({ remarkPlugins: [remarkGfm], toc: true, highlight: true });
+const { body, toc } = render(markdownSource); // body: サニタイズ済み HTML の React 要素 / toc: 目次
+```
+
+## ドキュメント
+
+使い方の詳細は [`doc/04_USAGE.md`](../../doc/04_USAGE.md) を参照（セットアップ、ルーティング、dev / build、島、Markdown、Panda CSS によるデザイン、CSP まで網羅）。島システムの仕組みは [`doc/03_ISLAND_SYSTEM.md`](../../doc/03_ISLAND_SYSTEM.md)、設計の背景は [`doc/01_CHARTER.md`](../../doc/01_CHARTER.md) を参照。
 
 ## ライセンス
 

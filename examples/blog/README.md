@@ -39,13 +39,15 @@ description: "一覧に出る要約。"
 
 ## 仕組みのポイント
 
-- **Markdown → HTML はサイト側で変換**: `src/lib/markdown.ts` の unified パイプライン
-  （remark-parse → remark-gfm → remark-rehype → rehype-slug → rehype-stringify）を
-  `processSync` で同期実行する。cirro 本体はまだ Markdown 描画 API を提供していないため、
-  利用者が自前で組んでいる。
-- **本文の埋め込み**: 変換結果は `src/components/ArticleBody.tsx` で `dangerouslySetInnerHTML`
-  により描画する。raw HTML は remark-rehype が既定で通さないため、信頼できる自前コンテンツに限り
-  許容している（cirro 側 API 提供までの暫定）。
+- **Markdown → HTML は cirro の `createMarkdown` で変換**: `src/lib/markdown.ts` で
+  `createMarkdown({ remarkPlugins: [remarkGfm], toc: true, highlight: true })` を構築し、
+  `renderMarkdown(content)` で本文（`body`）と目次（`toc`）を 1 パスで得る。変換はビルド時に
+  `processSync` で同期実行され、unified 一式の JS はクライアントへ送られない（サーバー専用）。
+- **サニタイズは cirro が固定で強制**: パイプラインは「ユーザープラグイン層 → `rehype-sanitize`
+  （固定の防衛線）→ 信頼済み層」の二層構造で、ユーザーが上流で何を生成しても許可リストのサブセット
+  だけが通る。raw HTML も通らない（`allowDangerousHtml` を渡さない）。
+- **本文の埋め込み**: `renderMarkdown` が返す `body`（サニタイズ済み HTML を埋め込んだ React 要素）を
+  ページに置くだけ。型レベルで「サニタイズ済み」に限定され、生の文字列は埋め込めない。
 - **スタイル**: Panda CSS（`panda.config.ts`）で色・角丸・フォントをトークン管理し、`css()` や
   レシピ（`button` / `chip`）で記述する。Panda は**ランタイム CSS-in-JS ではなく**、ビルド時に
   ソースを静的解析して `public/styles.css` を生成する。実行時の `css()` は事前計算済みのクラス名を
