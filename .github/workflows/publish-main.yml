@@ -1,0 +1,76 @@
+# cirro パッケージ（packages/cirro）を npm へ publish する。
+#
+# 認証は npm Trusted Publishers（GitHub Actions OIDC）を使う。NPM_TOKEN は不要。
+# 事前に npmjs.com 側で設定が必要:
+#   パッケージ設定 → Trusted Publisher → GitHub Actions を追加し、
+#   - Repository: osawa-naotaka/cirro
+#   - Workflow filename: publish-main.yml
+#   - Environment: npm
+#   を登録しておく（このワークフローの environment / ファイル名と一致させること）。
+# 参考: https://docs.npmjs.com/trusted-publishers
+#
+# 注意: push のたびに publish を試みるため、公開前に packages/cirro/package.json の
+# version を上げておくこと（同一バージョンの再 publish は npm 側でエラーになる）。
+
+name: Publish cirro to npm
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    # Trusted Publisher 側で指定する environment と一致させる。
+    environment: npm
+    permissions:
+      contents: read
+      id-token: write # OIDC トークン発行に必須
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          registry-url: "https://registry.npmjs.org"
+          # リリースビルドでは npm のパッケージキャッシュを無効化する（trusted publishing の推奨）。
+          package-manager-cache: false
+
+      # Trusted Publishing は npm CLI 11.5.1 以上 / Node 22.14 以上を要求する。
+      # Node 24 同梱の npm がこれに満たない場合に備え、最新へ更新する。
+      - name: Update npm
+        run: npm install -g npm@latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Type check
+        working-directory: packages/cirro
+        run: bun run typecheck
+
+      - name: Build
+        working-directory: packages/cirro
+        run: bun run build
+
+      # OIDC により認証され、provenance も自動付与される（--provenance は不要）。
+      - name: Publish to npm
+        working-directory: packages/cirro
+        run: npm publish --access public --tag latest
+
+      - name: Publish Success
+        if: success()
+        run: echo "✅ cirro published successfully"
+
+      - name: Publish Failure
+        if: failure()
+        run: echo "❌ cirro publish failed"
