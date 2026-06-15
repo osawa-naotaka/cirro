@@ -1,4 +1,4 @@
-import type { ToC } from "cirro";
+import type { ToC } from "cirrojs";
 import { css } from "../../styled-system/css";
 
 // remark-export-toc が抽出した目次（ToC[]）を描画する。各エントリの id は本文見出しの
