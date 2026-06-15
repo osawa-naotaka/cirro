@@ -1,14 +1,16 @@
-#!/usr/bin/env bun
 import { runBuild } from "./runtime/build.js";
 import { runDev } from "./runtime/dev.js";
 
-const cmd = process.argv[2];
+// cli.sh（bin ランチャー）から呼ばれるエントリ。args は実行 runtime のパスを除いた引数列。
+export async function main(args: string[]): Promise<void> {
+    const cmd = args[0];
 
-if (cmd === "dev") {
-    await runDev();
-} else if (cmd === "build") {
-    await runBuild();
-} else {
-    console.error("usage: cirro <dev|build>");
-    process.exit(1);
+    if (cmd === "dev") {
+        await runDev();
+    } else if (cmd === "build") {
+        await runBuild();
+    } else {
+        console.error("usage: cirro <dev|build>");
+        process.exit(1);
+    }
 }
