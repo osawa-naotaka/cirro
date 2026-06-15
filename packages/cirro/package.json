@@ -1,5 +1,5 @@
 {
-    "name": "cirro",
+    "name": "cirrojs",
     "version": "0.0.1",
     "description": "React islands SSG with strict CSP (no unsafe-inline). Vite-based, MPA-first.",
     "license": "MIT",
