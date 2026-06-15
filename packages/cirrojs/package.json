@@ -4,14 +4,19 @@
     "description": "React islands SSG with strict CSP (no unsafe-inline). Vite-based, MPA-first.",
     "license": "MIT",
     "type": "module",
-    "files": ["dist", "README.md", "LICENSE"],
+    "files": [
+        "dist",
+        "README.md",
+        "CHANGELOG.md",
+        "LICENSE"
+    ],
     "exports": {
         ".": "./src/index.ts",
         "./vite": "./src/vite.ts",
         "./bin": "./src/cli.ts"
     },
     "bin": {
-        "cirro": "./public/cli.sh"
+        "cirro": "public/cli.sh"
     },
     "publishConfig": {
         "exports": {

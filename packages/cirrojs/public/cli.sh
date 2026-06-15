@@ -29,12 +29,12 @@ fi
 
 case "$runtime" in
     bun)
-        exec bun -e='import { main } from "cirro/bin"; await main(process.argv.slice(1));' "${script_args[@]}"
+        exec bun -e='import { main } from "cirrojs/bin"; await main(process.argv.slice(1));' "${script_args[@]}"
         ;;
     node)
-        exec node --eval 'import { main } from "cirro/bin"; await main(process.argv.slice(1));' "${script_args[@]}"
+        exec node --eval 'import { main } from "cirrojs/bin"; await main(process.argv.slice(1));' "${script_args[@]}"
         ;;
     deno)
-        exec deno eval 'import { main } from "cirro/bin"; await main(process.argv.slice(2));' "${script_args[@]}"
+        exec deno eval 'import { main } from "cirrojs/bin"; await main(process.argv.slice(2));' "${script_args[@]}"
         ;;
 esac

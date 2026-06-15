@@ -9,7 +9,7 @@
       "name": "@cirro-examples/basic",
       "version": "0.0.0",
       "dependencies": {
-        "cirro": "workspace:*",
+        "cirrojs": "workspace:*",
         "react": "19.2.7",
         "react-dom": "19.2.7",
       },
@@ -27,7 +27,7 @@
       "name": "@cirro-examples/blog",
       "version": "0.0.0",
       "dependencies": {
-        "cirro": "workspace:*",
+        "cirrojs": "workspace:*",
         "gray-matter": "4.0.3",
         "prismjs": "1.30.0",
         "react": "19.2.7",
@@ -44,9 +44,9 @@
         "vite": "8.0.16",
       },
     },
-    "packages/cirro": {
-      "name": "cirro",
-      "version": "0.0.0",
+    "packages/cirrojs": {
+      "name": "cirrojs",
+      "version": "0.0.1",
       "bin": {
         "cirro": "./public/cli.sh",
       },
@@ -454,7 +454,7 @@
 
     "chokidar": ["chokidar@4.0.3", "", { "dependencies": { "readdirp": "^4.0.1" } }, "sha512-Qgzu8kfBvo+cA4962jnP1KkS6Dop5NS6g7R5LFYJr4b8Ub94PPQXUksCw9PvXoeXPRRddRNC5C1JQUR2SMGtnA=="],
 
-    "cirro": ["cirro@workspace:packages/cirro"],
+    "cirrojs": ["cirrojs@workspace:packages/cirrojs"],
 
     "cliui": ["cliui@9.0.1", "", { "dependencies": { "string-width": "^7.2.0", "strip-ansi": "^7.1.0", "wrap-ansi": "^9.0.0" } }, "sha512-k7ndgKhwoQveBL+/1tqGJYNz097I7WOvwbmmU2AR5+magtbjPWQTS1C5vzGkBC8Ym8UWRzfKUzUUqFLypY4Q+w=="],
 

@@ -1,5 +1,5 @@
 import react from "@vitejs/plugin-react";
-import { cirro } from "cirro/vite";
+import { cirro } from "cirrojs/vite";
 import { defineConfig } from "vite";
 
 // React プラグインは利用者が明示的に追加する（cirro は内包しない）。
