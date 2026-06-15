@@ -13,9 +13,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
-### Changed
-- パッケージ名をcirrojsに変更
+## [0.0.2] - 2026-06-15
 
+### Changed
+- Renamed the package from `cirro` to `cirrojs`.
 
 ## 0.0.1 - 2026-06-15
 - initial release
