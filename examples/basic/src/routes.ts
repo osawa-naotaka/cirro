@@ -2,6 +2,7 @@ import { AboutPage } from "./pages/about";
 import { HomePage } from "./pages/home";
 import { PostPage } from "./pages/post";
 import { type AnyRoute, route } from "cirrojs";
+export { initCssRegistry, getCssRegistry } from "cirrojs";
 
 // サイトのルート定義（Config Base Routing）。
 export const routes: AnyRoute[] = [

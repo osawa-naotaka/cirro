@@ -1,6 +1,6 @@
 
 import type { Properties } from "./properties";
-import { registerCss } from "./runtime/registry";
+import { registerCss } from "./registry";
 
 export function css(properties: Properties, name?: string): string {
     const hash = hash_djb2_object(properties);

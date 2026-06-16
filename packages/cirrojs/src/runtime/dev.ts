@@ -48,13 +48,26 @@ export async function runDev(port = 5173) {
             const rawUrl = req.url ?? "/";
             try {
                 // routes は Module Runner で最新を読む（HMR と整合）。
-                const { routes } = await runner.import(routesPath);
+                const { routes, getCssRegistry, initCssRegistry } = await runner.import(routesPath);
                 const pages = expandRoutes(routes);
                 
                 if (rawUrl.endsWith(".css")) {
+                    const page = pages.find((p) => p.isCss && p.url === rawUrl);
+                    if (!page) {
+                        res.statusCode = 404;
+                        res.end();
+                        return;
+                    }
+                    initCssRegistry();
+                    page.render();
+                    const registry = getCssRegistry();
+                    let css = "";
+                    for (const [key, properties] of registry) {
+                        css += `${key} { ${Object.entries(properties).map(([k, v]) => `${k}: ${v};`).join(" ")} }\n`;
+                    }
                     res.statusCode = 200;
                     res.setHeader("Content-Type", "text/css; charset=utf-8");
-                    res.end("* { margin: 0; padding: 0; }");
+                    res.end(css);
                     return;
                 }
 
@@ -70,7 +83,7 @@ export async function runDev(port = 5173) {
                 }
 
                 // クライアントスクリプトは React 要素ツリーを直接操作して <head> の末尾に挿入する（文字列置換しない）。
-                const tree = appendClientScriptAndCss(page.render(), CLIENT_DEV_URL, "/index.css");
+                const tree = appendClientScriptAndCss(page.render(), CLIENT_DEV_URL, page.cssPath);
                 let html = `<!DOCTYPE html>${renderToStaticMarkup(tree)}`;
                 html = await vite.transformIndexHtml(rawUrl, html);
                 res.statusCode = 200;

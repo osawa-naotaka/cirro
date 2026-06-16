@@ -5,7 +5,6 @@ import { createServerModuleRunner, createServer as createViteServer, build as vi
 import { expandRoutes, urlToFilePath, urlToCssFilePath } from "../router.ts";
 import { appendClientScriptAndCss } from "./head.ts";
 import { getCirroOptions } from "./options.ts";
-import { getCssRegistry, initCssRegistry } from "./registry.ts";
 
 // `cirro build`: クライアントバンドルを作り、各ルートを静的 HTML として書き出す（node:fs のみ、bun 非依存）。
 export async function runBuild() {
@@ -27,7 +26,7 @@ export async function runBuild() {
         if (!entry) throw new Error('cirro: manifest entry "virtual:cirro/client" not found');
         const scriptSrc = `/${entry.file}`;
 
-        const { routes } = await runner.import(routesPath);
+        const { routes, getCssRegistry, initCssRegistry } = await runner.import(routesPath);
         for (const page of expandRoutes(routes)) {
             if (page.isCss) {
                 initCssRegistry();

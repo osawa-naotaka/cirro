@@ -1,4 +1,4 @@
-import type { Properties } from "../properties";
+import type { Properties } from "./properties";
 
 const registry = new Map <string, Partial<Properties>>();
 

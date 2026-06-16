@@ -6,3 +6,4 @@ export type { AnyRoute, DynamicRoute, Params, ResolvedPage, StaticRoute } from "
 export { expandRoutes, route, urlToFilePath } from "./router.ts";
 export type { Properties } from "./properties.ts";
 export { css, cssWithSelector } from "./css.ts";
+export { initCssRegistry, getCssRegistry } from "./registry.ts";
