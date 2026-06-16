@@ -10,7 +10,8 @@ import { createElement, Fragment, type ReactElement } from "react";
 // - 巻き上げを発火させるには `async` が必須。これにより module の実行は「文書順（defer）」から
 //   「取得次第即実行（async）」に変わるが、島マウンタのエントリは 1 本なので順序問題は生じない。
 // - 挿入位置は <head> の先頭（既存の <title> 等より前）になる。外部スクリプトのため実害はない。
-export function appendClientScript(root: ReactElement, src: string): ReactElement {
-    const script = createElement("script", { async: true, type: "module", src, key: "cirro-client" });
-    return createElement(Fragment, null, root, script);
+export function appendClientScriptAndCss(root: ReactElement, jsSrc: string, cssSrc: string): ReactElement {
+    const script = createElement("script", { async: true, type: "module", src: jsSrc, key: "cirro-client" });
+    const css = createElement("link", { rel: "stylesheet", href: cssSrc, key: "cirro-css" });
+    return createElement(Fragment, null, root, script, css);
 }

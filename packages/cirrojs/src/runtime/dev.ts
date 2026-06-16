@@ -3,7 +3,7 @@ import { dirname, resolve } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createServerModuleRunner, createServer as createViteServer, type ViteDevServer } from "vite";
 import { expandRoutes } from "../router.ts";
-import { appendClientScript } from "./head.ts";
+import { appendClientScriptAndCss } from "./head.ts";
 import { getCirroOptions } from "./options.ts";
 
 // 仮想島マウンタ（virtual:cirro/client）の dev 配信 URL。
@@ -50,6 +50,13 @@ export async function runDev(port = 5173) {
                 // routes は Module Runner で最新を読む（HMR と整合）。
                 const { routes } = await runner.import(routesPath);
                 const pages = expandRoutes(routes);
+                
+                if (rawUrl.endsWith(".css")) {
+                    res.statusCode = 200;
+                    res.setHeader("Content-Type", "text/css; charset=utf-8");
+                    res.end("* { margin: 0; padding: 0; }");
+                    return;
+                }
 
                 const pathname = new URL(rawUrl, "http://localhost").pathname;
                 const normalized = pathname.replace(/\/+$/, "") || "/";
@@ -63,7 +70,7 @@ export async function runDev(port = 5173) {
                 }
 
                 // クライアントスクリプトは React 要素ツリーを直接操作して <head> の末尾に挿入する（文字列置換しない）。
-                const tree = appendClientScript(page.render(), CLIENT_DEV_URL);
+                const tree = appendClientScriptAndCss(page.render(), CLIENT_DEV_URL, "/index.css");
                 let html = `<!DOCTYPE html>${renderToStaticMarkup(tree)}`;
                 html = await vite.transformIndexHtml(rawUrl, html);
                 res.statusCode = 200;

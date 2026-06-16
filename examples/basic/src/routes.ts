@@ -9,6 +9,7 @@ export const routes: AnyRoute[] = [
     { path: "/about", component: AboutPage },
     route({
         path: ({ slug }) => `/posts/${slug}`,
+        cssPath: "/posts/index.css",
         getStaticPaths: () => [{ slug: "hello" }, { slug: "world" }],
         component: PostPage,
     }),

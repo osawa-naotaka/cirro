@@ -18,16 +18,19 @@ export const routes: AnyRoute[] = [
     { path: "/tags", component: TagIndexPage },
     route({
         path: ({ slug }) => `/blog/${slug}`,
+        cssPath: "/blog",
         getStaticPaths: () => posts.map(({ slug }) => ({ slug })),
         component: PostPage,
     }),
     route({
         path: ({ tag }) => `/tags/${tag}`,
+        cssPath: "/tags",
         getStaticPaths: () => allTags().map(({ tag }) => ({ tag })),
         component: TagPage,
     }),
     route({
         path: ({ id }) => `/authors/${id}`,
+        cssPath: "/authors",
         getStaticPaths: () => authors.map(({ id }) => ({ id })),
         component: AuthorPage,
     }),

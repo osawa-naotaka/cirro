@@ -1,7 +1,10 @@
+import { cssWithSelector } from "cirrojs";
 import { Island } from "../islands/Island";
+import { getCssRegistry } from "../../../../packages/cirrojs/src/runtime/registry";
 
 // ホームページ（本文は静的 HTML、Counter だけが島）。
 export function HomePage() {
+    cssWithSelector("*", { margin: "0", padding: "0" });
     return (
         <html lang="ja">
             <head>
