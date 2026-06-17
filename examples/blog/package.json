@@ -4,10 +4,9 @@
     "private": true,
     "type": "module",
     "scripts": {
-        "prepare": "panda codegen",
-        "dev": "concurrently -k -n css,cirro \"panda cssgen --watch -o public/styles.css\" \"cirro dev\"",
+        "dev": "cirro dev",
         "typecheck": "tsc",
-        "build": "panda cssgen --minify -o public/styles.css && tsc && cirro build",
+        "build": "tsc && cirro build",
         "preview": "vite preview"
     },
     "dependencies": {
@@ -19,9 +18,7 @@
         "remark-gfm": "4.0.1"
     },
     "devDependencies": {
-        "@pandacss/dev": "1.11.3",
         "@types/react": "19.2.17",
-        "concurrently": "10.0.3",
         "@types/react-dom": "19.2.3",
         "@vitejs/plugin-react": "6.0.2",
         "typescript": "6.0.3",

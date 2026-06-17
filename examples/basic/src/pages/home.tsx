@@ -1,7 +1,15 @@
+import { css, genCssFn } from "cirrojs";
 import { Island } from "../islands/Island";
 
 // ホームページ（本文は静的 HTML、Counter だけが島）。
 export function HomePage() {
+    // reset css
+    css({ margin: "0", padding: "0" }, { selector: "*", atrules: ["@layer base"] });
+
+    const cssPC = genCssFn("min-width: 800px");
+
+    const pageTitle = cssPC({ padding: "1rem", font_size: "2rem" });
+
     return (
         <html lang="ja">
             <head>
@@ -10,7 +18,7 @@ export function HomePage() {
                 <title>cirro prototype</title>
             </head>
             <body>
-                <h1>cirro プロトタイプ</h1>
+                <h1 className={pageTitle}>cirro プロトタイプ</h1>
                 <p>この本文は静的 HTML です。下のカウンターだけがクライアントで動く「島」です。</p>
                 <nav>
                     <a href="/about">about</a> | <a href="/posts/hello">post: hello</a> | <a href="/posts/world">post: world</a>

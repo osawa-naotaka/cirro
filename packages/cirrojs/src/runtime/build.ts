@@ -2,9 +2,11 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createServerModuleRunner, createServer as createViteServer, build as viteBuild } from "vite";
-import { expandRoutes, urlToFilePath } from "../router.ts";
-import { appendClientScript } from "./head.ts";
+import { expandRoutes, urlToFilePath, urlToCssFilePath } from "../router.ts";
+import { appendClientScriptAndCss } from "./head.ts";
 import { getCirroOptions } from "./options.ts";
+import type { Registry } from "../registry.ts";
+import { stringifyCss } from "../css.ts";
 
 // `cirro build`: クライアントバンドルを作り、各ルートを静的 HTML として書き出す（node:fs のみ、bun 非依存）。
 export async function runBuild() {
@@ -26,11 +28,25 @@ export async function runBuild() {
         if (!entry) throw new Error('cirro: manifest entry "virtual:cirro/client" not found');
         const scriptSrc = `/${entry.file}`;
 
-        const { routes } = await runner.import(routesPath);
+        const { routes, getCssRegistry, initCssRegistry } = await runner.import(routesPath);
         for (const page of expandRoutes(routes)) {
+            if (page.isCss) {
+                initCssRegistry();
+                // ツリー全体を描画して、ネストしたコンポーネント（Layout / 各島など）の
+                // css() 呼び出しまでレジストリに登録する（HTML は破棄しレジストリだけ使う）。
+                renderToStaticMarkup(page.render());
+                const registry = getCssRegistry() as Registry;
+                const css = stringifyCss(registry);
+                const filePath = join(outDir, urlToCssFilePath(page.url));
+                await mkdir(dirname(filePath), { recursive: true });
+                await writeFile(filePath, css);
+                console.log(`wrote ${filePath} (url: ${page.url})`);
+                continue;
+            }
             // クライアントスクリプトは React 要素ツリーを直接操作して <head> の末尾に挿入する（文字列置換しない）。
             // 本文は純粋な静的 HTML（マーカーなし）。島だけ <Island> 内の renderToString でマーカー付き。
-            const tree = appendClientScript(page.render(), scriptSrc);
+            // CSS リンクはルート単位に生成した CSS（page.cssPath）を指す（dev と同じ挙動）。
+            const tree = appendClientScriptAndCss(page.render(), scriptSrc, page.cssPath);
             const html = `<!DOCTYPE html>${renderToStaticMarkup(tree)}`;
             const filePath = join(outDir, urlToFilePath(page.url));
             await mkdir(dirname(filePath), { recursive: true });

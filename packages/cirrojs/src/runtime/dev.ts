@@ -3,8 +3,10 @@ import { dirname, resolve } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createServerModuleRunner, createServer as createViteServer, type ViteDevServer } from "vite";
 import { expandRoutes } from "../router.ts";
-import { appendClientScript } from "./head.ts";
+import { appendClientScriptAndCss } from "./head.ts";
 import { getCirroOptions } from "./options.ts";
+import type { Registry } from "../registry.ts";
+import { stringifyCss } from "../css.ts";
 
 // 仮想島マウンタ（virtual:cirro/client）の dev 配信 URL。
 const CLIENT_DEV_URL = "/@id/__x00__virtual:cirro/client";
@@ -48,8 +50,27 @@ export async function runDev(port = 5173) {
             const rawUrl = req.url ?? "/";
             try {
                 // routes は Module Runner で最新を読む（HMR と整合）。
-                const { routes } = await runner.import(routesPath);
+                const { routes, getCssRegistry, initCssRegistry } = await runner.import(routesPath);
                 const pages = expandRoutes(routes);
+
+                if (rawUrl.endsWith(".css")) {
+                    const page = pages.find((p) => p.isCss && p.url === rawUrl);
+                    if (!page) {
+                        res.statusCode = 404;
+                        res.end();
+                        return;
+                    }
+                    initCssRegistry();
+                    // ツリー全体を描画して、ネストしたコンポーネント（Layout / 各島など）の
+                    // css() 呼び出しまでレジストリに登録する（HTML は破棄しレジストリだけ使う）。
+                    renderToStaticMarkup(page.render());
+                    const registry = getCssRegistry() as Registry;
+                    const css = stringifyCss(registry);
+                    res.statusCode = 200;
+                    res.setHeader("Content-Type", "text/css; charset=utf-8");
+                    res.end(css);
+                    return;
+                }
 
                 const pathname = new URL(rawUrl, "http://localhost").pathname;
                 const normalized = pathname.replace(/\/+$/, "") || "/";
@@ -63,7 +84,7 @@ export async function runDev(port = 5173) {
                 }
 
                 // クライアントスクリプトは React 要素ツリーを直接操作して <head> の末尾に挿入する（文字列置換しない）。
-                const tree = appendClientScript(page.render(), CLIENT_DEV_URL);
+                const tree = appendClientScriptAndCss(page.render(), CLIENT_DEV_URL, page.cssPath);
                 let html = `<!DOCTYPE html>${renderToStaticMarkup(tree)}`;
                 html = await vite.transformIndexHtml(rawUrl, html);
                 res.statusCode = 200;

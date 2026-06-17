@@ -1,8 +1,8 @@
-import { css } from "../../styled-system/css";
-import { button, chip } from "../../styled-system/recipes";
 import { Layout } from "../components/Layout";
 import { PostList } from "../components/PostList";
 import { allTags, posts } from "../lib/content";
+import { button, chip } from "../styles/recipes";
+import { color, cssMain, cssMd, cx, fontSize, radii, space } from "../styles/system";
 
 // ホームページ: ヒーロー + 最新記事 + 人気タグ。
 export function HomePage() {
@@ -15,20 +15,23 @@ export function HomePage() {
             description="React の島アーキテクチャと厳格な CSP を実現する軽量 SSG「Cirro」の公式サンプルブログ。"
         >
             <section
-                className={css({
-                    p: { base: "6", md: "10" },
-                    mb: "10",
-                    borderRadius: "panel",
-                    background: "linear-gradient(135deg, #1565c0 0%, #00897b 100%)",
-                    color: "white",
-                })}
+                className={cx(
+                    cssMain({
+                        padding: space(6),
+                        margin_bottom: space(10),
+                        border_radius: radii.panel,
+                        background: `linear-gradient(135deg, ${color.primary} 0%, ${color.secondary} 100%)`,
+                        color: color.white,
+                    }),
+                    cssMd({ padding: space(10) }),
+                )}
             >
-                <h1 className={css({ fontSize: { base: "2.25rem", md: "3rem" }, fontWeight: 700, mb: "3" })}>Cirro Blog</h1>
-                <p className={css({ fontSize: "lg", opacity: 0.95, mb: "6" })}>
+                <h1 className={cx(cssMain({ font_size: "2.25rem", font_weight: "700", margin_bottom: space(3) }), cssMd({ font_size: "3rem" }))}>Cirro Blog</h1>
+                <p className={cssMain({ font_size: fontSize.lg, opacity: "0.95", margin_bottom: space(6) })}>
                     インラインスクリプトを一切生成せず、<code>script-src 'self'</code> の厳格な CSP を満たす。
                     React だけで書ける、軽量な静的サイトジェネレーター。
                 </p>
-                <div className={css({ display: "flex", flexWrap: "wrap", gap: "4" })}>
+                <div className={cssMain({ display: "flex", flex_wrap: "wrap", gap: space(4) })}>
                     <a href="/blog" className={button({ variant: "contrast" })}>
                         記事を読む
                     </a>
@@ -38,18 +41,18 @@ export function HomePage() {
                 </div>
             </section>
 
-            <div className={css({ display: "flex", justifyContent: "space-between", alignItems: "baseline", mb: "4" })}>
-                <h2 className={css({ fontSize: "xl", fontWeight: 700 })}>最新の記事</h2>
+            <div className={cssMain({ display: "flex", justify_content: "space-between", align_items: "baseline", margin_bottom: space(4) })}>
+                <h2 className={cssMain({ font_size: fontSize.xl, font_weight: "700" })}>最新の記事</h2>
                 <a href="/blog" className={button({ variant: "text", size: "sm" })}>
                     すべて見る
                 </a>
             </div>
             <PostList posts={recent} />
 
-            <hr className={css({ border: "0", borderTop: "1px solid token(colors.border)", my: "10" })} />
+            <hr className={cssMain({ border: "0", border_top: `1px solid ${color.border}`, margin_top: space(10), margin_bottom: space(10) })} />
 
-            <h2 className={css({ fontSize: "xl", fontWeight: 700, mb: "4" })}>タグから探す</h2>
-            <div className={css({ display: "flex", flexWrap: "wrap", gap: "2" })}>
+            <h2 className={cssMain({ font_size: fontSize.xl, font_weight: "700", margin_bottom: space(4) })}>タグから探す</h2>
+            <div className={cssMain({ display: "flex", flex_wrap: "wrap", gap: space(2) })}>
                 {tags.map(({ tag, count }) => (
                     <a key={tag} href={`/tags/${tag}`} className={chip()}>
                         {tag} ({count})

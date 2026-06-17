@@ -1,4 +1,5 @@
 import type { ReactElement } from "react";
+import { resolve } from "node:path";
 
 export type Params = Record<string, string>;
 
@@ -11,6 +12,7 @@ export type StaticRoute = {
 // 動的ルート: path は params から URL を生成する関数（正規表現・特殊記法は使わない）
 export type DynamicRoute<P extends Params = Params> = {
     path: (params: P) => string;
+    cssPath: string;
     getStaticPaths: () => P[];
     component: (props: { params: P }) => ReactElement;
 };
@@ -25,7 +27,7 @@ export function route(def: AnyRoute): AnyRoute {
     return def;
 }
 
-export type ResolvedPage = { url: string; render: () => ReactElement };
+export type ResolvedPage = { url: string; isCss: boolean; cssPath: string, render: () => ReactElement };
 
 // 全ルートを具体的な URL 一覧へ展開する（build / dev で共有）。
 // 動的ルートは getStaticPaths を path 関数に通して URL を生成するため、正規表現は不要。
@@ -34,10 +36,12 @@ export function expandRoutes(routes: AnyRoute[]): ResolvedPage[] {
     for (const r of routes) {
         if ("getStaticPaths" in r) {
             for (const params of r.getStaticPaths()) {
-                pages.push({ url: r.path(params), render: () => r.component({ params }) });
+                pages.push({ url: r.path(params), isCss: false, cssPath: r.cssPath, render: () => r.component({ params }) });
             }
+            pages.push({ url: r.cssPath, isCss: true, cssPath: r.cssPath, render: () => r.component({ params: r.getStaticPaths()[0] }) })
         } else {
-            pages.push({ url: r.path, render: () => r.component({ params: {} }) });
+            pages.push({ url: r.path, isCss: false, cssPath: resolve(r.path, "index.css"), render: () => r.component({ params: {} }) });
+            pages.push({ url: resolve(r.path, "index.css"), isCss: true, cssPath: resolve(r.path, "index.css"), render: () => r.component({ params: {} }) });
         }
     }
     return pages;
@@ -47,4 +51,9 @@ export function expandRoutes(routes: AnyRoute[]): ResolvedPage[] {
 export function urlToFilePath(url: string): string {
     if (url === "/") return "index.html";
     return `${url.replace(/^\/+|\/+$/g, "")}/index.html`;
+}
+
+export function urlToCssFilePath(url: string): string {
+    if (url === "/") return "index.css";
+    return `${url.replace(/^\/+|\/+$/g, "")}`;
 }

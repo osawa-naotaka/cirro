@@ -13,6 +13,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [0.0.4] - 2026-06-17
+
+### Added
+- CSS-in-JS system. The `css` and `genCssFn` functions generate scoped styles, and `initCssRegistry` and `getCssRegistry` manage the style registry. All are exported from the package entry point.
+- `Properties` and `CssOpt` types.
+
 ## [0.0.3] - 2026-06-15
 
 ### Fixed
@@ -26,6 +32,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## 0.0.1 - 2026-06-15
 - initial release
 
-[Unreleased]: https://github.com/osawa-naotaka/cirro/compare/v0.0.3...HEAD
+[Unreleased]: https://github.com/osawa-naotaka/cirro/compare/v0.0.4...HEAD
+[0.0.4]: https://github.com/osawa-naotaka/cirro/compare/v0.0.3...v0.0.4
 [0.0.3]: https://github.com/osawa-naotaka/cirro/compare/v0.0.2...v0.0.3
 [0.0.2]: https://github.com/osawa-naotaka/cirro/compare/v0.0.1...v0.0.2

@@ -1,5 +1,5 @@
-import { css } from "../../styled-system/css";
 import { Layout } from "../components/Layout";
+import { color, cssMain, fontSize, radii, space } from "../styles/system";
 
 const FEATURES = [
     {
@@ -20,22 +20,23 @@ const FEATURES = [
     },
 ];
 
-const para = css({ mb: "4", lineHeight: 1.9 });
-
 // About ページ。島を含まない純粋な静的ページ（island={false} で JS ゼロ）。
 export function AboutPage() {
+    const para = cssMain({ margin_bottom: space(4), line_height: "1.9" });
+
     return (
         <Layout
             title="About — Cirro Blog"
             description="このサイトはセキュリティ第一の軽量 SSG「Cirro」で構築されています。"
             island={false}
         >
-            <h1 className={css({ fontSize: "2rem", fontWeight: 700, mb: "6" })}>このサイトについて</h1>
+            <h1 className={cssMain({ font_size: "2rem", font_weight: "700", margin_bottom: space(6) })}>このサイトについて</h1>
             <p className={para}>
                 Cirro Blog は、セキュリティを第一に考えた軽量な静的サイトジェネレーター「Cirro」の
-                公式サンプルブログです。スタイルには Panda CSS を採用し、ビルド時に生成した外部
-                CSS だけで配信することで <code>style-src 'self'</code> の厳格な CSP を満たします。記事は
-                Markdown（frontmatter にタイトル・著者・日付・タグを記載）で執筆しています。
+                公式サンプルブログです。スタイルは Cirro 自前のスタイリングシステム（css()）で記述し、
+                ルート単位に生成した外部 CSS だけで配信することで <code>style-src 'self'</code> の厳格な
+                CSP を満たします。記事は Markdown（frontmatter にタイトル・著者・日付・タグを記載）で
+                執筆しています。
             </p>
             <p className={para}>
                 Markdown は remark / rehype でビルド時に HTML へ変換され、静的なページとして
@@ -43,20 +44,20 @@ export function AboutPage() {
                 ファイルとして読み込まれます。
             </p>
 
-            <hr className={css({ border: "0", borderTop: "1px solid token(colors.border)", my: "8" })} />
+            <hr className={cssMain({ border: "0", border_top: `1px solid ${color.border}`, margin_top: space(8), margin_bottom: space(8) })} />
 
-            <h2 className={css({ fontSize: "xl", fontWeight: 700, mb: "4" })}>Cirro の特徴</h2>
-            <ul className={css({ display: "flex", flexDir: "column", gap: "4", listStyle: "none", p: "0" })}>
+            <h2 className={cssMain({ font_size: fontSize.xl, font_weight: "700", margin_bottom: space(4) })}>Cirro の特徴</h2>
+            <ul className={cssMain({ display: "flex", flex_direction: "column", gap: space(4), list_style: "none", padding: "0" })}>
                 {FEATURES.map((f) => (
                     <li key={f.title}>
-                        <p className={css({ fontWeight: 700, mb: "1" })}>{f.title}</p>
-                        <p className={css({ color: "fg.muted" })}>{f.body}</p>
+                        <p className={cssMain({ font_weight: "700", margin_bottom: space(1) })}>{f.title}</p>
+                        <p className={cssMain({ color: color.fgMuted })}>{f.body}</p>
                     </li>
                 ))}
             </ul>
 
-            <div className={css({ mt: "8", p: "6", bg: "hover", borderRadius: "card" })}>
-                <p className={css({ fontSize: "sm", color: "fg.muted" })}>
+            <div className={cssMain({ margin_top: space(8), padding: space(6), background_color: color.hover, border_radius: radii.card })}>
+                <p className={cssMain({ font_size: fontSize.sm, color: color.fgMuted })}>
                     このページは「島」を 1 つも含まない純粋な静的ページです。本文の表示に
                     JavaScript は必要なく、ハイドレーションも発生しません。Cirro が目指すのは、
                     こうしたページを JS ゼロで配信することです（島の有無に応じた配信の最適化は今後の課題です）。
