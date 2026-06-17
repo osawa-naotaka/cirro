@@ -15,7 +15,8 @@ Cirro はこれまでスタイリングを Panda CSS（`04_USAGE.md` 9 章）に
 > 自前 CSS が現在の標準である。
 
 関連実装: `packages/cirrojs/src/css.ts` / `registry.ts` / `properties.ts` / `runtime/build.ts` /
-`runtime/dev.ts`。利用例: `examples/basic/src/pages/home.tsx`。
+`runtime/dev.ts`。利用例: 最小構成は `examples/basic/src/pages/home.tsx`、トークン・レシピを
+含むコンポーネント分割の実例は `examples/blog`（`src/styles/`）。
 
 ---
 
@@ -188,7 +189,10 @@ css({ margin: "0", padding: "0" }, { selector: "*", atrules: ["@layer base"] });
 ランタイムは各ルートについて次を行う（`runtime/dev.ts` / `runtime/build.ts`）。
 
 1. `initCssRegistry()` でレジストリを空にする
-2. ページコンポーネントを描画（`render()`）し、その過程の `css()` 呼び出しを集める
+2. ページを `renderToStaticMarkup()` で**ツリー全体まで描画**し、その過程の `css()` 呼び出しを集める。
+   描画結果の HTML 文字列は破棄し、レジストリだけを使う。トップのページ関数を呼ぶだけでは
+   `Layout` や各島など**ネストしたコンポーネントの関数が実行されず**、その `css()` が収集されない。
+   そのため CSS 生成でも HTML 生成と同じく完全描画する。
 3. `getCssRegistry()` で集めたレジストリを取り出し、`stringifyCss()` で CSS 文字列にする
 4. そのルート専用の CSS ファイルとして書き出す（dev では `text/css` で配信）
 
@@ -258,10 +262,11 @@ const pageTitle = cssPC({ padding: "1rem", font_size: "2rem" });
   メディアで正しくカスケードされるため通常は問題にならないが、クラス名は「スタイル内容の指紋」だと
   理解しておくとよい。
 - **重複排除はしない**。まったく同じ `css()` を 2 回呼べば、CSS にも同じ規則が 2 回出る。
-- **`build` での CSS リンクは未対応（暫定）**。`runtime/dev.ts` は各ページの `cssPath` を `<link>` に
-  正しく使うが、`runtime/build.ts` は現状すべてのページで `"/index.css"` をハードコードしている。
-  「ルート単位に 1 個 CSS」を正とする設計に対して `build` 側が追従できていない暫定状態であり、今後
-  `cssPath` ベースへ揃える予定。
+- **`css()` は描画時に呼ぶ**。レジストリはルート描画の直前に `initCssRegistry()` で空にされるため、
+  モジュールのトップレベルで `const x = css(...)` としても import 時に一度登録されるだけで描画前に
+  消える。スタイル定義は必ずコンポーネント（または描画時に呼ばれる関数）の中で行う。利用例は
+  `examples/blog`（トークン・レシピを `src/styles/` に型付き関数として用意し、各コンポーネント内で
+  呼び出す）を参照。
 - **インラインを出さない原則は維持**。`css()` はクラス名を返すだけで `<style>` / `style=""` を生成
   しないため、`style-src 'self'` を満たす（`04_USAGE.md` 10 章の CSP 表と整合）。
 

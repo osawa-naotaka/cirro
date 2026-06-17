@@ -61,7 +61,9 @@ export async function runDev(port = 5173) {
                         return;
                     }
                     initCssRegistry();
-                    page.render();
+                    // ツリー全体を描画して、ネストしたコンポーネント（Layout / 各島など）の
+                    // css() 呼び出しまでレジストリに登録する（HTML は破棄しレジストリだけ使う）。
+                    renderToStaticMarkup(page.render());
                     const registry = getCssRegistry() as Registry;
                     const css = stringifyCss(registry);
                     res.statusCode = 200;
