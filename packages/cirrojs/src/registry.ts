@@ -1,11 +1,11 @@
 import type { Properties } from "./properties";
 
-export type Registry = [string, Partial<Properties>][];
+export type Registry = [string[], Partial<Properties>][];
 
 let registry: Registry = [];
 
-export function registerCss(name: string, properties: Partial<Properties>) {
-    registry.push([name, properties]);
+export function registerCss(selectors: string[], properties: Partial<Properties>) {
+    registry.push([selectors, properties]);
 }
 
 export function initCssRegistry() {

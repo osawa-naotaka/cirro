@@ -5,6 +5,8 @@ import { createServerModuleRunner, createServer as createViteServer, type ViteDe
 import { expandRoutes } from "../router.ts";
 import { appendClientScriptAndCss } from "./head.ts";
 import { getCirroOptions } from "./options.ts";
+import type { Registry } from "../registry.ts";
+import { stringifyCss } from "../css.ts";
 
 // 仮想島マウンタ（virtual:cirro/client）の dev 配信 URL。
 const CLIENT_DEV_URL = "/@id/__x00__virtual:cirro/client";
@@ -50,7 +52,7 @@ export async function runDev(port = 5173) {
                 // routes は Module Runner で最新を読む（HMR と整合）。
                 const { routes, getCssRegistry, initCssRegistry } = await runner.import(routesPath);
                 const pages = expandRoutes(routes);
-                
+
                 if (rawUrl.endsWith(".css")) {
                     const page = pages.find((p) => p.isCss && p.url === rawUrl);
                     if (!page) {
@@ -60,11 +62,8 @@ export async function runDev(port = 5173) {
                     }
                     initCssRegistry();
                     page.render();
-                    const registry = getCssRegistry();
-                    let css = "";
-                    for (const [key, properties] of registry) {
-                        css += `${key} { ${Object.entries(properties).map(([k, v]) => `${k}: ${v};`).join(" ")} }\n`;
-                    }
+                    const registry = getCssRegistry() as Registry;
+                    const css = stringifyCss(registry);
                     res.statusCode = 200;
                     res.setHeader("Content-Type", "text/css; charset=utf-8");
                     res.end(css);

@@ -5,6 +5,8 @@ import { createServerModuleRunner, createServer as createViteServer, build as vi
 import { expandRoutes, urlToFilePath, urlToCssFilePath } from "../router.ts";
 import { appendClientScriptAndCss } from "./head.ts";
 import { getCirroOptions } from "./options.ts";
+import type { Registry } from "../registry.ts";
+import { stringifyCss } from "../css.ts";
 
 // `cirro build`: クライアントバンドルを作り、各ルートを静的 HTML として書き出す（node:fs のみ、bun 非依存）。
 export async function runBuild() {
@@ -31,11 +33,8 @@ export async function runBuild() {
             if (page.isCss) {
                 initCssRegistry();
                 page.render();
-                const registry = getCssRegistry();
-                let css = "";
-                for (const [key, properties] of registry) {
-                    css += `${key} { ${Object.entries(properties).map(([k, v]) => `${k}: ${v};`).join(" ")} }\n`;
-                }
+                const registry = getCssRegistry() as Registry;
+                const css = stringifyCss(registry);
                 const filePath = join(outDir, urlToCssFilePath(page.url));
                 await mkdir(dirname(filePath), { recursive: true });
                 await writeFile(filePath, css);
