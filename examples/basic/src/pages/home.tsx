@@ -1,10 +1,15 @@
-import { css } from "cirrojs";
+import { css, genCssFn } from "cirrojs";
 import { Island } from "../islands/Island";
 
 // ホームページ（本文は静的 HTML、Counter だけが島）。
 export function HomePage() {
-    css({ margin: "0", padding: "0" }, { selector: "*" });
-    const pageTitle = css({ padding: "1rem", font_size: "2rem" });
+    // reset css
+    css({ margin: "0", padding: "0" }, { selector: "*", atrules: ["@layer base"] });
+
+    const cssPC = genCssFn("min-width: 800px");
+
+    const pageTitle = cssPC({ padding: "1rem", font_size: "2rem" });
+
     return (
         <html lang="ja">
             <head>

@@ -19,10 +19,18 @@ export function css(properties: Properties, opt?: CssOpt): string {
     return designator;
 }
 
+export type CssFnT = (properties: Properties, opt?: { name?: string, selector?: string }) => string;
+
+export function genCssFn(mediaAtRule: string, layer: string = "main"): CssFnT {
+    return (properties, opt) => {
+      return css(properties, { atrules: [`@layer ${layer}`, `@media (${mediaAtRule})`], name: opt?.name, selector: opt?.selector });
+    }
+}
+
 export function stringifyCss(registry: Registry): string {
     let css = '@charset "utf-8";\n@layer base, font, low, main, high;\n';
     for (const [keys, properties] of registry) {
-        css += keys.reduce((p, c) => `${c} { ${p} }`, Object.entries(properties).map(([k, v]) => `${k.replaceAll("_", "-")}: ${v};`).join(" "))
+        css += keys.reduceRight((p, c) => `${c} { ${p} }`, Object.entries(properties).map(([k, v]) => `${k.replaceAll("_", "-")}: ${v};`).join(" "))
         css += `\n`;
     }
     return css;
