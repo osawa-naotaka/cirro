@@ -1,15 +1,17 @@
 import type { Properties } from "./properties";
 
-const registry = new Map <string, Partial<Properties>>();
+export type Registry = [string, Partial<Properties>][];
+
+let registry: Registry = [];
 
 export function registerCss(name: string, properties: Partial<Properties>) {
-    registry.set(name, properties);
+    registry.push([name, properties]);
 }
 
 export function initCssRegistry() {
-    registry.clear();
+    registry = [];
 }
 
-export function getCssRegistry(): Map<string, Partial<Properties>> {
+export function getCssRegistry(): Registry {
     return registry;
 }
