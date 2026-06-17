@@ -20,7 +20,7 @@ export function css(properties: Properties, opt?: CssOpt): string {
 }
 
 export function stringifyCss(registry: Registry): string {
-    let css = "";
+    let css = '@charset "utf-8";\n@layer base, font, low, main, high;\n';
     for (const [keys, properties] of registry) {
         css += keys.reduce((p, c) => `${c} { ${p} }`, Object.entries(properties).map(([k, v]) => `${k.replaceAll("_", "-")}: ${v};`).join(" "))
         css += `\n`;

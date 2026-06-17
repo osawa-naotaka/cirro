@@ -1,4 +1,4 @@
-import { css } from "../../styled-system/css";
+import { css } from "../../styled-system/cs";
 import { button, chip } from "../../styled-system/recipes";
 import { Layout } from "../components/Layout";
 import { PostList } from "../components/PostList";
