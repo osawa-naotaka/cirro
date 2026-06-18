@@ -1,4 +1,4 @@
-import { createIsland } from "cirrojs";
+import { createIsland } from "cirrojs/server";
 import { islands } from "./registry";
 
 // 純データの registry から型安全な <Island> を生成する（renderToString はこちら側＝サーバー専用）。

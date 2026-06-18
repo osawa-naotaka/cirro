@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+- genCssFn()の引数を変更
+- import xxx from "cirrojs"からサーバーコードを分離してimport xxx from "cirrojs/server";に修正。
+　　-　クライアントスクリプトにサーバー向けのコードが混入していた問題を修正のため 
+
 ## [0.0.4] - 2026-06-17
 
 ### Added

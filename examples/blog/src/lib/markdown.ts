@@ -1,4 +1,4 @@
-import { createMarkdown } from "cirrojs";
+import { createMarkdown } from "cirrojs/server";
 // rehype-prism は prismjs コアの言語しかハイライトしないため、使う言語の文法を
 // 同一 prismjs シングルトンに登録しておく（tsx は jsx/typescript/markup に依存）。
 // @ts-expect-error prismjs/components/index.js は型定義を持たない Node 用ローダ。

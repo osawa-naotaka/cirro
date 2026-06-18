@@ -1,4 +1,4 @@
-import type { ToC } from "cirrojs";
+import type { ToC } from "cirrojs/server";
 import { color, cssMain, cx, fontSize, space } from "../styles/system";
 
 // remark-export-toc が抽出した目次（ToC[]）を描画する。各エントリの id は本文見出しの
