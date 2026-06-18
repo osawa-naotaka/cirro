@@ -1,5 +1,5 @@
 import type { ReactElement } from "react";
-import { resolve } from "node:path";
+// import { join } from "node:path";
 
 export type Params = Record<string, string>;
 
@@ -40,8 +40,8 @@ export function expandRoutes(routes: AnyRoute[]): ResolvedPage[] {
             }
             pages.push({ url: r.cssPath, isCss: true, cssPath: r.cssPath, render: () => r.component({ params: r.getStaticPaths()[0] }) })
         } else {
-            pages.push({ url: r.path, isCss: false, cssPath: resolve(r.path, "index.css"), render: () => r.component({ params: {} }) });
-            pages.push({ url: resolve(r.path, "index.css"), isCss: true, cssPath: resolve(r.path, "index.css"), render: () => r.component({ params: {} }) });
+            pages.push({ url: r.path, isCss: false, cssPath: join(r.path, "index.css"), render: () => r.component({ params: {} }) });
+            pages.push({ url: join(r.path, "index.css"), isCss: true, cssPath: join(r.path, "index.css"), render: () => r.component({ params: {} }) });
         }
     }
     return pages;
@@ -56,4 +56,8 @@ export function urlToFilePath(url: string): string {
 export function urlToCssFilePath(url: string): string {
     if (url === "/") return "index.css";
     return `${url.replace(/^\/+|\/+$/g, "")}`;
+}
+
+function join(...paths: string[]): string {
+    return paths.reduce((p, c) => p.endsWith("/") && c.startsWith("/") ? `${p}${c.substring(1)}` : p.endsWith("/") || c.startsWith("/") ? `${p}${c}` : `${p}/${c}`, "");
 }
