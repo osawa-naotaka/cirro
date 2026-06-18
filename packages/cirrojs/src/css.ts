@@ -38,8 +38,8 @@ export function genCssFn(opt: GenCssFnOpt): CssFnT {
 
 export function stringifyCss(registry: Registry): string {
     let css = '@charset "utf-8";\n@layer base, font, low, main, high;\n';
-    for (const [keys, properties] of registry) {
-        css += keys.reduceRight((p, c) => `${c} { ${p} }`, Object.entries(properties).map(([k, v]) => `${k.replaceAll("_", "-")}: ${v};`).join(" "))
+    for (const [_keys, [selectors, properties]] of registry) {
+        css += selectors.reduceRight((p, c) => `${c} { ${p} }`, Object.entries(properties).map(([k, v]) => `${k.replaceAll("_", "-")}: ${v};`).join(" "))
         css += `\n`;
     }
     return css;
@@ -47,7 +47,7 @@ export function stringifyCss(registry: Registry): string {
 
 function cssWithSelector(selectors: string[], properties: Properties, designator: string): void {
     const replaceAnd = selectors.map((x) => x.replaceAll("&", `.${designator}`))
-    registerCss(replaceAnd, properties);
+    registerCss(designator, replaceAnd, properties);
 }
 
 function hash_djb2_object(...jsons: Record<string, unknown>[]): number {
