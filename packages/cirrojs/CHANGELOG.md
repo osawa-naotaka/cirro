@@ -13,9 +13,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
-- genCssFn()の引数を変更
-- import xxx from "cirrojs"からサーバーコードを分離してimport xxx from "cirrojs/server";に修正。
-　　-　クライアントスクリプトにサーバー向けのコードが混入していた問題を修正のため 
+## [0.0.5] - 2026-06-18
+
+### Added
+- New `cirrojs/server` entry point exporting the server-only API (`createIsland`, `createMarkdown`, and the `MarkdownConfig`, `RenderResult`, `ToC` types).
+
+### Changed
+- Moved `createIsland` and `createMarkdown` from the main entry point (`cirrojs`) to `cirrojs/server` to keep server-only dependencies (`react-dom/server`, remark/rehype/prismjs) out of the client bundle.
+- Changed the `genCssFn` signature to take a single `GenCssFnOpt` options object (`{ mediaAtRule?, layer? }`) instead of positional arguments.
 
 ## [0.0.4] - 2026-06-17
 
@@ -36,7 +41,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## 0.0.1 - 2026-06-15
 - initial release
 
-[Unreleased]: https://github.com/osawa-naotaka/cirro/compare/v0.0.4...HEAD
+[Unreleased]: https://github.com/osawa-naotaka/cirro/compare/v0.0.5...HEAD
+[0.0.5]: https://github.com/osawa-naotaka/cirro/compare/v0.0.4...v0.0.5
 [0.0.4]: https://github.com/osawa-naotaka/cirro/compare/v0.0.3...v0.0.4
 [0.0.3]: https://github.com/osawa-naotaka/cirro/compare/v0.0.2...v0.0.3
 [0.0.2]: https://github.com/osawa-naotaka/cirro/compare/v0.0.1...v0.0.2
