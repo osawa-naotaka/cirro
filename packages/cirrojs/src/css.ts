@@ -19,11 +19,20 @@ export function css(properties: Properties, opt?: CssOpt): string {
     return designator;
 }
 
-export type CssFnT = (properties: Properties, opt?: { name?: string, selector?: string }) => string;
+export type CssFnT = (properties: Properties, opt?: Omit<CssOpt, "atrules">) => string;
 
-export function genCssFn(mediaAtRule: string, layer: string = "main"): CssFnT {
+export type GenCssFnOpt = {
+    mediaAtRule?: string;
+    layer?: string;
+}
+
+export function genCssFn(opt: GenCssFnOpt): CssFnT {
+    const atrules: string[] = [];
+    if (opt.layer) atrules.push(`@layer ${opt.layer}`);
+    if (opt.mediaAtRule) atrules.push(`@media (${opt.mediaAtRule})`)
+
     return (properties, opt) => {
-      return css(properties, { atrules: [`@layer ${layer}`, `@media (${mediaAtRule})`], name: opt?.name, selector: opt?.selector });
+      return css(properties, { atrules, name: opt?.name, selector: opt?.selector });
     }
 }
 

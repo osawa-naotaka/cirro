@@ -1,7 +1,6 @@
-// cirro 公開 API
-export { createIsland } from "./island.tsx";
-export type { MarkdownConfig, RenderResult, ToC } from "./markdown.tsx";
-export { createMarkdown } from "./markdown.tsx";
+// cirro 公開 API（クライアント安全なもののみ）
+// サーバー専用 API（createIsland / createMarkdown）は重い依存（react-dom/server, remark/prism）を
+// 引き込むため、クライアントバンドルへの混入を防ぐべく "cirrojs/server" (src/server.ts) に分離した。
 export type { AnyRoute, DynamicRoute, Params, ResolvedPage, StaticRoute } from "./router.ts";
 export { expandRoutes, route, urlToFilePath } from "./router.ts";
 export type { Properties } from "./properties.ts";

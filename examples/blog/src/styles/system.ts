@@ -84,14 +84,12 @@ export function space(n: number): string {
 // 素の css() は「レイヤー無し」として出力され、@layer 付きのどのスタイルより優先されてしまう。
 // レスポンシブ上書き（@layer main + @media）と正しくカスケードさせるため、
 // 通常スタイルも必ず main レイヤーに入れる。
-export function cssMain(properties: Properties, opt?: Omit<CssOpt, "atrules">): string {
-    return css(properties, { ...opt, atrules: ["@layer main"] });
-}
+export const cssMain = genCssFn({ layer: "main" });
 
 // レスポンシブ用 css（旧 panda の breakpoint 既定値）。@layer main + @media で出力する。
 // 基準スタイルを cssMain で先に登録してから cx() で結合すると、min-width 一致時に上書きされる。
-export const cssSm = genCssFn("min-width: 640px"); // sm
-export const cssMd = genCssFn("min-width: 768px"); // md
+export const cssSm = genCssFn({ mediaAtRule: "min-width: 640px", layer: "main" }); // sm
+export const cssMd = genCssFn({ mediaAtRule: "min-width: 768px", layer: "main" }); // md
 
 // クラス名を結合する（falsy は除外）。
 export function cx(...classes: (string | false | null | undefined)[]): string {
