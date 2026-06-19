@@ -2,11 +2,11 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createServerModuleRunner, createServer as createViteServer, build as viteBuild } from "vite";
-import { expandRoutes, urlToFilePath, urlToCssFilePath } from "../router.ts";
+import { stringifyCss } from "../css.ts";
+import type { Registry } from "../registry.ts";
+import { expandRoutes, urlToCssFilePath, urlToFilePath } from "../router.ts";
 import { appendClientScriptAndCss } from "./head.ts";
 import { getCirroOptions } from "./options.ts";
-import type { Registry } from "../registry.ts";
-import { stringifyCss } from "../css.ts";
 
 // `cirro build`: クライアントバンドルを作り、各ルートを静的 HTML として書き出す（node:fs のみ、bun 非依存）。
 export async function runBuild() {

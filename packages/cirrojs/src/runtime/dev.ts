@@ -2,11 +2,11 @@ import { createServer as createHttpServer } from "node:http";
 import { dirname, resolve } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createServerModuleRunner, createServer as createViteServer, type ViteDevServer } from "vite";
+import { stringifyCss } from "../css.ts";
+import type { Registry } from "../registry.ts";
 import { expandRoutes } from "../router.ts";
 import { appendClientScriptAndCss } from "./head.ts";
 import { getCirroOptions } from "./options.ts";
-import type { Registry } from "../registry.ts";
-import { stringifyCss } from "../css.ts";
 
 // 仮想島マウンタ（virtual:cirro/client）の dev 配信 URL。
 const CLIENT_DEV_URL = "/@id/__x00__virtual:cirro/client";
