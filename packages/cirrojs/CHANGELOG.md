@@ -13,6 +13,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [0.0.7] - 2026-06-19
+
+### Added
+- The `Island` component now accepts an optional `className` prop, which is applied to its top-level wrapper element.
+
 ## [0.0.6] - 2026-06-19
 
 ### Fixed
@@ -46,7 +51,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## 0.0.1 - 2026-06-15
 - initial release
 
-[Unreleased]: https://github.com/osawa-naotaka/cirro/compare/v0.0.6...HEAD
+[Unreleased]: https://github.com/osawa-naotaka/cirro/compare/v0.0.7...HEAD
+[0.0.7]: https://github.com/osawa-naotaka/cirro/compare/v0.0.6...v0.0.7
 [0.0.6]: https://github.com/osawa-naotaka/cirro/compare/v0.0.5...v0.0.6
 [0.0.5]: https://github.com/osawa-naotaka/cirro/compare/v0.0.4...v0.0.5
 [0.0.4]: https://github.com/osawa-naotaka/cirro/compare/v0.0.3...v0.0.4
