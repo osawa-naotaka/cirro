@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+- 重複したCSSが出力していたバグを修正
+
 ## [0.0.5] - 2026-06-18
 
 ### Added

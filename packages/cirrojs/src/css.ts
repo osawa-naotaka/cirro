@@ -12,7 +12,7 @@ export function css(properties: Properties, opt?: CssOpt): string {
     const selector = opt?.selector ?? "&";
     const atrules = opt?.atrules ?? [];
 
-    const hash = hash_djb2_object(properties);
+    const hash = hash_djb2_object({ selector, atrules, properties });
     const designator = `${opt?.name ?? "cirro"}-${hash.toString(16)}`
 
     cssWithSelector([...atrules, selector], properties, designator);
