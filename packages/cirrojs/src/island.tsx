@@ -10,9 +10,10 @@ type IslandRegistry = Record<string, ComponentType<any>>;
 // renderToString を含むこのモジュールはサーバー専用であり、クライアント（島マウンタ）は
 // 純データの registry のみを import するため、クライアントバンドルには混入しない。
 export function createIsland<R extends IslandRegistry>(islands: R) {
-    return function Island<K extends keyof R & string>({ name, props }: { name: K; props: ComponentProps<R[K]> }) {
+    return function Island<K extends keyof R & string>({ name, props, className }: { name: K; props: ComponentProps<R[K]>, className?: string }) {
         const html = renderToString(createElement(islands[name], props));
         return createElement("div", {
+            className,
             "data-island": name,
             "data-props": JSON.stringify(props),
             // biome-ignore lint/security/noDangerouslySetInnerHtml: アイランドの初期DOMの注入

@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+- Islandコンポーネントにクラス名を付与できるように修正
+
 ## [0.0.6] - 2026-06-19
 
 ### Fixed
