@@ -2,7 +2,7 @@ import type { Properties } from "./properties";
 
 export type Registry = Map<string, [string[], Partial<Properties>]>;
 
-let registry: Registry = new Map();
+const registry: Registry = new Map();
 
 export function registerCss(designator: string, selectors: string[], properties: Partial<Properties>) {
     registry.set(designator, [selectors, properties]);

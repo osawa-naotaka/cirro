@@ -388,10 +388,7 @@ export type AlignContentBaseKeyword =
     | "space-evenly"
     | "stretch";
 
-export type AlignContentKeyword =
-    | AlignContentBaseKeyword
-    | ["safe", AlignContentBaseKeyword]
-    | ["unsafe", AlignContentBaseKeyword];
+export type AlignContentKeyword = AlignContentBaseKeyword | ["safe", AlignContentBaseKeyword] | ["unsafe", AlignContentBaseKeyword];
 
 // Background position values
 export type BackgroundPositionKeyword = "left" | "center" | "right" | "top" | "bottom";
@@ -481,17 +478,7 @@ export type FlexFlowSingleValue = FlexDirectionValue | FlexWrapValue;
 export type FlexFlowMultiValue = FlexFlowSingleValue | [FlexFlowSingleValue, FlexFlowSingleValue];
 
 // Justify content values
-export type JustifyContentValue =
-    | "flex-start"
-    | "flex-end"
-    | "center"
-    | "space-between"
-    | "space-around"
-    | "space-evenly"
-    | "start"
-    | "end"
-    | "left"
-    | "right";
+export type JustifyContentValue = "flex-start" | "flex-end" | "center" | "space-between" | "space-around" | "space-evenly" | "start" | "end" | "left" | "right";
 
 // Align items values
 export type AlignItemsSelfPosition = "center" | "start" | "end" | "self-start" | "self-end" | "flex-start" | "flex-end";
@@ -519,15 +506,7 @@ export type AlignSelfValue =
     | ["unsafe", AlignItemsSelfPosition]
     | ["safe", AlignItemsSelfPosition];
 
-export type AlignmentBaselineValue =
-    | "baseline"
-    | "text-bottom"
-    | "alphabetic"
-    | "ideographic"
-    | "middle"
-    | "central"
-    | "mathematical"
-    | "text-top";
+export type AlignmentBaselineValue = "baseline" | "text-bottom" | "alphabetic" | "ideographic" | "middle" | "central" | "mathematical" | "text-top";
 
 // Text align values
 export type TextAlignValue = "left" | "right" | "center" | "justify" | "start" | "end";
@@ -557,17 +536,7 @@ export type TextDecorationMultiValue = TextDecorationValue | TextDecorationValue
 export type TextTransformValue = "none" | "capitalize" | "uppercase" | "lowercase" | "full-width";
 
 // Border style values
-export type BorderStyleValue =
-    | "none"
-    | "hidden"
-    | "dotted"
-    | "dashed"
-    | "solid"
-    | "double"
-    | "groove"
-    | "ridge"
-    | "inset"
-    | "outset";
+export type BorderStyleValue = "none" | "hidden" | "dotted" | "dashed" | "solid" | "double" | "groove" | "ridge" | "inset" | "outset";
 
 // Border幅値
 export type BorderWidthValue = "thin" | "medium" | "thick" | string;
@@ -597,15 +566,7 @@ export type CursorValue =
 // Animation property 関連の型
 export type AnimationNameValue = string;
 export type AnimationDurationValue = string;
-export type AnimationTimingFunctionValue =
-    | "ease"
-    | "ease-in"
-    | "ease-out"
-    | "ease-in-out"
-    | "linear"
-    | "step-start"
-    | "step-end"
-    | string;
+export type AnimationTimingFunctionValue = "ease" | "ease-in" | "ease-out" | "ease-in-out" | "linear" | "step-start" | "step-end" | string;
 export type AnimationDelayValue = string;
 export type AnimationIterationCountValue = string | "infinite";
 export type AnimationDirectionValue = "normal" | "reverse" | "alternate" | "alternate-reverse";
@@ -630,20 +591,7 @@ export type AnimationValue = AnimationValueBase | AnimationValueBase[] | Animati
 
 // Font関連の型
 export type FontStyleValue = "normal" | "italic" | "oblique" | string;
-export type FontWeightValue =
-    | "normal"
-    | "bold"
-    | "bolder"
-    | "lighter"
-    | "100"
-    | "200"
-    | "300"
-    | "400"
-    | "500"
-    | "600"
-    | "700"
-    | "800"
-    | "900";
+export type FontWeightValue = "normal" | "bold" | "bolder" | "lighter" | "100" | "200" | "300" | "400" | "500" | "600" | "700" | "800" | "900";
 export type FontSizeValue = string;
 export type LineHeightValue = string | "normal";
 export type FontFamilyValue = string | string[];
@@ -671,15 +619,7 @@ export type TransformValue = "none" | TransformFunctionValue | TransformFunction
 // Transition property 関連の型
 export type TransitionPropertyValue = string | "none" | "all";
 export type TransitionDurationValue = string;
-export type TransitionTimingFunctionValue =
-    | "ease"
-    | "ease-in"
-    | "ease-out"
-    | "ease-in-out"
-    | "linear"
-    | "step-start"
-    | "step-end"
-    | string;
+export type TransitionTimingFunctionValue = "ease" | "ease-in" | "ease-out" | "ease-in-out" | "linear" | "step-start" | "step-end" | string;
 export type TransitionDelayValue = string;
 
 // Transition複合型
@@ -725,17 +665,7 @@ export type Properties = Partial<{
     background_image: string | string[] | string[][] | PGlobal;
     background_origin: "border-box" | "padding-box" | "content-box" | string | string[] | string[][] | PGlobal;
     background_position: BackgroundPositionValue | BackgroundPositionValue[] | BackgroundPositionValue[][] | PGlobal;
-    background_repeat:
-        | "repeat"
-        | "repeat-x"
-        | "repeat-y"
-        | "no-repeat"
-        | "space"
-        | "round"
-        | string
-        | string[]
-        | string[][]
-        | PGlobal;
+    background_repeat: "repeat" | "repeat-x" | "repeat-y" | "no-repeat" | "space" | "round" | string | string[] | string[][] | PGlobal;
     background_size: string | string[] | string[][] | PGlobal;
     block_size: string | "auto" | PGlobal;
     border: BorderValue | BorderValue[] | PGlobal;
@@ -899,15 +829,7 @@ export type Properties = Partial<{
     font_synthesis: "none" | "weight" | "style" | string | string[] | PFontGlobal;
     font_variant: string | string[] | "normal" | "none" | PFontGlobal;
     font_variant_alternates: string | "normal" | PFontGlobal;
-    font_variant_caps:
-        | "normal"
-        | "small-caps"
-        | "all-small-caps"
-        | "petite-caps"
-        | "all-petite-caps"
-        | "unicase"
-        | "titling-caps"
-        | PFontGlobal;
+    font_variant_caps: "normal" | "small-caps" | "all-small-caps" | "petite-caps" | "all-petite-caps" | "unicase" | "titling-caps" | PFontGlobal;
     font_variant_east_asian: string | string[] | "normal" | PFontGlobal;
     font_variant_ligatures: string | string[] | "normal" | "none" | PFontGlobal;
     font_variant_numeric: string | string[] | "normal" | PFontGlobal;
@@ -957,32 +879,8 @@ export type Properties = Partial<{
 
     // J
     justify_content: JustifyContentValue | PGlobal;
-    justify_items:
-        | "start"
-        | "end"
-        | "center"
-        | "stretch"
-        | "self-start"
-        | "self-end"
-        | "flex-start"
-        | "flex-end"
-        | "left"
-        | "right"
-        | string
-        | PGlobal;
-    justify_self:
-        | "auto"
-        | "start"
-        | "end"
-        | "center"
-        | "stretch"
-        | "self-start"
-        | "self-end"
-        | "flex-start"
-        | "flex-end"
-        | "left"
-        | "right"
-        | PGlobal;
+    justify_items: "start" | "end" | "center" | "stretch" | "self-start" | "self-end" | "flex-start" | "flex-end" | "left" | "right" | string | PGlobal;
+    justify_self: "auto" | "start" | "end" | "center" | "stretch" | "self-start" | "self-end" | "flex-start" | "flex-end" | "left" | "right" | PGlobal;
 
     // L
     left: string | "auto" | PGlobal;
@@ -1014,32 +912,11 @@ export type Properties = Partial<{
     mask_border_slice: string | string[] | PGlobal;
     mask_border_source: string | "none" | PGlobal;
     mask_border_width: string | string[] | "auto" | PGlobal;
-    mask_clip:
-        | string
-        | string[]
-        | "content-box"
-        | "padding-box"
-        | "border-box"
-        | "margin-box"
-        | "fill-box"
-        | "stroke-box"
-        | "view-box"
-        | "no-clip"
-        | PGlobal;
+    mask_clip: string | string[] | "content-box" | "padding-box" | "border-box" | "margin-box" | "fill-box" | "stroke-box" | "view-box" | "no-clip" | PGlobal;
     mask_composite: string | string[] | PGlobal;
     mask_image: string | string[] | "none" | PGlobal;
     mask_mode: string | string[] | "alpha" | "luminance" | "match-source" | PGlobal;
-    mask_origin:
-        | string
-        | string[]
-        | "content-box"
-        | "padding-box"
-        | "border-box"
-        | "margin-box"
-        | "fill-box"
-        | "stroke-box"
-        | "view-box"
-        | PGlobal;
+    mask_origin: string | string[] | "content-box" | "padding-box" | "border-box" | "margin-box" | "fill-box" | "stroke-box" | "view-box" | PGlobal;
     mask_position: string | string[] | string[][] | PGlobal;
     mask_repeat: string | string[] | PGlobal;
     mask_size: string | string[] | "auto" | "cover" | "contain" | PGlobal;
@@ -1105,18 +982,7 @@ export type Properties = Partial<{
     place_content: string | string[] | PGlobal;
     place_items: string | string[] | PGlobal;
     place_self: string | string[] | PGlobal;
-    pointer_events:
-        | "auto"
-        | "none"
-        | "visiblePainted"
-        | "visibleFill"
-        | "visibleStroke"
-        | "visible"
-        | "painted"
-        | "fill"
-        | "stroke"
-        | "all"
-        | PGlobal;
+    pointer_events: "auto" | "none" | "visiblePainted" | "visibleFill" | "visibleStroke" | "visible" | "painted" | "fill" | "stroke" | "all" | PGlobal;
     position: PositionValue | PPositionGlobal;
 
     // Q
@@ -1169,33 +1035,14 @@ export type Properties = Partial<{
     text_decoration: TextDecorationMultiValue | PGlobal;
     text_decoration_color: string | PGlobal;
     text_decoration_line: TextDecorationLineValue | string | string[] | PGlobal;
-    text_decoration_skip:
-        | "none"
-        | "objects"
-        | "spaces"
-        | "ink"
-        | "edges"
-        | "box-decoration"
-        | string
-        | string[]
-        | PGlobal;
+    text_decoration_skip: "none" | "objects" | "spaces" | "ink" | "edges" | "box-decoration" | string | string[] | PGlobal;
     text_decoration_skip_ink: "auto" | "none" | "all" | PGlobal;
     text_decoration_style: "solid" | "double" | "dotted" | "dashed" | "wavy" | PGlobal;
     text_decoration_thickness: string | "auto" | "from-font" | PGlobal;
     text_emphasis: string | string[] | PGlobal;
     text_emphasis_color: string | PGlobal;
     text_emphasis_position: string | string[] | PGlobal;
-    text_emphasis_style:
-        | "none"
-        | "filled"
-        | "open"
-        | "dot"
-        | "circle"
-        | "double-circle"
-        | "triangle"
-        | "sesame"
-        | string
-        | PGlobal;
+    text_emphasis_style: "none" | "filled" | "open" | "dot" | "circle" | "double-circle" | "triangle" | "sesame" | string | PGlobal;
     text_indent: string | PGlobal;
     text_justify: "auto" | "inter-character" | "inter-word" | "none" | PGlobal;
     text_orientation: "mixed" | "upright" | "sideways" | PGlobal;
@@ -1228,16 +1075,8 @@ export type Properties = Partial<{
     transition: TransitionValue | PTransitionGlobal;
     transition_delay: string | string[] | string[][] | PTransitionGlobal;
     transition_duration: string | string[] | string[][] | PTransitionGlobal;
-    transition_property:
-        | TransitionPropertyValue
-        | TransitionPropertyValue[]
-        | TransitionPropertyValue[][]
-        | PTransitionGlobal;
-    transition_timing_function:
-        | TransitionTimingFunctionValue
-        | TransitionTimingFunctionValue[]
-        | TransitionTimingFunctionValue[][]
-        | PTransitionGlobal;
+    transition_property: TransitionPropertyValue | TransitionPropertyValue[] | TransitionPropertyValue[][] | PTransitionGlobal;
+    transition_timing_function: TransitionTimingFunctionValue | TransitionTimingFunctionValue[] | TransitionTimingFunctionValue[][] | PTransitionGlobal;
     translate: string | string[] | "none" | PGlobal;
 
     // U
@@ -1245,17 +1084,7 @@ export type Properties = Partial<{
     user_select: "auto" | "none" | "text" | "contain" | "all" | PGlobal;
 
     // V
-    vertical_align:
-        | "baseline"
-        | "sub"
-        | "super"
-        | "text-top"
-        | "text-bottom"
-        | "middle"
-        | "top"
-        | "bottom"
-        | string
-        | PGlobal;
+    vertical_align: "baseline" | "sub" | "super" | "text-top" | "text-bottom" | "middle" | "top" | "bottom" | string | PGlobal;
     visibility: "visible" | "hidden" | "collapse" | PGlobal;
 
     // W

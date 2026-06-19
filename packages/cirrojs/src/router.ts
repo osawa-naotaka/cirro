@@ -27,7 +27,7 @@ export function route(def: AnyRoute): AnyRoute {
     return def;
 }
 
-export type ResolvedPage = { url: string; isCss: boolean; cssPath: string, render: () => ReactElement };
+export type ResolvedPage = { url: string; isCss: boolean; cssPath: string; render: () => ReactElement };
 
 // 全ルートを具体的な URL 一覧へ展開する（build / dev で共有）。
 // 動的ルートは getStaticPaths を path 関数に通して URL を生成するため、正規表現は不要。
@@ -38,7 +38,7 @@ export function expandRoutes(routes: AnyRoute[]): ResolvedPage[] {
             for (const params of r.getStaticPaths()) {
                 pages.push({ url: r.path(params), isCss: false, cssPath: r.cssPath, render: () => r.component({ params }) });
             }
-            pages.push({ url: r.cssPath, isCss: true, cssPath: r.cssPath, render: () => r.component({ params: r.getStaticPaths()[0] }) })
+            pages.push({ url: r.cssPath, isCss: true, cssPath: r.cssPath, render: () => r.component({ params: r.getStaticPaths()[0] }) });
         } else {
             pages.push({ url: r.path, isCss: false, cssPath: join(r.path, "index.css"), render: () => r.component({ params: {} }) });
             pages.push({ url: join(r.path, "index.css"), isCss: true, cssPath: join(r.path, "index.css"), render: () => r.component({ params: {} }) });
@@ -59,5 +59,8 @@ export function urlToCssFilePath(url: string): string {
 }
 
 function join(...paths: string[]): string {
-    return paths.reduce((p, c) => p.endsWith("/") && c.startsWith("/") ? `${p}${c.substring(1)}` : p.endsWith("/") || c.startsWith("/") ? `${p}${c}` : `${p}/${c}`, "");
+    return paths.reduce(
+        (p, c) => (p.endsWith("/") && c.startsWith("/") ? `${p}${c.substring(1)}` : p.endsWith("/") || c.startsWith("/") ? `${p}${c}` : `${p}/${c}`),
+        "",
+    );
 }
