@@ -50,7 +50,7 @@ export async function runDev(port = 5173) {
             const rawUrl = req.url ?? "/";
             try {
                 // routes は Module Runner で最新を読む（HMR と整合）。
-                const { routes, getCssRegistry, initCssRegistry } = await runner.import(routesPath);
+                const { routes, runWithRegistry } = await runner.import(routesPath);
                 const pages = expandRoutes(routes);
 
                 if (rawUrl.endsWith(".css")) {
@@ -60,11 +60,9 @@ export async function runDev(port = 5173) {
                         res.end();
                         return;
                     }
-                    initCssRegistry();
-                    // ツリー全体を描画して、ネストしたコンポーネント（Layout / 各島など）の
-                    // css() 呼び出しまでレジストリに登録する（HTML は破棄しレジストリだけ使う）。
-                    renderToStaticMarkup(page.render());
-                    const registry = getCssRegistry() as Registry;
+                    // ツリー全体を専用レジストリのコンテキストで描画し、ネストしたコンポーネント
+                    // （Layout / 各島など）の css() 呼び出しまで登録する（HTML は破棄しレジストリだけ使う）。
+                    const { registry } = runWithRegistry(() => renderToStaticMarkup(page.render())) as { registry: Registry };
                     const css = stringifyCss(registry);
                     res.statusCode = 200;
                     res.setHeader("Content-Type", "text/css; charset=utf-8");
@@ -84,8 +82,12 @@ export async function runDev(port = 5173) {
                 }
 
                 // クライアントスクリプトは React 要素ツリーを直接操作して <head> の末尾に挿入する（文字列置換しない）。
-                const tree = appendClientScriptAndCss(page.render(), CLIENT_DEV_URL, page.cssPath);
-                let html = `<!DOCTYPE html>${renderToStaticMarkup(tree)}`;
+                // HTML 経路でも css() はクラス名取得のため呼ばれるので、レンダリング全体をレジストリ
+                // コンテキストで包む（ここではレジストリは使わず破棄する。CSS は .css 経路で生成）。
+                let { result: html } = runWithRegistry(() => {
+                    const tree = appendClientScriptAndCss(page.render(), CLIENT_DEV_URL, page.cssPath);
+                    return `<!DOCTYPE html>${renderToStaticMarkup(tree)}`;
+                });
                 html = await vite.transformIndexHtml(rawUrl, html);
                 res.statusCode = 200;
                 res.setHeader("Content-Type", "text/html; charset=utf-8");

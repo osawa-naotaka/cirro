@@ -13,6 +13,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+- The CSS registry is now scoped per render via `AsyncLocalStorage` instead of a shared module-global map, preventing styles from different routes from leaking into one another.
+
+### Removed
+- Removed `initCssRegistry` and `getCssRegistry`. Use `runWithRegistry`, which runs a render callback in its own registry context and returns both the result and the collected registry. Sites must re-export `runWithRegistry` from their `routes.ts` in place of the two removed functions.
+
 ## [0.0.7] - 2026-06-19
 
 ### Added

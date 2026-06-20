@@ -10,9 +10,9 @@ import { TagIndexPage } from "./pages/tag-index";
 import { TagPage } from "./pages/tag";
 
 // 自前スタイリングシステムのレジストリ関数を再 export する（必須）。
-// ランタイムはこのモジュール経由で initCssRegistry / getCssRegistry を呼び、
-// 同一モジュールインスタンスのレジストリを読み書きしてルート単位の CSS を生成する。
-export { getCssRegistry, initCssRegistry } from "cirrojs";
+// ランタイムはこのモジュール経由で runWithRegistry を呼び、同一モジュールインスタンスの
+// レジストリでレンダリングを包むことで、ルート単位の CSS を生成する。
+export { runWithRegistry } from "cirrojs";
 
 // サイトのルート定義（Config Base Routing）。
 // 動的ルートは getStaticPaths でビルド対象の URL を列挙する。
