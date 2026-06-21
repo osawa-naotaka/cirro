@@ -30,12 +30,12 @@ export function cirro(options: CirroOptions): Plugin {
                     manifest: true,
                     modulePreload: { polyfill: false },
                     assetsInlineLimit: 0,
-                    // registry.ts が css() 経由でクライアントグラフに入り node:async_hooks を引き込む。
-                    // Vite の自動 external 化に任せると警告が出るため明示的に external 化する（挙動は同じ）。
-                    // ここで列挙したものだけを external にし、意図しない他の Node 依存の混入は警告で検知する。
+                    // css() のクライアント経路は exports の browser 条件で registry.browser.ts
+                    // （async_hooks 非依存・registerCss は no-op）へ解決されるため、クライアント
+                    // バンドルに node:async_hooks は混入しない。意図しない Node 依存が紛れ込んだ
+                    // 場合は Vite の自動 external 化警告で検知できるよう、ここでは external を列挙しない。
                     rollupOptions: {
                         input: { client: VIRTUAL_CLIENT },
-                        external: ["node:async_hooks"],
                     },
                 },
             };
