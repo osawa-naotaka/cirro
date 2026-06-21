@@ -4,9 +4,9 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { createServerModuleRunner, createServer as createViteServer, type ViteDevServer } from "vite";
 import { stringifyCss } from "../css.ts";
 import { expandRoutes } from "../router.ts";
+import { contentType } from "./contentType.ts";
 import { appendClientScriptAndCss } from "./head.ts";
 import { getCirroOptions } from "./options.ts";
-import { contentType } from "./contentType.ts";
 
 // 仮想島マウンタ（virtual:cirro/client）の dev 配信 URL。
 const CLIENT_DEV_URL = "/@id/__x00__virtual:cirro/client";
@@ -46,7 +46,6 @@ export async function runDev(port = 5173) {
     const islandsDir = dirname(resolve(root, options.islands)).replaceAll("\\", "/");
 
     const httpServer = createHttpServer((req, res) => {
-
         function successResp(ext: string, body: string): void {
             res.statusCode = 200;
             res.setHeader("Content-Type", contentType(ext));

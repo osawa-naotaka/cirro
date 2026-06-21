@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - AnyRouteにStaticRoute, DynamicRouteに加え、FileRouteを追加。任意のテキストファイルを生成できるようにした
 - StaticRoute型, DynamicRoute型にtypeプロパティを追加。今後は設定が必須になる。その代わり、もはやroute()を使わなくても型推論してくれる
 - 利用していないexport関数を削除
+- server functionにmarkdownToText()を提供。mdをplane textにする。主に検索インデックス生成のために提供。
+- createMarkdow()の名前をcreateMarkdownProcessor()に変更
 
 ### Changed
 - The CSS registry is now scoped per render via `AsyncLocalStorage` instead of a shared module-global map, preventing styles from different routes from leaking into one another.

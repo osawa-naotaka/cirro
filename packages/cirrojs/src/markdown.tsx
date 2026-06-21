@@ -1,4 +1,6 @@
 import type { Schema } from "hast-util-sanitize";
+import { fromMarkdown } from "mdast-util-from-markdown";
+import { toString as markdowToString } from "mdast-util-to-string";
 import type { ReactElement } from "react";
 import rehypePrism from "rehype-prism";
 import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
@@ -40,7 +42,7 @@ export interface RenderResult {
 // 設定済みの unified パイプラインを一度だけ構築し、Markdown 描画 API を返すファクトリ。
 // createIsland と同じく、本モジュールはサーバー専用（ビルド時の HTML 化）で、
 // unified / rehype-sanitize 一式はクライアントバンドルに混入させない。
-export function createMarkdown(config: MarkdownConfig = {}) {
+export function createMarkdownProcessor(config: MarkdownConfig = {}) {
     const tocOptions = {
         prefix: "heading",
         startLevel: 2,
@@ -92,4 +94,10 @@ export function createMarkdown(config: MarkdownConfig = {}) {
     }
 
     return { Markdown, render };
+}
+
+export function markdownToText(md: string) {
+    return fromMarkdown(md)
+        .children.map((x) => markdowToString(x))
+        .join("\n");
 }

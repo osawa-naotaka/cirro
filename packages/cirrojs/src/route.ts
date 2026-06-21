@@ -28,18 +28,21 @@ export type FileRoute = {
 // biome-ignore lint/suspicious/noExplicitAny: ルート集合では各動的ルートの params 型を消す必要がある
 export type AnyRoute = StaticRoute | DynamicRoute<any> | FileRoute;
 
-export type ResolvedPath = {
-    type: "html";
-    path: string;
-    cssPath: string;
-    render: () => ReactElement;
-} | {
-    type: "css";
-    path: string;
-    render: () => ReactElement;
-} | {
-    type: "file";
-    path: string;
-    ext: string;
-    render: () => string;
-};
+export type ResolvedPath =
+    | {
+          type: "html";
+          path: string;
+          cssPath: string;
+          render: () => ReactElement;
+      }
+    | {
+          type: "css";
+          path: string;
+          render: () => ReactElement;
+      }
+    | {
+          type: "file";
+          path: string;
+          ext: string;
+          render: () => string;
+      };

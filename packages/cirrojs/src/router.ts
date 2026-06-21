@@ -1,5 +1,5 @@
 import { extname, join } from "node:path";
-import type { Params, StaticRoute, DynamicRoute, FileRoute, AnyRoute, ResolvedPath } from "./route";
+import type { AnyRoute, DynamicRoute, FileRoute, Params, ResolvedPath, StaticRoute } from "./route";
 
 // 動的ルートの型パラメータ P を保持するための型推論ヘルパー。
 export function route<P extends Params>(def: DynamicRoute<P>): DynamicRoute<P>;
@@ -26,7 +26,7 @@ export function expandRoutes(routes: AnyRoute[]): ResolvedPath[] {
                     type: "css",
                     path: join(r.path, "index.css"),
                     render: () => r.component({ params: {} }),
-                })
+                });
                 break;
             case "dynamic":
                 for (const params of r.getStaticPaths()) {
@@ -41,7 +41,7 @@ export function expandRoutes(routes: AnyRoute[]): ResolvedPath[] {
                     type: "css",
                     path: r.cssPath,
                     render: () => r.component({ params: r.getStaticPaths()[0] }),
-                })
+                });
                 break;
             case "file":
                 pages.push({
@@ -49,7 +49,7 @@ export function expandRoutes(routes: AnyRoute[]): ResolvedPath[] {
                     path: r.path,
                     ext: extname(r.path),
                     render: () => r.component({ params: {} }),
-                })
+                });
                 break;
         }
     }
