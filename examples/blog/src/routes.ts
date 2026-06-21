@@ -1,4 +1,4 @@
-import { type AnyRoute, route } from "cirrojs";
+import { type AnyRoute } from "cirrojs";
 import { authors } from "./lib/authors";
 import { allTags, posts } from "./lib/content";
 import { AboutPage } from "./pages/about";
@@ -23,25 +23,25 @@ export const routes: AnyRoute[] = [
     { type: "static", path: "/about", component: AboutPage },
     { type: "static", path: "/blog", component: BlogIndexPage },
     { type: "static", path: "/tags", component: TagIndexPage },
-    route({
+    {
         type: "dynamic",
         path: ({ slug }) => `/blog/${slug}`,
         cssPath: "/blog/post.css",
         getStaticPaths: () => posts.map(({ slug }) => ({ slug })),
         component: PostPage,
-    }),
-    route({
+    },
+    {
         type: "dynamic",
         path: ({ tag }) => `/tags/${tag}`,
         cssPath: "/tags/tag.css",
         getStaticPaths: () => allTags().map(({ tag }) => ({ tag })),
         component: TagPage,
-    }),
-    route({
+    },
+    {
         type: "dynamic",
         path: ({ id }) => `/authors/${id}`,
         cssPath: "/authors/index.css",
         getStaticPaths: () => authors.map(({ id }) => ({ id })),
         component: AuthorPage,
-    }),
+    },
 ];

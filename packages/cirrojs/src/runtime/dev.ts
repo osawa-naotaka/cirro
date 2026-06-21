@@ -1,10 +1,11 @@
 import { createServer as createHttpServer } from "node:http";
-import { dirname, resolve, extname } from "node:path";
+import { dirname, resolve } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createServerModuleRunner, createServer as createViteServer, type ViteDevServer } from "vite";
 import { stringifyCss } from "../css.ts";
 import type { RunWithRegistry } from "../registry.ts";
-import { expandRoutes, type ResolvedPath } from "../router.ts";
+import { expandRoutes } from "../router.ts";
+import type { ResolvedPath } from "../route.ts";
 import { appendClientScriptAndCss } from "./head.ts";
 import { getCirroOptions } from "./options.ts";
 import { contentType } from "./contentType.ts";

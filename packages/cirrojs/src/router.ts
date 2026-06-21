@@ -1,34 +1,5 @@
-import { extname } from "node:path";
-import type { ReactElement } from "react";
-// import { join } from "node:path";
-
-export type Params = Record<string, string>;
-
-// 静的ルート: path は固定文字列
-export type StaticRoute = {
-    type: "static";
-    path: string;
-    component: (props: { params: Record<string, never> }) => ReactElement;
-};
-
-// 動的ルート: path は params から URL を生成する関数（正規表現・特殊記法は使わない）
-export type DynamicRoute<P extends Params = Params> = {
-    type: "dynamic";
-    path: (params: P) => string;
-    cssPath: string;
-    getStaticPaths: () => P[];
-    component: (props: { params: P }) => ReactElement;
-};
-
-// テキストファイルルート: path は固定文字列
-export type FileRoute = {
-    type: "file";
-    path: string;
-    component: (props: { params: Record<string, never> }) => string;
-};
-
-// biome-ignore lint/suspicious/noExplicitAny: ルート集合では各動的ルートの params 型を消す必要がある
-export type AnyRoute = StaticRoute | DynamicRoute<any> | FileRoute;
+import { extname, join } from "node:path";
+import type { Params, StaticRoute, DynamicRoute, FileRoute, AnyRoute, ResolvedPath } from "./route";
 
 // 動的ルートの型パラメータ P を保持するための型推論ヘルパー。
 export function route<P extends Params>(def: DynamicRoute<P>): DynamicRoute<P>;
@@ -36,24 +7,6 @@ export function route(def: StaticRoute): StaticRoute;
 export function route(def: FileRoute): FileRoute;
 export function route(def: AnyRoute): AnyRoute {
     return def;
-}
-
-// export type ResolvedPage = { url: string; isCss: boolean; cssPath: string; render: () => ReactElement };
-
-export type ResolvedPath = {
-    type: "html";
-    path: string;
-    cssPath: string;
-    render: () => ReactElement;
-} | {
-    type: "css";
-    path: string;
-    render: () => ReactElement;
-} | {
-    type: "file";
-    path: string;
-    ext: string;
-    render: () => string;
 }
 
 // 全ルートを具体的な URL 一覧へ展開する（build / dev で共有）。
@@ -112,11 +65,4 @@ export function urlToFilePath(url: string): string {
 export function urlToCssFilePath(url: string): string {
     if (url === "/") return "index.css";
     return `${url.replace(/^\/+|\/+$/g, "")}`;
-}
-
-function join(...paths: string[]): string {
-    return paths.reduce(
-        (p, c) => (p.endsWith("/") && c.startsWith("/") ? `${p}${c.substring(1)}` : p.endsWith("/") || c.startsWith("/") ? `${p}${c}` : `${p}/${c}`),
-        "",
-    );
 }
