@@ -3,9 +3,7 @@ import { dirname, resolve } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createServerModuleRunner, createServer as createViteServer, type ViteDevServer } from "vite";
 import { stringifyCss } from "../css.ts";
-import type { RunWithRegistry } from "../registry.ts";
 import { expandRoutes } from "../router.ts";
-import type { ResolvedPath } from "../route.ts";
 import { appendClientScriptAndCss } from "./head.ts";
 import { getCirroOptions } from "./options.ts";
 import { contentType } from "./contentType.ts";
@@ -68,27 +66,39 @@ export async function runDev(port = 5173) {
 
         vite.middlewares(req, res, async () => {
             const rawUrl = req.url ?? "/";
+            const pathname = new URL(rawUrl, "http://localhost").pathname;
+            const normalized = pathname.replace(/\/+$/, "") || "/";
             try {
                 // routes は Module Runner で最新を読む（HMR と整合）。
                 const { routes, runWithRegistry } = await runner.import(routesPath);
                 const pages = expandRoutes(routes);
-
-                if (rawUrl.endsWith(".css")) {
-                    const css = renderCss(pages, rawUrl, runWithRegistry);
-                    if (css === null) {
-                        errorResp(".css");
-                    } else {
-                        successResp(".css", css);
-                    }
+                const page = pages.find((p) => p.path === normalized);
+                if (page === undefined) {
+                    errorResp(".html");
                     return;
                 }
 
-                const html = renderHtml(pages, rawUrl, runWithRegistry);
-                if (html === null) {
-                    errorResp(".html");
-                } else {
-                    const transformed = await vite.transformIndexHtml(rawUrl, html);
-                    successResp(".html", transformed);
+                switch (page.type) {
+                    case "html": {
+                        const { result: html } = runWithRegistry(() => {
+                            const tree = appendClientScriptAndCss(page.render(), CLIENT_DEV_URL, page.cssPath);
+                            return `<!DOCTYPE html>${renderToStaticMarkup(tree)}`;
+                        });
+                        const transformed = await vite.transformIndexHtml(rawUrl, html);
+                        successResp(".html", transformed);
+                        break;
+                    }
+                    case "css": {
+                        const { registry } = runWithRegistry(() => renderToStaticMarkup(page.render()));
+                        const css = stringifyCss(registry);
+                        successResp(".css", css);
+                        break;
+                    }
+                    case "file": {
+                        const file = page.render();
+                        successResp(page.ext, file);
+                        break;
+                    }
                 }
                 return;
             } catch (err) {
@@ -122,36 +132,4 @@ export async function runDev(port = 5173) {
     httpServer.listen(port, () => {
         console.log(`cirro dev: http://localhost:${port}`);
     });
-}
-
-function renderCss(pages: ResolvedPath[], rawUrl: string, runWithRegistry: RunWithRegistry<unknown>): string | null {
-    const page = pages.find((p) => p.type === "css" && p.path === rawUrl);
-    if (!page) return null;
-
-    // ツリー全体を専用レジストリのコンテキストで描画し、ネストしたコンポーネント
-    // （Layout / 各島など）の css() 呼び出しまで登録する（HTML は破棄しレジストリだけ使う）。
-    const { registry } = runWithRegistry(() => renderToStaticMarkup(page.render()));
-    const css = stringifyCss(registry);
-    return css;
-}
-
-function renderHtml(pages: ResolvedPath[], rawUrl: string, runWithRegistry: RunWithRegistry<unknown>): string | null {
-    const pathname = new URL(rawUrl, "http://localhost").pathname;
-    const normalized = pathname.replace(/\/+$/, "") || "/";
-    const page = pages.find((p) => (p.path.replace(/\/+$/, "") || "/") === normalized);
-
-    if (!page) return null;
-
-    // クライアントスクリプトは React 要素ツリーを直接操作して <head> の末尾に挿入する（文字列置換しない）。
-    // HTML 経路でも css() はクラス名取得のため呼ばれるので、レンダリング全体をレジストリ
-    // コンテキストで包む（ここではレジストリは使わず破棄する。CSS は .css 経路で生成）。
-    let { result: html } = runWithRegistry(() => {
-        if (page.type === "html") {
-          const tree = appendClientScriptAndCss(page.render(), CLIENT_DEV_URL, page.cssPath);
-          return `<!DOCTYPE html>${renderToStaticMarkup(tree)}`;
-        }
-        throw new Error("dev.ts: Internal error.");
-    });
-
-    return html as string;
 }

@@ -51,6 +51,14 @@ export async function runBuild() {
                     console.log(`wrote ${filePath} (url: ${page.path})`);
                     break;
                 }
+                case "file": {
+                    const file = page.render();
+                    const filePath = join(outDir, page.path);
+                    await mkdir(dirname(filePath), { recursive: true });
+                    await writeFile(filePath, file);
+                    console.log(`wrote ${filePath} (url: ${page.path})`);
+                    break;
+                }
             }
         }
     } finally {
