@@ -1,4 +1,4 @@
-import { createMarkdown } from "cirrojs/server";
+import { createMarkdownProcessor } from "cirrojs/server";
 // rehype-prism は prismjs コアの言語しかハイライトしないため、使う言語の文法を
 // 同一 prismjs シングルトンに登録しておく（tsx は jsx/typescript/markup に依存）。
 // @ts-expect-error prismjs/components/index.js は型定義を持たない Node 用ローダ。
@@ -16,7 +16,7 @@ loadPrismLanguages(["markup", "css", "javascript", "typescript", "jsx", "tsx", "
 //
 // 変換はビルド時（renderToStaticMarkup は同期）に行われ、結果は静的 HTML として埋め込まれる。
 // クライアントへ unified 一式の JS は送られない。
-export const { render: renderMarkdown } = createMarkdown({
+export const { render: renderMarkdown } = createMarkdownProcessor({
     remarkPlugins: [remarkGfm],
     toc: true,
     highlight: true,

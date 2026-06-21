@@ -3,8 +3,8 @@ import { dirname, resolve } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createServerModuleRunner, createServer as createViteServer, type ViteDevServer } from "vite";
 import { stringifyCss } from "../css.ts";
-import type { Registry } from "../registry.ts";
 import { expandRoutes } from "../router.ts";
+import { contentType } from "./contentType.ts";
 import { appendClientScriptAndCss } from "./head.ts";
 import { getCirroOptions } from "./options.ts";
 
@@ -46,50 +46,60 @@ export async function runDev(port = 5173) {
     const islandsDir = dirname(resolve(root, options.islands)).replaceAll("\\", "/");
 
     const httpServer = createHttpServer((req, res) => {
+        function successResp(ext: string, body: string): void {
+            res.statusCode = 200;
+            res.setHeader("Content-Type", contentType(ext));
+            res.end(body);
+        }
+
+        function errorResp(ext: string) {
+            res.statusCode = 404;
+            res.setHeader("Content-Type", contentType(ext));
+            if (ext === ".html") {
+                res.end('<!DOCTYPE html><meta charset="utf-8"><h1>404 Not Found</h1>');
+            } else {
+                res.end();
+            }
+            return;
+        }
+
         vite.middlewares(req, res, async () => {
             const rawUrl = req.url ?? "/";
+            const pathname = new URL(rawUrl, "http://localhost").pathname;
+            const normalized = pathname.replace(/\/+$/, "") || "/";
             try {
                 // routes は Module Runner で最新を読む（HMR と整合）。
-                const { routes, getCssRegistry, initCssRegistry } = await runner.import(routesPath);
+                const { routes, runWithRegistry } = await runner.import(routesPath);
                 const pages = expandRoutes(routes);
+                const page = pages.find((p) => p.path === normalized);
+                if (page === undefined) {
+                    errorResp(".html");
+                    return;
+                }
 
-                if (rawUrl.endsWith(".css")) {
-                    const page = pages.find((p) => p.isCss && p.url === rawUrl);
-                    if (!page) {
-                        res.statusCode = 404;
-                        res.end();
-                        return;
+                switch (page.type) {
+                    case "html": {
+                        const { result: html } = runWithRegistry(() => {
+                            const tree = appendClientScriptAndCss(page.render(), CLIENT_DEV_URL, page.cssPath);
+                            return `<!DOCTYPE html>${renderToStaticMarkup(tree)}`;
+                        });
+                        const transformed = await vite.transformIndexHtml(rawUrl, html);
+                        successResp(".html", transformed);
+                        break;
                     }
-                    initCssRegistry();
-                    // ツリー全体を描画して、ネストしたコンポーネント（Layout / 各島など）の
-                    // css() 呼び出しまでレジストリに登録する（HTML は破棄しレジストリだけ使う）。
-                    renderToStaticMarkup(page.render());
-                    const registry = getCssRegistry() as Registry;
-                    const css = stringifyCss(registry);
-                    res.statusCode = 200;
-                    res.setHeader("Content-Type", "text/css; charset=utf-8");
-                    res.end(css);
-                    return;
+                    case "css": {
+                        const { registry } = runWithRegistry(() => renderToStaticMarkup(page.render()));
+                        const css = stringifyCss(registry);
+                        successResp(".css", css);
+                        break;
+                    }
+                    case "file": {
+                        const file = page.render();
+                        successResp(page.ext, file);
+                        break;
+                    }
                 }
-
-                const pathname = new URL(rawUrl, "http://localhost").pathname;
-                const normalized = pathname.replace(/\/+$/, "") || "/";
-                const page = pages.find((p) => (p.url.replace(/\/+$/, "") || "/") === normalized);
-
-                if (!page) {
-                    res.statusCode = 404;
-                    res.setHeader("Content-Type", "text/html; charset=utf-8");
-                    res.end('<!DOCTYPE html><meta charset="utf-8"><h1>404 Not Found</h1>');
-                    return;
-                }
-
-                // クライアントスクリプトは React 要素ツリーを直接操作して <head> の末尾に挿入する（文字列置換しない）。
-                const tree = appendClientScriptAndCss(page.render(), CLIENT_DEV_URL, page.cssPath);
-                let html = `<!DOCTYPE html>${renderToStaticMarkup(tree)}`;
-                html = await vite.transformIndexHtml(rawUrl, html);
-                res.statusCode = 200;
-                res.setHeader("Content-Type", "text/html; charset=utf-8");
-                res.end(html);
+                return;
             } catch (err) {
                 // Module Runner はスタックトレースを自動補正するため ssrFixStacktrace は不要。
                 res.statusCode = 500;

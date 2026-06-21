@@ -1,4 +1,4 @@
-import { type AnyRoute, route } from "cirrojs";
+import { type AnyRoute } from "cirrojs";
 import { authors } from "./lib/authors";
 import { allTags, posts } from "./lib/content";
 import { AboutPage } from "./pages/about";
@@ -8,37 +8,46 @@ import { HomePage } from "./pages/home";
 import { PostPage } from "./pages/post";
 import { TagIndexPage } from "./pages/tag-index";
 import { TagPage } from "./pages/tag";
+import { genearteSearchIndex } from "./pages/search-index";
 
 // 自前スタイリングシステムのレジストリ関数を再 export する（必須）。
-// ランタイムはこのモジュール経由で initCssRegistry / getCssRegistry を呼び、
-// 同一モジュールインスタンスのレジストリを読み書きしてルート単位の CSS を生成する。
-export { getCssRegistry, initCssRegistry } from "cirrojs";
+// ランタイムはこのモジュール経由で runWithRegistry を呼び、同一モジュールインスタンスの
+// レジストリでレンダリングを包むことで、ルート単位の CSS を生成する。
+export { runWithRegistry } from "cirrojs";
 
 // サイトのルート定義（Config Base Routing）。
 // 動的ルートは getStaticPaths でビルド対象の URL を列挙する。
 // cssPath は CSS ファイルの URL（.css 終端）。動的ルートの全インスタンスで 1 つの CSS を共有し、
 // 同一プレフィックスの静的ルート（/blog, /tags が生成する index.css）とは衝突しない名前にする。
 export const routes: AnyRoute[] = [
-    { path: "/", component: HomePage },
-    { path: "/about", component: AboutPage },
-    { path: "/blog", component: BlogIndexPage },
-    { path: "/tags", component: TagIndexPage },
-    route({
+    { type: "static", path: "/", component: HomePage },
+    { type: "static", path: "/about", component: AboutPage },
+    { type: "static", path: "/blog", component: BlogIndexPage },
+    { type: "static", path: "/tags", component: TagIndexPage },
+    {
+        type: "dynamic",
         path: ({ slug }) => `/blog/${slug}`,
         cssPath: "/blog/post.css",
         getStaticPaths: () => posts.map(({ slug }) => ({ slug })),
         component: PostPage,
-    }),
-    route({
+    },
+    {
+        type: "dynamic",
         path: ({ tag }) => `/tags/${tag}`,
         cssPath: "/tags/tag.css",
         getStaticPaths: () => allTags().map(({ tag }) => ({ tag })),
         component: TagPage,
-    }),
-    route({
+    },
+    {
+        type: "dynamic",
         path: ({ id }) => `/authors/${id}`,
         cssPath: "/authors/index.css",
         getStaticPaths: () => authors.map(({ id }) => ({ id })),
         component: AuthorPage,
-    }),
+    },
+    {
+        type: "file",
+        path: "/search-index.json",
+        component: genearteSearchIndex,
+    }
 ];

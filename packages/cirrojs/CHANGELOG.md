@@ -13,6 +13,22 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [0.0.8] - 2026-06-21
+
+### Added
+- `FileRoute`, a new member of `AnyRoute` alongside `StaticRoute` and `DynamicRoute`, for generating arbitrary text files.
+- `markdownToText`, a `cirrojs/server` function that converts Markdown to plain text, primarily for generating search indexes.
+- `Registry` type and `runWithRegistry`, exported from the package entry point. `runWithRegistry` runs a render callback in its own registry context and returns both the result and the collected registry.
+
+### Changed
+- `StaticRoute` and `DynamicRoute` now require a `type` property. With it, route definitions are type-inferred without wrapping them in `route()`.
+- Renamed `createMarkdown` to `createMarkdownProcessor`.
+- The CSS registry is now scoped per render via `AsyncLocalStorage` instead of a shared module-global map, preventing styles from different routes from leaking into one another.
+
+### Removed
+- Removed `initCssRegistry` and `getCssRegistry`. Use `runWithRegistry` instead. Sites must re-export `runWithRegistry` from their `routes.ts` in place of the two removed functions.
+- Removed the `route`, `expandRoutes`, and `urlToFilePath` exports, along with the `ResolvedPage` type. Route definitions no longer need `route()` thanks to the required `type` property.
+
 ## [0.0.7] - 2026-06-19
 
 ### Added
@@ -51,7 +67,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## 0.0.1 - 2026-06-15
 - initial release
 
-[Unreleased]: https://github.com/osawa-naotaka/cirro/compare/v0.0.7...HEAD
+[Unreleased]: https://github.com/osawa-naotaka/cirro/compare/v0.0.8...HEAD
+[0.0.8]: https://github.com/osawa-naotaka/cirro/compare/v0.0.7...v0.0.8
 [0.0.7]: https://github.com/osawa-naotaka/cirro/compare/v0.0.6...v0.0.7
 [0.0.6]: https://github.com/osawa-naotaka/cirro/compare/v0.0.5...v0.0.6
 [0.0.5]: https://github.com/osawa-naotaka/cirro/compare/v0.0.4...v0.0.5

@@ -28,30 +28,38 @@ export async function runBuild() {
         if (!entry) throw new Error('cirro: manifest entry "virtual:cirro/client" not found');
         const scriptSrc = `/${entry.file}`;
 
-        const { routes, getCssRegistry, initCssRegistry } = await runner.import(routesPath);
+        const { routes, runWithRegistry } = await runner.import(routesPath);
         for (const page of expandRoutes(routes)) {
-            if (page.isCss) {
-                initCssRegistry();
-                // ツリー全体を描画して、ネストしたコンポーネント（Layout / 各島など）の
-                // css() 呼び出しまでレジストリに登録する（HTML は破棄しレジストリだけ使う）。
-                renderToStaticMarkup(page.render());
-                const registry = getCssRegistry() as Registry;
-                const css = stringifyCss(registry);
-                const filePath = join(outDir, urlToCssFilePath(page.url));
-                await mkdir(dirname(filePath), { recursive: true });
-                await writeFile(filePath, css);
-                console.log(`wrote ${filePath} (url: ${page.url})`);
-                continue;
+            switch (page.type) {
+                case "css": {
+                    const { registry } = runWithRegistry(() => renderToStaticMarkup(page.render())) as { registry: Registry };
+                    const css = stringifyCss(registry);
+                    const filePath = join(outDir, urlToCssFilePath(page.path));
+                    await mkdir(dirname(filePath), { recursive: true });
+                    await writeFile(filePath, css);
+                    console.log(`wrote ${filePath} (url: ${page.path})`);
+                    break;
+                }
+                case "html": {
+                    const { result: html } = runWithRegistry(() => {
+                        const tree = appendClientScriptAndCss(page.render(), scriptSrc, page.cssPath);
+                        return `<!DOCTYPE html>${renderToStaticMarkup(tree)}`;
+                    });
+                    const filePath = join(outDir, urlToFilePath(page.path));
+                    await mkdir(dirname(filePath), { recursive: true });
+                    await writeFile(filePath, html);
+                    console.log(`wrote ${filePath} (url: ${page.path})`);
+                    break;
+                }
+                case "file": {
+                    const file = page.render();
+                    const filePath = join(outDir, page.path);
+                    await mkdir(dirname(filePath), { recursive: true });
+                    await writeFile(filePath, file);
+                    console.log(`wrote ${filePath} (url: ${page.path})`);
+                    break;
+                }
             }
-            // クライアントスクリプトは React 要素ツリーを直接操作して <head> の末尾に挿入する（文字列置換しない）。
-            // 本文は純粋な静的 HTML（マーカーなし）。島だけ <Island> 内の renderToString でマーカー付き。
-            // CSS リンクはルート単位に生成した CSS（page.cssPath）を指す（dev と同じ挙動）。
-            const tree = appendClientScriptAndCss(page.render(), scriptSrc, page.cssPath);
-            const html = `<!DOCTYPE html>${renderToStaticMarkup(tree)}`;
-            const filePath = join(outDir, urlToFilePath(page.url));
-            await mkdir(dirname(filePath), { recursive: true });
-            await writeFile(filePath, html);
-            console.log(`wrote ${filePath} (url: ${page.url})`);
         }
     } finally {
         await server.close();

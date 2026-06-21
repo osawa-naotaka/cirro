@@ -1,12 +1,12 @@
 {
     "name": "cirrojs",
-    "version": "0.0.7",
+    "version": "0.0.8",
     "description": "React islands SSG with strict CSP (no unsafe-inline). Vite-based, MPA-first.",
     "license": "MIT",
     "type": "module",
     "repository": {
-      "type": "git",
-      "url": "git+https://github.com/osawa-naotaka/cirro.git"
+        "type": "git",
+        "url": "git+https://github.com/osawa-naotaka/cirro.git"
     },
     "files": [
         "dist",
@@ -53,6 +53,8 @@
     },
     "dependencies": {
         "hast-util-sanitize": "^5.0.2",
+        "mdast-util-from-markdown": "^2.0.3",
+        "mdast-util-to-string": "^4.0.0",
         "rehype-prism": "^2.3.3",
         "rehype-sanitize": "^6.0.0",
         "rehype-stringify": "^10.0.1",

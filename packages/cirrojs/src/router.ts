@@ -1,47 +1,56 @@
-import type { ReactElement } from "react";
-// import { join } from "node:path";
-
-export type Params = Record<string, string>;
-
-// 静的ルート: path は固定文字列
-export type StaticRoute = {
-    path: string;
-    component: (props: { params: Record<string, never> }) => ReactElement;
-};
-
-// 動的ルート: path は params から URL を生成する関数（正規表現・特殊記法は使わない）
-export type DynamicRoute<P extends Params = Params> = {
-    path: (params: P) => string;
-    cssPath: string;
-    getStaticPaths: () => P[];
-    component: (props: { params: P }) => ReactElement;
-};
-
-// biome-ignore lint/suspicious/noExplicitAny: ルート集合では各動的ルートの params 型を消す必要がある
-export type AnyRoute = StaticRoute | DynamicRoute<any>;
+import { extname, join } from "node:path";
+import type { AnyRoute, DynamicRoute, FileRoute, Params, ResolvedPath, StaticRoute } from "./route";
 
 // 動的ルートの型パラメータ P を保持するための型推論ヘルパー。
 export function route<P extends Params>(def: DynamicRoute<P>): DynamicRoute<P>;
 export function route(def: StaticRoute): StaticRoute;
+export function route(def: FileRoute): FileRoute;
 export function route(def: AnyRoute): AnyRoute {
     return def;
 }
 
-export type ResolvedPage = { url: string; isCss: boolean; cssPath: string; render: () => ReactElement };
-
 // 全ルートを具体的な URL 一覧へ展開する（build / dev で共有）。
 // 動的ルートは getStaticPaths を path 関数に通して URL を生成するため、正規表現は不要。
-export function expandRoutes(routes: AnyRoute[]): ResolvedPage[] {
-    const pages: ResolvedPage[] = [];
+export function expandRoutes(routes: AnyRoute[]): ResolvedPath[] {
+    const pages: ResolvedPath[] = [];
     for (const r of routes) {
-        if ("getStaticPaths" in r) {
-            for (const params of r.getStaticPaths()) {
-                pages.push({ url: r.path(params), isCss: false, cssPath: r.cssPath, render: () => r.component({ params }) });
-            }
-            pages.push({ url: r.cssPath, isCss: true, cssPath: r.cssPath, render: () => r.component({ params: r.getStaticPaths()[0] }) });
-        } else {
-            pages.push({ url: r.path, isCss: false, cssPath: join(r.path, "index.css"), render: () => r.component({ params: {} }) });
-            pages.push({ url: join(r.path, "index.css"), isCss: true, cssPath: join(r.path, "index.css"), render: () => r.component({ params: {} }) });
+        switch (r.type) {
+            case "static":
+                pages.push({
+                    type: "html",
+                    path: r.path,
+                    cssPath: join(r.path, "index.css"),
+                    render: () => r.component({ params: {} }),
+                });
+                pages.push({
+                    type: "css",
+                    path: join(r.path, "index.css"),
+                    render: () => r.component({ params: {} }),
+                });
+                break;
+            case "dynamic":
+                for (const params of r.getStaticPaths()) {
+                    pages.push({
+                        type: "html",
+                        path: r.path(params),
+                        cssPath: r.cssPath,
+                        render: () => r.component({ params }),
+                    });
+                }
+                pages.push({
+                    type: "css",
+                    path: r.cssPath,
+                    render: () => r.component({ params: r.getStaticPaths()[0] }),
+                });
+                break;
+            case "file":
+                pages.push({
+                    type: "file",
+                    path: r.path,
+                    ext: extname(r.path),
+                    render: () => r.component({ params: {} }),
+                });
+                break;
         }
     }
     return pages;
@@ -56,11 +65,4 @@ export function urlToFilePath(url: string): string {
 export function urlToCssFilePath(url: string): string {
     if (url === "/") return "index.css";
     return `${url.replace(/^\/+|\/+$/g, "")}`;
-}
-
-function join(...paths: string[]): string {
-    return paths.reduce(
-        (p, c) => (p.endsWith("/") && c.startsWith("/") ? `${p}${c.substring(1)}` : p.endsWith("/") || c.startsWith("/") ? `${p}${c}` : `${p}/${c}`),
-        "",
-    );
 }
