@@ -6,9 +6,10 @@ export { runWithRegistry } from "cirrojs";
 
 // サイトのルート定義（Config Base Routing）。
 export const routes: AnyRoute[] = [
-    { path: "/", component: HomePage },
-    { path: "/about", component: AboutPage },
+    { type: "static", path: "/", component: HomePage },
+    { type: "static", path: "/about", component: AboutPage },
     route({
+        type: "dynamic",
         path: ({ slug }) => `/posts/${slug}`,
         cssPath: "/posts/index.css",
         getStaticPaths: () => [{ slug: "hello" }, { slug: "world" }],

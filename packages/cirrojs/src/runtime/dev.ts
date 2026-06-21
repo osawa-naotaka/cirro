@@ -1,10 +1,10 @@
 import { createServer as createHttpServer } from "node:http";
-import { dirname, resolve } from "node:path";
+import { dirname, resolve, extname } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createServerModuleRunner, createServer as createViteServer, type ViteDevServer } from "vite";
 import { stringifyCss } from "../css.ts";
 import type { RunWithRegistry } from "../registry.ts";
-import { expandRoutes, type ResolvedPage } from "../router.ts";
+import { expandRoutes, type ResolvedPath } from "../router.ts";
 import { appendClientScriptAndCss } from "./head.ts";
 import { getCirroOptions } from "./options.ts";
 import { contentType } from "./contentType.ts";
@@ -123,8 +123,8 @@ export async function runDev(port = 5173) {
     });
 }
 
-function renderCss(pages: ResolvedPage[], rawUrl: string, runWithRegistry: RunWithRegistry<unknown>): string | null {
-    const page = pages.find((p) => p.isCss && p.url === rawUrl);
+function renderCss(pages: ResolvedPath[], rawUrl: string, runWithRegistry: RunWithRegistry<unknown>): string | null {
+    const page = pages.find((p) => p.type === "css" && p.path === rawUrl);
     if (!page) return null;
 
     // ツリー全体を専用レジストリのコンテキストで描画し、ネストしたコンポーネント
@@ -134,11 +134,10 @@ function renderCss(pages: ResolvedPage[], rawUrl: string, runWithRegistry: RunWi
     return css;
 }
 
-function renderHtml(pages: ResolvedPage[], rawUrl: string, runWithRegistry: RunWithRegistry<unknown>): string | null {
+function renderHtml(pages: ResolvedPath[], rawUrl: string, runWithRegistry: RunWithRegistry<unknown>): string | null {
     const pathname = new URL(rawUrl, "http://localhost").pathname;
     const normalized = pathname.replace(/\/+$/, "") || "/";
-    console.log(`rawUrl: ${rawUrl}, pathname: ${pathname}, normalized: ${normalized}`);
-    const page = pages.find((p) => (p.url.replace(/\/+$/, "") || "/") === normalized);
+    const page = pages.find((p) => (p.path.replace(/\/+$/, "") || "/") === normalized);
 
     if (!page) return null;
 
@@ -146,8 +145,11 @@ function renderHtml(pages: ResolvedPage[], rawUrl: string, runWithRegistry: RunW
     // HTML 経路でも css() はクラス名取得のため呼ばれるので、レンダリング全体をレジストリ
     // コンテキストで包む（ここではレジストリは使わず破棄する。CSS は .css 経路で生成）。
     let { result: html } = runWithRegistry(() => {
-        const tree = appendClientScriptAndCss(page.render(), CLIENT_DEV_URL, page.cssPath);
-        return `<!DOCTYPE html>${renderToStaticMarkup(tree)}`;
+        if (page.type === "html") {
+          const tree = appendClientScriptAndCss(page.render(), CLIENT_DEV_URL, page.cssPath);
+          return `<!DOCTYPE html>${renderToStaticMarkup(tree)}`;
+        }
+        throw new Error("dev.ts: Internal error.");
     });
 
     return html as string;

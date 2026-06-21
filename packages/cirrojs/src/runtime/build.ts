@@ -30,30 +30,28 @@ export async function runBuild() {
 
         const { routes, runWithRegistry } = await runner.import(routesPath);
         for (const page of expandRoutes(routes)) {
-            if (page.isCss) {
-                // ツリー全体を専用レジストリのコンテキストで描画し、ネストしたコンポーネント
-                // （Layout / 各島など）の css() 呼び出しまで登録する（HTML は破棄しレジストリだけ使う）。
-                const { registry } = runWithRegistry(() => renderToStaticMarkup(page.render())) as { registry: Registry };
-                const css = stringifyCss(registry);
-                const filePath = join(outDir, urlToCssFilePath(page.url));
-                await mkdir(dirname(filePath), { recursive: true });
-                await writeFile(filePath, css);
-                console.log(`wrote ${filePath} (url: ${page.url})`);
-                continue;
+            switch (page.type) {
+                case "css": {
+                    const { registry } = runWithRegistry(() => renderToStaticMarkup(page.render())) as { registry: Registry };
+                    const css = stringifyCss(registry);
+                    const filePath = join(outDir, urlToCssFilePath(page.path));
+                    await mkdir(dirname(filePath), { recursive: true });
+                    await writeFile(filePath, css);
+                    console.log(`wrote ${filePath} (url: ${page.path})`);
+                    break;
+                }
+                case "html": {
+                    const { result: html } = runWithRegistry(() => {
+                        const tree = appendClientScriptAndCss(page.render(), scriptSrc, page.cssPath);
+                        return `<!DOCTYPE html>${renderToStaticMarkup(tree)}`;
+                    });
+                    const filePath = join(outDir, urlToFilePath(page.path));
+                    await mkdir(dirname(filePath), { recursive: true });
+                    await writeFile(filePath, html);
+                    console.log(`wrote ${filePath} (url: ${page.path})`);
+                    break;
+                }
             }
-            // クライアントスクリプトは React 要素ツリーを直接操作して <head> の末尾に挿入する（文字列置換しない）。
-            // 本文は純粋な静的 HTML（マーカーなし）。島だけ <Island> 内の renderToString でマーカー付き。
-            // CSS リンクはルート単位に生成した CSS（page.cssPath）を指す（dev と同じ挙動）。
-            // HTML 経路でも css() はクラス名取得のため呼ばれるので、レンダリング全体をレジストリ
-            // コンテキストで包む（ここではレジストリは使わず破棄する。CSS は専用の isCss 経路で生成）。
-            const { result: html } = runWithRegistry(() => {
-                const tree = appendClientScriptAndCss(page.render(), scriptSrc, page.cssPath);
-                return `<!DOCTYPE html>${renderToStaticMarkup(tree)}`;
-            });
-            const filePath = join(outDir, urlToFilePath(page.url));
-            await mkdir(dirname(filePath), { recursive: true });
-            await writeFile(filePath, html);
-            console.log(`wrote ${filePath} (url: ${page.url})`);
         }
     } finally {
         await server.close();

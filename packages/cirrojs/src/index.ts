@@ -7,5 +7,5 @@ export { css, genCssFn } from "./css.ts";
 export type { Properties } from "./properties.ts";
 export type { Registry } from "./registry.ts";
 export { runWithRegistry } from "./registry.ts";
-export type { AnyRoute, DynamicRoute, Params, ResolvedPage, StaticRoute } from "./router.ts";
+export type { AnyRoute, DynamicRoute, Params, ResolvedPath, StaticRoute } from "./router.ts";
 export { expandRoutes, route, urlToFilePath } from "./router.ts";

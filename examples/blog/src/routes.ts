@@ -19,23 +19,26 @@ export { runWithRegistry } from "cirrojs";
 // cssPath は CSS ファイルの URL（.css 終端）。動的ルートの全インスタンスで 1 つの CSS を共有し、
 // 同一プレフィックスの静的ルート（/blog, /tags が生成する index.css）とは衝突しない名前にする。
 export const routes: AnyRoute[] = [
-    { path: "/", component: HomePage },
-    { path: "/about", component: AboutPage },
-    { path: "/blog", component: BlogIndexPage },
-    { path: "/tags", component: TagIndexPage },
+    { type: "static", path: "/", component: HomePage },
+    { type: "static", path: "/about", component: AboutPage },
+    { type: "static", path: "/blog", component: BlogIndexPage },
+    { type: "static", path: "/tags", component: TagIndexPage },
     route({
+        type: "dynamic",
         path: ({ slug }) => `/blog/${slug}`,
         cssPath: "/blog/post.css",
         getStaticPaths: () => posts.map(({ slug }) => ({ slug })),
         component: PostPage,
     }),
     route({
+        type: "dynamic",
         path: ({ tag }) => `/tags/${tag}`,
         cssPath: "/tags/tag.css",
         getStaticPaths: () => allTags().map(({ tag }) => ({ tag })),
         component: TagPage,
     }),
     route({
+        type: "dynamic",
         path: ({ id }) => `/authors/${id}`,
         cssPath: "/authors/index.css",
         getStaticPaths: () => authors.map(({ id }) => ({ id })),
