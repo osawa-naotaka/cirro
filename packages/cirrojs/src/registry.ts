@@ -23,3 +23,5 @@ export function runWithRegistry<T>(fn: () => T): { result: T; registry: Registry
     const result = als.run(registry, fn);
     return { result, registry };
 }
+
+export type RunWithRegistry<T> = (fn: () => T) => { result: T; registry: Registry };
