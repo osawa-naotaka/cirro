@@ -13,9 +13,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
-- クライアントスクリプトが例外発生のため実行されていなかった問題を修正
-  - node:async_hooks由来のAsyncLocalStorageをクライアントスクリプト側で読み込もうとしてしまい、node環境はbrowser側には存在しないため例外が発生していた
-  - クライアントスクリプトではclassのためのハッシュ値だけわかればよく、CSS本体登録用のALSは必要ない。そのため、ALSを利用している関数をブラウザ環境では空関数に置き換えることでこのバグを回避した
+## [0.0.9] - 2026-06-22
+
+### Fixed
+- Client scripts no longer throw at runtime. The CSS registry pulled `node:async_hooks` (`AsyncLocalStorage`) into the client bundle, where it is unavailable, causing the script to fail before executing. The client now resolves the registry through the package's `browser` export condition to an async_hooks-free implementation: `css()` only needs the generated class name on the client, so CSS registration becomes a no-op.
 
 ## [0.0.8] - 2026-06-21
 
@@ -71,7 +72,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## 0.0.1 - 2026-06-15
 - initial release
 
-[Unreleased]: https://github.com/osawa-naotaka/cirro/compare/v0.0.8...HEAD
+[Unreleased]: https://github.com/osawa-naotaka/cirro/compare/v0.0.9...HEAD
+[0.0.9]: https://github.com/osawa-naotaka/cirro/compare/v0.0.8...v0.0.9
 [0.0.8]: https://github.com/osawa-naotaka/cirro/compare/v0.0.7...v0.0.8
 [0.0.7]: https://github.com/osawa-naotaka/cirro/compare/v0.0.6...v0.0.7
 [0.0.6]: https://github.com/osawa-naotaka/cirro/compare/v0.0.5...v0.0.6
