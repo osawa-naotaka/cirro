@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+- クライアントスクリプトが例外発生のため実行されていなかった問題を修正
+  - node:async_hooks由来のAsyncLocalStorageをクライアントスクリプト側で読み込もうとしてしまい、node環境はbrowser側には存在しないため例外が発生していた
+  - クライアントスクリプトではclassのためのハッシュ値だけわかればよく、CSS本体登録用のALSは必要ない。そのため、ALSを利用している関数をブラウザ環境では空関数に置き換えることでこのバグを回避した
+
 ## [0.0.8] - 2026-06-21
 
 ### Added
