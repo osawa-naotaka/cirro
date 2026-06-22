@@ -28,7 +28,7 @@ Cirro は次を **peer dependency** として要求する（利用者の `packag
 | `vite` | v8 系。ビルド基盤 |
 | `@vitejs/plugin-react` | React 変換（Cirro は内包しない。利用者が明示的に追加する） |
 
-パッケージ管理は **bun** を前提とする（`bun install` / `bun run`）。
+パッケージ管理は **pnpm** を前提とする（`pnpm install` / `pnpm run`）。
 
 ---
 
@@ -164,34 +164,58 @@ bun run preview  # 生成物の確認
 ファイルベースルーティングは採用せず、`routes.ts` に **型付きの JavaScript オブジェクト**として
 ルートを宣言する。正規表現や独自の文字列記法は使わない（型と関数で表現する方針）。
 
+`routes` は `AnyRoute[]` 型で、各要素は **`type` フィールドが必須**である。`type` の値によって
+**静的ルート（`"static"`）・動的ルート（`"dynamic"`）・ファイルルート（`"file"`）**を切り替えて宣言する
+（`packages/cirrojs/src/route.ts`）。
+
 ```ts
 // src/routes.ts
-import { type AnyRoute, route } from "cirro";
+import { type AnyRoute } from "cirrojs";
 import { AboutPage } from "./pages/about";
 import { HomePage } from "./pages/home";
 import { PostPage } from "./pages/post";
+import { generateSearchIndex } from "./pages/search-index";
+
+// 自前 CSS のレジストリ関数を再 export する（必須・05_STYLING.md 7.2 参照）
+export { runWithRegistry } from "cirrojs";
 
 export const routes: AnyRoute[] = [
     // 静的ルート: path は固定文字列
-    { path: "/", component: HomePage },
-    { path: "/about", component: AboutPage },
+    { type: "static", path: "/", component: HomePage },
+    { type: "static", path: "/about", component: AboutPage },
 
-    // 動的ルート: route() で型を保持する
-    route({
-        path: ({ slug }) => `/posts/${slug}`, // params から URL を生成
+    // 動的ルート: path は params から URL を生成する関数
+    {
+        type: "dynamic",
+        path: ({ slug }) => `/posts/${slug}`,             // params から URL を生成
+        cssPath: "/posts/index.css",                      // 全インスタンスで共有する CSS の URL
         getStaticPaths: () => [{ slug: "hello" }, { slug: "world" }], // 生成する全 params
         component: PostPage,
-    }),
+    },
+
+    // ファイルルート: 任意のテキストファイルを生成出力する
+    {
+        type: "file",
+        path: "/search-index.json", // 拡張子まで含む出力パス
+        component: generateSearchIndex,
+    },
 ];
 ```
 
-- **静的ルート** `{ path, component }` … `path` は固定文字列。
-- **動的ルート** `route({ path, getStaticPaths, component })` … `getStaticPaths()` が返す各 params を
-  `path()` 関数に通して URL を生成する。`route()` で包むことで動的ルートの params 型が保持され、
-  `component` の `params` に型が伝わる。
+- **静的ルート** `{ type: "static", path, component }` … `path` は固定文字列。`component` は React 要素を返す。
+- **動的ルート** `{ type: "dynamic", path, cssPath, getStaticPaths, component }` … `getStaticPaths()` が返す
+  各 params を `path()` 関数に通して URL を生成する。`cssPath` には全インスタンスで共有する CSS ファイルの
+  URL を明示する（`05_STYLING.md` 7.1 参照）。`component` は React 要素を返す。
+  params の型を `path` と `component` で揃えたい場合は `route()` ヘルパーで包むと型が伝わる
+  （`import { route } from "cirrojs"`）。
+- **ファイルルート** `{ type: "file", path, component }` … 任意のテキストファイルを生成出力する機能。
+  `component` は **React 要素ではなく文字列を返す**関数で、その文字列が `path`（拡張子まで含む固定パス）
+  へそのまま書き出される。`examples/blog` では検索インデックス（`/search-index.json`）の生成に使っている
+  （`src/pages/search-index.ts`）。
 
-ビルド時、各 URL はクリーン URL として静的ファイルに展開される（`/` → `index.html`、
-`/about` → `about/index.html`、`/posts/hello` → `posts/hello/index.html`）。
+ビルド時、静的・動的ルートの各 URL はクリーン URL として静的ファイルに展開される（`/` → `index.html`、
+`/about` → `about/index.html`、`/posts/hello` → `posts/hello/index.html`）。ファイルルートは `path` を
+そのままの出力パスとして書き出す（`/search-index.json` → `search-index.json`）。
 
 ### 5.2 ページコンポーネント
 
@@ -289,7 +313,7 @@ export function Layout({ title, description, children, island = true }: LayoutPr
 
 ## 7. Markdown コンテンツ
 
-Cirro は `createMarkdown()` ファクトリで Markdown 描画 API を提供する（`packages/cirro/src/markdown.tsx`）。
+Cirro は `createMarkdownProcessor()` ファクトリで Markdown 描画 API を提供する（`packages/cirro/src/markdown.tsx`）。
 変換はビルド時（SSR）に同期実行され、結果は静的 HTML として埋め込まれる。**unified 一式の JS は
 クライアントへ送られない**（サーバー専用）。
 
@@ -298,10 +322,10 @@ Cirro は `createMarkdown()` ファクトリで Markdown 描画 API を提供す
 サイト側で一度だけ設定済みの描画関数を作る（`examples/blog` の `src/lib/markdown.ts`）。
 
 ```ts
-import { createMarkdown } from "cirro";
+import { createMarkdownProcessor } from "cirro";
 import remarkGfm from "remark-gfm";
 
-export const { render: renderMarkdown } = createMarkdown({
+export const { render: renderMarkdown } = createMarkdownProcessor({
     remarkPlugins: [remarkGfm], // GFM（テーブル・打消し線・タスクリスト等）
     toc: true,                  // 見出しへのシリアル id 付与 + 目次抽出
     highlight: true,            // rehype-prism によるクラスベースのシンタックスハイライト
@@ -398,10 +422,14 @@ return (
 
 ---
 
-## 9. Panda CSS によるデザイン（推奨・非組み込み）
+## 9. Panda CSS によるデザイン（選択肢・非組み込み）
 
-Cirro は CSS フレームワークを**組み込んでいない**が、スタイリングには **Panda CSS** を推奨する。
-`examples/blog` が実例。
+> **推奨スタイリングは Cirro 自前の CSS in JS（`css()`）に変わった**。設計・書き方・内部の仕組みは
+> `05_STYLING.md` に集約している。Panda CSS は引き続き「非組み込みの選択肢」として利用できるが、
+> 現在の標準は `05_STYLING.md` の自前 CSS である。本章は Panda CSS を使う場合の参考として残す。
+
+Cirro は CSS フレームワークを**組み込んでいない**。Panda CSS もそのまま利用でき、`examples` の一部が実例
+だった（現在の `examples/basic` / `examples/blog` は自前 CSS へ移行済み）。
 
 ### 9.1 なぜ相性が良いのか
 
@@ -497,7 +525,7 @@ Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'
 | CSP 条項 | 満たす仕組み |
 | --- | --- |
 | `script-src 'self'` | 島マウンタ・島コードはすべて外部 JS（`<script src>`）。props は `data-*` 属性で渡す（3 章・6 章） |
-| `style-src 'self'` | Panda CSS がビルド時に外部 CSS を生成。`<style>` も `style=""` も出さない（9 章） |
+| `style-src 'self'` | 自前 CSS（`05_STYLING.md`）／Panda CSS（9 章）がビルド時に外部 CSS を生成。`<style>` も `style=""` も出さない |
 | `font-src 'self'` | システムフォントスタックを使い外部フォントを読まない（9 章） |
 
 ---

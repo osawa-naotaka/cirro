@@ -185,19 +185,32 @@ css({ margin: "0", padding: "0" }, { selector: "*", atrules: ["@layer base"] });
 
 ### 7.1 仕組み
 
-`css()` は呼ばれるたびにスタイルをモジュールスコープの**レジストリ**（`registry.ts`）へ積む。
-ランタイムは各ルートについて次を行う（`runtime/dev.ts` / `runtime/build.ts`）。
+`css()` は呼ばれるたびにスタイルを**レジストリ**（`registry.ts`）へ積む。レジストリは
+`AsyncLocalStorage`（Node の `node:async_hooks`）で管理され、**レンダリング 1 回ごとに専用の
+レジストリが暗黙に引き継がれる**。モジュールグローバルな可変 Map を共有しないため、レンダリングが
+インターリーブしても別ルートの `css()` が混ざらない（順序依存・初期化忘れの不具合を構造的に排除する）。
 
-1. `initCssRegistry()` でレジストリを空にする
-2. ページを `renderToStaticMarkup()` で**ツリー全体まで描画**し、その過程の `css()` 呼び出しを集める。
-   描画結果の HTML 文字列は破棄し、レジストリだけを使う。トップのページ関数を呼ぶだけでは
-   `Layout` や各島など**ネストしたコンポーネントの関数が実行されず**、その `css()` が収集されない。
-   そのため CSS 生成でも HTML 生成と同じく完全描画する。
-3. `getCssRegistry()` で集めたレジストリを取り出し、`stringifyCss()` で CSS 文字列にする
-4. そのルート専用の CSS ファイルとして書き出す（dev では `text/css` で配信）
+ランタイムは各ルートについて、`runWithRegistry()` で描画を包む（`runtime/dev.ts` / `runtime/build.ts`）。
 
-レジストリは**配列**で、同一セレクタの重複を許容する（重複排除はしない）。これは異なるメディア
-クエリ・レイヤーで同じセレクタを複数回出すための仕様。
+```ts
+// runWithRegistry は fn を専用レジストリのコンテキストで実行し、
+// fn の戻り値（result）と、描画中に css() が登録したレジストリ（registry）を返す。
+const { result, registry } = runWithRegistry(() => renderToStaticMarkup(page.render()));
+const css = stringifyCss(registry);
+```
+
+1. `runWithRegistry(fn)` が新しい空のレジストリを割り当て、その `AsyncLocalStorage` コンテキスト内で
+   `fn` を実行する。
+2. `fn` の中でページを `renderToStaticMarkup()` で**ツリー全体まで描画**し、その過程の `css()` 呼び出しを
+   集める。描画結果の HTML 文字列は破棄し、レジストリだけを使う場合もある（CSS ファイル生成時）。
+   トップのページ関数を呼ぶだけでは `Layout` や各島など**ネストしたコンポーネントの関数が実行されず**、
+   その `css()` が収集されない。そのため CSS 生成でも HTML 生成と同じく完全描画する。
+3. `runWithRegistry()` が返した `registry` を `stringifyCss()` で CSS 文字列にする。
+4. そのルート専用の CSS ファイルとして書き出す（dev では `text/css` で配信）。
+
+レジストリは `Map<designator, [selectors, properties]>` で、`css()` が `registerCss()` を通じて
+現在のコンテキストのレジストリへ書き込む。`css()` が描画コンテキスト外（`runWithRegistry` の外）で
+呼ばれた場合は例外を投げる。
 
 CSS の URL は `expandRoutes()`（`router.ts`）が決める。
 
@@ -205,28 +218,30 @@ CSS の URL は `expandRoutes()`（`router.ts`）が決める。
 - 動的ルートは `cssPath` で明示する。`examples/basic` では `/posts/[slug]` 系で `/posts/index.css` を
   共有している（動的ルートの全インスタンスで 1 CSS を共有）。
 
-### 7.2 【必須】`routes.ts` でレジストリ関数を再 export する
+### 7.2 【必須】`routes.ts` で `runWithRegistry` を再 export する
 
-レジストリはモジュールスコープの状態であり、ランタイムは**ルート定義モジュール（`routes.ts`）から
-import した `initCssRegistry` / `getCssRegistry`** を使ってこの状態を読み書きする。同じモジュール
-インスタンスを共有させるため、利用側の `routes.ts` で両関数を**再 export する必要がある**。
+レジストリは `AsyncLocalStorage` のインスタンス（モジュールスコープの状態）に紐付く。ランタイムは
+**ルート定義モジュール（`routes.ts`）から import した `runWithRegistry`** で描画を包む。`css()` 側の
+`registerCss` と**同一モジュールインスタンス（＝同一の `AsyncLocalStorage`）**を共有させる必要があるため、
+利用側の `routes.ts` で `runWithRegistry` を**再 export する必要がある**。
 
 ```ts
 // src/routes.ts
-import { type AnyRoute, route } from "cirrojs";
+import { type AnyRoute } from "cirrojs";
 
 // ↓ これを書かないと CSS が生成されない
-export { initCssRegistry, getCssRegistry } from "cirrojs";
+export { runWithRegistry } from "cirrojs";
 
 export const routes: AnyRoute[] = [
-    { path: "/", component: HomePage },
-    { path: "/about", component: AboutPage },
-    route({
+    { type: "static", path: "/", component: HomePage },
+    { type: "static", path: "/about", component: AboutPage },
+    {
+        type: "dynamic",
         path: ({ slug }) => `/posts/${slug}`,
         cssPath: "/posts/index.css",
         getStaticPaths: () => [{ slug: "hello" }, { slug: "world" }],
         component: PostPage,
-    }),
+    },
 ];
 ```
 
@@ -366,9 +381,10 @@ const pageTitle = cssPC({ padding: "1rem", font_size: "2rem" });
   メディアで正しくカスケードされるため通常は問題にならないが、クラス名は「スタイル内容の指紋」だと
   理解しておくとよい。
 - **重複排除はしない**。まったく同じ `css()` を 2 回呼べば、CSS にも同じ規則が 2 回出る。
-- **`css()` は描画時に呼ぶ**。レジストリはルート描画の直前に `initCssRegistry()` で空にされるため、
-  モジュールのトップレベルで `const x = css(...)` としても import 時に一度登録されるだけで描画前に
-  消える。スタイル定義は必ずコンポーネント（または描画時に呼ばれる関数）の中で行う。利用例は
+- **`css()` は描画時に呼ぶ**。レジストリは `runWithRegistry()` が描画ごとに新しく割り当てる
+  `AsyncLocalStorage` コンテキストに紐付くため、モジュールのトップレベルで `const x = css(...)` としても
+  描画コンテキスト外となり例外になる。スタイル定義は必ずコンポーネント（または描画時に呼ばれる関数）の
+  中で行う。利用例は
   `examples/blog`（トークン・レシピを `src/styles/` に型付き関数として用意し、各コンポーネント内で
   呼び出す）を参照。
 - **インラインを出さない原則は維持**。`css()` はクラス名を返すだけで `<style>` / `style=""` を生成
@@ -384,9 +400,9 @@ const pageTitle = cssPC({ padding: "1rem", font_size: "2rem" });
 | --- | --- |
 | `css(properties, opt?)` | スタイルを登録しクラス名を返す |
 | `genCssFn(mediaAtRule, layer?)` | アットルールを固定した `css` 関数を生成する |
-| `initCssRegistry()` | レジストリを初期化する（ランタイムが呼ぶ／`routes.ts` で再 export） |
-| `getCssRegistry()` | レジストリを取得する（ランタイムが呼ぶ／`routes.ts` で再 export） |
+| `runWithRegistry(fn)` | `fn` を専用レジストリのコンテキストで実行し、戻り値とレジストリを返す（ランタイムが呼ぶ／`routes.ts` で再 export） |
 | `Properties` 型 | 指定可能なプロパティ名と値の型 |
+| `Registry` 型 | レジストリ（`Map<designator, [selectors, properties]>`）の型 |
 | `CssOpt` 型 | `css()` の第 2 引数の型 |
 
 ### 関連ドキュメント
