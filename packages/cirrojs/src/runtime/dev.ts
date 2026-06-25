@@ -103,7 +103,11 @@ export async function runDev(port = 5173) {
             } catch (err) {
                 // Module Runner はスタックトレースを自動補正するため ssrFixStacktrace は不要。
                 res.statusCode = 500;
-                res.end(String(err));
+                if (err instanceof Error) {
+                    res.end(err.stack);
+                } else {
+                    res.end(String(err));                    
+                }
             }
         });
     });
