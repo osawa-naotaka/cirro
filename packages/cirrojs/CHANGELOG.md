@@ -13,6 +13,16 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [0.0.11] - 2026-06-28
+
+### Added
+- `createLayout`'s `cluster` now accepts an optional `wrap` option (`Properties["flex_wrap"]`) to override its flex-wrap behavior.
+- Two new `LayoutDefaults` fields: `clusterWrap`, the default flex-wrap applied by `cluster`, and `sidebarSideWidth`, the default inline size of the sidebar's side slot.
+
+### Changed
+- The sidebar's side slot now defaults its `flex-basis` to `sidebarSideWidth` (default `30ch`) instead of `auto`.
+- Changed the `sidebarContentMin` default from `50%` to `65ch`.
+
 ## [0.0.10] - 2026-06-27
 
 ### Added
@@ -81,7 +91,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## 0.0.1 - 2026-06-15
 - initial release
 
-[Unreleased]: https://github.com/osawa-naotaka/cirro/compare/v0.0.10...HEAD
+[Unreleased]: https://github.com/osawa-naotaka/cirro/compare/v0.0.11...HEAD
+[0.0.11]: https://github.com/osawa-naotaka/cirro/compare/v0.0.10...v0.0.11
 [0.0.10]: https://github.com/osawa-naotaka/cirro/compare/v0.0.9...v0.0.10
 [0.0.9]: https://github.com/osawa-naotaka/cirro/compare/v0.0.8...v0.0.9
 [0.0.8]: https://github.com/osawa-naotaka/cirro/compare/v0.0.7...v0.0.8
