@@ -86,7 +86,7 @@ export interface CoverSlots {
 
 export interface Layout {
     stack(opts?: { gap?: string }): string;
-    cluster(opts?: { gap?: string; justify?: Properties["justify_content"]; align?: Properties["align_items"] }): string;
+    cluster(opts?: { gap?: string; wrap?: Properties["flex_wrap"]; justify?: Properties["justify_content"]; align?: Properties["align_items"] }): string;
     center(opts?: { max?: string; gutters?: string; intrinsic?: boolean; andText?: boolean }): string;
     grid(opts?: { gap?: string; min?: string }): string;
     switcher(opts?: { threshold?: string; gap?: string; limit?: number }): string;
