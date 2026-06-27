@@ -6,6 +6,12 @@
 > よう一通り書き残したものである。結論は出していない。選択肢とトレードオフの台帳として使う。
 >
 > 記録日: 2026-06-22
+>
+> **追記（2026-06-27）**: 本書 7 章で「次に作る層」としていた**意図で名付けた layout 層を実装した**
+> （Phase 1: `stack` / `cluster` / `center` / `grid` / `switcher` / `sidebar`）。`createLayout` ファクトリ
+> として `cirrojs/layout` から提供し、既定値はユーザーが上書きできる（DI）。出力は `@layer low`。
+> 確定仕様は `05_STYLING.md` 10 章、実装は `packages/cirrojs/src/layout.ts`、適用例は
+> `examples/blog/src/styles/layout.ts`。収集方式（A/B/C）の結論は引き続き未確定で、本書はそのまま台帳として残す。
 
 関連: `05_STYLING.md`（現行のスタイリング仕様）、`03_ISLAND_SYSTEM.md`（島システム）。
 
@@ -293,25 +299,38 @@ dev の `<style>` 注入は許容範囲。
    | 軸 | 役割 | blog の現状 |
    | --- | --- | --- |
    | トークン | 値の語彙（色・余白スケール・角丸・フォント） | `src/styles/system.ts` ✅ |
-   | レイアウト | 配置の意図（Center / Stack / …） | **まだ薄い（次に作る層）** |
+   | レイアウト | 配置の意図（Center / Stack / …） | `cirrojs/layout` の `createLayout` ＋ `src/styles/layout.ts` ✅（2026-06-27 実装） |
    | コンポーネント/レシピ | 見た目のまとまり（button / card） | `src/styles/recipes.ts` ✅ |
 
-   → 既に上下 2 層はあり、**真ん中の「意図で名付けた layout 層」が欠けている**だけ。
-   `src/styles/layout.ts` 的に足すイメージ。
+   → 当初「真ん中の layout 層が欠けている」状態だったが、**3 層が揃った**。layout 層は cirro 側
+   （`cirrojs/layout`）がロジックと既定値を所有し、利用側は `createLayout({ defaults })` で束縛して
+   `src/styles/layout.ts` から re-export する（既定値はここで差し替えられる）。
 
 2. **プロパティの所有者を一意にする（single-owner-per-property）**: 直交が壊れるのは 2 つの語彙が
    同じプロパティを取り合う瞬間。「兄弟間の余白は Stack/Cluster が所有し、子は自分の margin を
    持たない」のように、各プロパティの番人を一人に決める（Every Layout / CUBE CSS の規律）。
 
+実装ではこの規律を `createLayout`（`cirrojs/layout`）に落とし込んでいる。各プリミティブは単一の軸だけを
+担い、値は単位付き文字列で受け、既定値は `defaults` で上書きできる（下は実装の要旨。詳細は
+`05_STYLING.md` 10 章 / `packages/cirrojs/src/layout.ts`）。
+
 ```ts
-// layout.ts — 意図で名付け、各々が単一の軸だけを担う
-export function center(opts?: { max?: string }): string {
-    return cssMain({ box_sizing: "border-box", margin_inline: "auto", max_width: opts?.max ?? "60ch" });
+// createLayout 内（css は既定で genCssFn({ layer: "low" })、d はマージ済み既定値）
+function center(opts?: { max?: string; gutters?: string }): string {
+    return cx(
+        css({ box_sizing: "border-box", margin_inline: "auto", max_inline_size: opts?.max ?? d.centerMax }),
+        opts?.gutters ? css({ padding_inline: opts.gutters }) : "",
+    );
 }
-export function stack(gap = space(4)): string {
-    return cssMain({ margin_top: gap }, { selector: "& > * + *" }); // 隣接兄弟の間にだけ
+function stack(opts?: { gap?: string }): string {
+    // flex column + gap で隣接間に等間隔の余白を入れる（gap が所有）
+    return css({ display: "flex", flex_direction: "column", gap: opts?.gap ?? d.stackGap ?? d.gap });
 }
 ```
+
+> 注: 当初メモの草案は `stack(gap = space(4))` のように位置引数＋スケール段数だったが、実装では
+> **opts オブジェクト＋単位付き文字列**に統一し、`stack` は `& > * + *` の margin ではなく
+> **flex column + gap** で実装した（決定事項）。
 
 ### 7.3 型付き関数だから「平坦な名前空間の衝突」が起きない
 
@@ -332,8 +351,11 @@ export function stack(gap = space(4)): string {
 ## 8. 暫定の方針（2026-06-22 時点・未確定）
 
 - **CSP の厳格化は本番デプロイ時のみ**（env で切替）。dev の `<style>` 注入は許容。
-- **Every Layout の読解を先に行う**。layout 層を「why で名付ける」感覚を、コードをいじる前に概念で
-  掴むほうが、その後の実装（B でも vanilla-extract でも）が楽になる。
+- ~~**Every Layout の読解を先に行う**~~ → **完了。layout 層を `createLayout`（`cirrojs/layout`）として
+  実装した**（2026-06-27。Phase 1 の 6 プリミティブ、`@layer low`、既定値は DI で上書き可）。なお実装は
+  現方式（render-time collection の自前 `css()`）の上に乗せており、収集方式 A/B/C の選択とは独立。
+  収集方式の結論はこの実装後も未確定で、layout 層はどの方式へ移っても流用できる（クラス名を返す型付き
+  関数という形は不変）。
 - **B-1 は微修正で済みそう**なので、自前実装も有力候補。1 枚 CSS で当面十分という見立て。
 - **vanilla-extract の例をさらに学ぶ**。とくに「直交辞書」の参考として後述の sprinkles を見る。
 - **`05_STYLING.md` は現状仕様として据え置き**。本書（doc/06）は検討記録。方針が固まったら 7.3 / 7.4

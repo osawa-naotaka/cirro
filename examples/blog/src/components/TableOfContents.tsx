@@ -1,4 +1,5 @@
 import type { ToC } from "cirrojs/server";
+import { stack } from "../styles/layout";
 import { color, cssMain, cx, fontSize, space } from "../styles/system";
 
 // remark-export-toc が抽出した目次（ToC[]）を描画する。各エントリの id は本文見出しの
@@ -27,7 +28,7 @@ export function TableOfContents({ toc }: { toc: ToC[] }) {
     return (
         <nav className={nav} aria-label="目次">
             <p className={heading}>目次</p>
-            <ul className={cssMain({ display: "flex", flex_direction: "column", gap: space(1), list_style: "none", margin: "0", padding: "0" })}>
+            <ul className={cx(stack({ gap: space(1) }), cssMain({ list_style: "none", margin: "0", padding: "0" }))}>
                 {toc.map((item) => (
                     <li key={item.id} className={indent[Math.min(item.level - minLevel, indent.length - 1)]}>
                         <a href={`#${item.id}`} className={link}>

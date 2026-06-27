@@ -1,4 +1,5 @@
 import type { Post } from "../lib/types";
+import { stack } from "../styles/layout";
 import { color, cssMain, space } from "../styles/system";
 import { PostCard } from "./PostCard";
 
@@ -8,7 +9,7 @@ export function PostList({ posts, empty = "記事がありません。" }: { pos
         return <p className={cssMain({ color: color.fgMuted, padding_top: space(8), padding_bottom: space(8) })}>{empty}</p>;
     }
     return (
-        <div className={cssMain({ display: "flex", flex_direction: "column", gap: space(5) })}>
+        <div className={stack({ gap: space(5) })}>
             {posts.map((post) => (
                 <PostCard key={post.slug} post={post} />
             ))}

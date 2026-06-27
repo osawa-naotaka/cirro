@@ -1,6 +1,7 @@
 import { Layout } from "../components/Layout";
 import { PostList } from "../components/PostList";
 import { allTags, posts } from "../lib/content";
+import { cluster } from "../styles/layout";
 import { button, chip } from "../styles/recipes";
 import { color, cssMain, cssMd, cx, fontSize, radii, space } from "../styles/system";
 
@@ -31,7 +32,7 @@ export function HomePage() {
                     インラインスクリプトを一切生成せず、<code>script-src 'self'</code> の厳格な CSP を満たす。
                     React だけで書ける、軽量な静的サイトジェネレーター。
                 </p>
-                <div className={cssMain({ display: "flex", flex_wrap: "wrap", gap: space(4) })}>
+                <div className={cluster({ gap: space(4) })}>
                     <a href="/blog" className={button({ variant: "contrast" })}>
                         記事を読む
                     </a>
@@ -52,7 +53,7 @@ export function HomePage() {
             <hr className={cssMain({ border: "0", border_top: `1px solid ${color.border}`, margin_top: space(10), margin_bottom: space(10) })} />
 
             <h2 className={cssMain({ font_size: fontSize.xl, font_weight: "700", margin_bottom: space(4) })}>タグから探す</h2>
-            <div className={cssMain({ display: "flex", flex_wrap: "wrap", gap: space(2) })}>
+            <div className={cluster({ gap: space(2) })}>
                 {tags.map(({ tag, count }) => (
                     <a key={tag} href={`/tags/${tag}`} className={chip()}>
                         {tag} ({count})
