@@ -84,18 +84,80 @@ export interface CoverSlots {
     centered: string;
 }
 
+export interface StackOpt {
+    gap?: string;
+}
+
+export interface ClusterOpt {
+    gap?: string;
+    wrap?: Properties["flex_wrap"];
+    justify?: Properties["justify_content"];
+    align?: Properties["align_items"];
+}
+
+export interface CenterOpt {
+    max?: string;
+    gutters?: string;
+    intrinsic?: boolean;
+    andText?: boolean;
+}
+
+export interface GridOpt {
+    gap?: string;
+    min?: string;
+}
+
+export interface SwitcherOpt {
+    threshold?: string;
+    gap?: string;
+    limit?: number;
+}
+
+export interface SidebarOpt {
+    sideWidth?: string;
+    contentMin?: string;
+    gap?: string;
+}
+
+export interface CoverOpt {
+    minHeight?: string;
+    gap?: string;
+    padding?: string;
+}
+
+export interface FrameOpt {
+    ratio?: string;
+}
+
+export interface ReelOpt {
+    itemWidth?: string;
+    height?: string;
+    gap?: string;
+}
+
+export interface ImposterOpt {
+    fixed?: boolean;
+    contain?: boolean;
+    margin?: string;
+}
+
+export interface BoxOpt {
+    padding?: string;
+    border?: string;
+}
+
 export interface Layout {
-    stack(opts?: { gap?: string }): string;
-    cluster(opts?: { gap?: string; wrap?: Properties["flex_wrap"]; justify?: Properties["justify_content"]; align?: Properties["align_items"] }): string;
-    center(opts?: { max?: string; gutters?: string; intrinsic?: boolean; andText?: boolean }): string;
-    grid(opts?: { gap?: string; min?: string }): string;
-    switcher(opts?: { threshold?: string; gap?: string; limit?: number }): string;
-    sidebar(opts?: { sideWidth?: string; contentMin?: string; gap?: string }): SidebarSlots;
-    cover(opts?: { minHeight?: string; gap?: string; padding?: string }): CoverSlots;
-    frame(opts?: { ratio?: string }): string;
-    reel(opts?: { itemWidth?: string; height?: string; gap?: string }): string;
-    imposter(opts?: { fixed?: boolean; contain?: boolean; margin?: string }): string;
-    box(opts?: { padding?: string; border?: string }): string;
+    stack(opts?: StackOpt): string;
+    cluster(opts?: ClusterOpt): string;
+    center(opts?: CenterOpt): string;
+    grid(opts?: GridOpt): string;
+    switcher(opts?: SwitcherOpt): string;
+    sidebar(opts?: SidebarOpt): SidebarSlots;
+    cover(opts?: CoverOpt): CoverSlots;
+    frame(opts?: FrameOpt): string;
+    reel(opts?: ReelOpt): string;
+    imposter(opts?: ImposterOpt): string;
+    box(opts?: BoxOpt): string;
 }
 
 // 複数クラス名を結合する（falsy は除外）。
@@ -112,12 +174,12 @@ export function createLayout(theme: LayoutTheme = {}): Layout {
     const d = { ...DEFAULTS, ...theme.defaults };
 
     // Stack — 縦積み。flex column + gap で隣接間に等間隔の余白を入れる。
-    function stack(opts?: { gap?: string }): string {
+    function stack(opts?: StackOpt): string {
         return css({ display: "flex", flex_direction: "column", gap: opts?.gap ?? d.stackGap ?? d.gap });
     }
 
     // Cluster — 折り返す横並び。要素間は gap が所有する。
-    function cluster(opts?: { gap?: string; wrap?: Properties["flex_wrap"]; justify?: Properties["justify_content"]; align?: Properties["align_items"] }): string {
+    function cluster(opts?: ClusterOpt): string {
         return css({
             display: "flex",
             flex_wrap: opts?.wrap ?? d.clusterWrap ?? "wrap",
@@ -128,7 +190,7 @@ export function createLayout(theme: LayoutTheme = {}): Layout {
     }
 
     // Center — 中央寄せ＋最大幅。intrinsic で中身も中央寄せ、andText で文字も中央寄せ。
-    function center(opts?: { max?: string; gutters?: string; intrinsic?: boolean; andText?: boolean }): string {
+    function center(opts?: CenterOpt): string {
         return cx(
             css({ box_sizing: "border-box", margin_inline: "auto", max_inline_size: opts?.max ?? d.centerMax }),
             opts?.gutters ? css({ padding_inline: opts.gutters }) : "",
@@ -138,7 +200,7 @@ export function createLayout(theme: LayoutTheme = {}): Layout {
     }
 
     // Grid — auto-fit による自動段組。トラック最小幅を下回ると段数が減る。メディアクエリ不要。
-    function grid(opts?: { gap?: string; min?: string }): string {
+    function grid(opts?: GridOpt): string {
         const min = opts?.min ?? d.gridMin;
         return css({
             display: "grid",
@@ -149,7 +211,7 @@ export function createLayout(theme: LayoutTheme = {}): Layout {
 
     // Switcher — 閾値で横並び↔縦積みを切り替える。flex-basis の calc により内在的にレスポンシブ。
     // 要素数が limit を超えたら（nth-last-child）強制的に縦積みへ倒す。
-    function switcher(opts?: { threshold?: string; gap?: string; limit?: number }): string {
+    function switcher(opts?: SwitcherOpt): string {
         const threshold = opts?.threshold ?? d.switcherThreshold;
         const limit = opts?.limit ?? d.switcherLimit;
         return cx(
@@ -162,7 +224,7 @@ export function createLayout(theme: LayoutTheme = {}): Layout {
 
     // Sidebar — 主従 2 カラム。従（side）は内容なりまたは固定幅、主（content）は伸びて折り返す。
     // 主従の指定は消費側がスロットを当てて行う（方式B）。左右は DOM の並び順で決まる。
-    function sidebar(opts?: { sideWidth?: string; contentMin?: string; gap?: string }): SidebarSlots {
+    function sidebar(opts?: SidebarOpt): SidebarSlots {
         return {
             root: css({ display: "flex", flex_wrap: "wrap", gap: opts?.gap ?? d.sidebarGap ?? d.gap }),
             side: css({ flex_grow: "1", flex_basis: opts?.sideWidth ?? d.sidebarSideWidth ?? "auto" }),
@@ -176,7 +238,7 @@ export function createLayout(theme: LayoutTheme = {}): Layout {
 
     // Cover — 縦方向の中央寄せ。最小高さを確保し、centered を当てた子を上下中央へ、
     // それ以外の子は gap で等間隔に並べる。中央寄せ対象は消費側がスロットで指定する（方式B）。
-    function cover(opts?: { minHeight?: string; gap?: string; padding?: string }): CoverSlots {
+    function cover(opts?: CoverOpt): CoverSlots {
         const gap = opts?.gap ?? d.gap;
         // 中央寄せ対象の子（自身の上下 auto マージンで中央に置く）。
         const centered = css({ margin_block: "auto" });
@@ -198,7 +260,7 @@ export function createLayout(theme: LayoutTheme = {}): Layout {
     }
 
     // Frame — アスペクト比を固定し、中身（img/video）を切り抜いて全面に敷く。
-    function frame(opts?: { ratio?: string }): string {
+    function frame(opts?: FrameOpt): string {
         return cx(
             css({
                 aspect_ratio: opts?.ratio ?? d.frameRatio,
@@ -212,7 +274,7 @@ export function createLayout(theme: LayoutTheme = {}): Layout {
     }
 
     // Reel — 横スクロールの帯。子は縮まず（flex 0 0）横に並び、はみ出した分はスクロールする。
-    function reel(opts?: { itemWidth?: string; height?: string; gap?: string }): string {
+    function reel(opts?: ReelOpt): string {
         return cx(
             css({
                 display: "flex",
@@ -228,7 +290,7 @@ export function createLayout(theme: LayoutTheme = {}): Layout {
 
     // Imposter — 位置決め済みの親（position: relative 等）の中央へ絶対配置で重ねる。
     // contain を付けると親をはみ出さないよう最大サイズを制限し、内部はスクロールさせる。
-    function imposter(opts?: { fixed?: boolean; contain?: boolean; margin?: string }): string {
+    function imposter(opts?: ImposterOpt): string {
         const margin = opts?.margin ?? "0px";
         return cx(
             css({
@@ -249,7 +311,7 @@ export function createLayout(theme: LayoutTheme = {}): Layout {
 
     // Box — padding を持つ枠。border は既定で出さない（線なし・色なし）。指定する場合は
     // border ショートハンド（色を含む）を直接渡す。box-sizing: border-box でサイズを予測可能にする。
-    function box(opts?: { padding?: string; border?: string }): string {
+    function box(opts?: BoxOpt): string {
         return cx(css({ box_sizing: "border-box", padding: opts?.padding ?? d.boxPadding ?? d.gap }), opts?.border ? css({ border: opts.border }) : "");
     }
 
