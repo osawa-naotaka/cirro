@@ -445,21 +445,46 @@ function createLayout(theme?: LayoutTheme): Layout;
 | `grid` | `string` | `gap`, `min` | `gridGap ?? gap`, `gridMin`=`"16rem"` |
 | `switcher` | `string` | `threshold`, `gap`, `limit` | `"30rem"`, `switcherGap ?? gap`, `4` |
 | `sidebar` | `SidebarSlots` | `sideWidth`, `contentMin`, `gap` | `"auto"`, `sidebarContentMin`=`"50%"`, `sidebarGap ?? gap` |
+| `cover` | `CoverSlots` | `minHeight`, `gap`, `padding` | `coverMinHeight`=`"100vh"`, `gap`, `gap` |
+| `frame` | `string` | `ratio` | `frameRatio`=`"16 / 9"` |
+| `reel` | `string` | `itemWidth`, `height`, `gap` | `"auto"`, `"auto"`, `gap` |
+| `imposter` | `string` | `fixed`, `contain`, `margin` | `false`, `false`, `"0px"` |
+| `box` | `string` | `padding`, `border` | `boxPadding ?? gap`, 省略（線なし） |
 
 `gap` は**大本の `gap` ＋ プリミティブ個別の `stackGap` / `clusterGap` / `gridGap` / `switcherGap` /
 `sidebarGap`** の 2 段で、解決順は `引数 ?? 個別既定 ?? 大本 gap`。
 
-### 10.3 sidebar はクラスの束を返す（型付きスロット）
+補足:
+- `frame` は中身 `img` / `video` を `object-fit: cover` で全面に敷く。`reel` は子を `flex: 0 0 <itemWidth>`
+  で並べ横スクロールさせる。`imposter` は**親に `position: relative` 等の位置決め**が必要で、`contain` で
+  親をはみ出さないよう最大サイズを制限する。
+- `box` は padding を持つ枠で、**border は既定で出力しない**（線なし・色なし）。枠線が要る場合は
+  `border: "1px solid #ccc"` のように**色を含むショートハンド**を直接渡す（色トークンに依存しない）。
+  Every Layout の Box が持つ invert（bg/fg 反転）は提供しない。
 
-主従 2 カラムの `sidebar` だけは、2 要素それぞれに別スタイルを当てるため**クラス名の束**
-（`{ root, side, content }`）を返す。消費側が各要素へ明示的に当て、主従はコードで明快になる。左右は
-DOM の並び順で決まる。
+### 10.3 sidebar / cover はクラスの束を返す（型付きスロット）
+
+子要素ごとに別スタイルを当てるプリミティブは、**クラス名の束**を返す。消費側が各要素へ明示的に当てるため、
+どの子が何かがコードで明快になる。
+
+`sidebar`（主従 2 カラム。左右は DOM の並び順で決まる）:
 
 ```tsx
 const s = sidebar({ sideWidth: "20rem" });
 <div className={s.root}>
     <aside className={s.side}>…</aside>     {/* 従 */}
     <main className={s.content}>…</main>    {/* 主（伸びる・折り返す） */}
+</div>
+```
+
+`cover`（`centered` を当てた子を縦中央へ、他の子は `gap` で等間隔に並べる）:
+
+```tsx
+const c = cover({ minHeight: "100vh" });
+<div className={c.root}>
+    <header>…</header>
+    <h1 className={c.centered}>主役</h1>   {/* 上下 auto マージンで中央 */}
+    <footer>…</footer>
 </div>
 ```
 
@@ -527,11 +552,12 @@ center({ gutters: "1rem" });
 
 | 名前 | 役割 |
 | --- | --- |
-| `createLayout(theme?)` | Every Layout プリミティブ（stack / cluster / center / grid / switcher / sidebar）を既定値で束縛して返す（10 章） |
+| `createLayout(theme?)` | Every Layout プリミティブ（stack / cluster / center / grid / switcher / sidebar / cover / frame / reel / imposter / box）を既定値で束縛して返す（10 章） |
 | `LayoutTheme` 型 | `createLayout` の引数（`{ css?, defaults? }`） |
 | `LayoutDefaults` 型 | 各プリミティブの既定値 |
 | `Layout` 型 | `createLayout` の戻り（プリミティブ関数群） |
 | `SidebarSlots` 型 | `sidebar` の戻り（`{ root, side, content }`） |
+| `CoverSlots` 型 | `cover` の戻り（`{ root, centered }`） |
 
 ### 関連ドキュメント
 

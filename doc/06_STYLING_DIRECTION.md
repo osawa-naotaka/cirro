@@ -7,10 +7,12 @@
 >
 > 記録日: 2026-06-22
 >
-> **追記（2026-06-27）**: 本書 7 章で「次に作る層」としていた**意図で名付けた layout 層を実装した**
-> （Phase 1: `stack` / `cluster` / `center` / `grid` / `switcher` / `sidebar`）。`createLayout` ファクトリ
-> として `cirrojs/layout` から提供し、既定値はユーザーが上書きできる（DI）。出力は `@layer low`。
-> 確定仕様は `05_STYLING.md` 10 章、実装は `packages/cirrojs/src/layout.ts`、適用例は
+> **追記（2026-06-27）**: 本書 7 章で「次に作る層」としていた**意図で名付けた layout 層を実装した**。
+> Phase 1（`stack` / `cluster` / `center` / `grid` / `switcher` / `sidebar`）に続き、Phase 2 として
+> `cover` / `frame` / `reel` / `imposter` / `box` を追加（計 11 プリミティブ）。`box` は色トークンに
+> 依存させず、padding を持ち border は既定で出さない（線が要る場合は色を含むショートハンドを直接渡す）。
+> `createLayout` ファクトリとして `cirrojs/layout` から提供し、既定値はユーザーが上書きできる（DI）。
+> 出力は `@layer low`。確定仕様は `05_STYLING.md` 10 章、実装は `packages/cirrojs/src/layout.ts`、適用例は
 > `examples/blog/src/styles/layout.ts`。収集方式（A/B/C）の結論は引き続き未確定で、本書はそのまま台帳として残す。
 
 関連: `05_STYLING.md`（現行のスタイリング仕様）、`03_ISLAND_SYSTEM.md`（島システム）。

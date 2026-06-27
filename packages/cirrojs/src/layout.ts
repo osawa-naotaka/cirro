@@ -37,6 +37,12 @@ export interface LayoutDefaults {
     switcherLimit: number;
     // sidebar の主（content）の最小インライン幅（これを下回ると折り返す）。
     sidebarContentMin: string;
+    // cover の最小ブロックサイズ（高さ）。
+    coverMinHeight: string;
+    // frame のアスペクト比（"幅 / 高さ" の文字列）。
+    frameRatio: string;
+    // box の既定 padding。未設定なら gap を使う。
+    boxPadding?: string;
 }
 
 const DEFAULTS: LayoutDefaults = {
@@ -48,6 +54,8 @@ const DEFAULTS: LayoutDefaults = {
     switcherThreshold: "30rem",
     switcherLimit: 4,
     sidebarContentMin: "50%",
+    coverMinHeight: "100vh",
+    frameRatio: "16 / 9",
 };
 
 export interface LayoutTheme {
@@ -65,6 +73,13 @@ export interface SidebarSlots {
     content: string;
 }
 
+// cover は「縦方向に中央寄せする 1 要素」を消費側が指定する必要があるため、クラスの束を返す（方式B）。
+// centered を当てた子は上下 auto マージンで中央に置かれ、その他の子は gap で等間隔に並ぶ。
+export interface CoverSlots {
+    root: string;
+    centered: string;
+}
+
 export interface Layout {
     stack(opts?: { gap?: string }): string;
     cluster(opts?: { gap?: string; justify?: Properties["justify_content"]; align?: Properties["align_items"] }): string;
@@ -72,6 +87,11 @@ export interface Layout {
     grid(opts?: { gap?: string; min?: string }): string;
     switcher(opts?: { threshold?: string; gap?: string; limit?: number }): string;
     sidebar(opts?: { sideWidth?: string; contentMin?: string; gap?: string }): SidebarSlots;
+    cover(opts?: { minHeight?: string; gap?: string; padding?: string }): CoverSlots;
+    frame(opts?: { ratio?: string }): string;
+    reel(opts?: { itemWidth?: string; height?: string; gap?: string }): string;
+    imposter(opts?: { fixed?: boolean; contain?: boolean; margin?: string }): string;
+    box(opts?: { padding?: string; border?: string }): string;
 }
 
 // 複数クラス名を結合する（falsy は除外）。
@@ -150,5 +170,84 @@ export function createLayout(theme: LayoutTheme = {}): Layout {
         };
     }
 
-    return { stack, cluster, center, grid, switcher, sidebar };
+    // Cover — 縦方向の中央寄せ。最小高さを確保し、centered を当てた子を上下中央へ、
+    // それ以外の子は gap で等間隔に並べる。中央寄せ対象は消費側がスロットで指定する（方式B）。
+    function cover(opts?: { minHeight?: string; gap?: string; padding?: string }): CoverSlots {
+        const gap = opts?.gap ?? d.gap;
+        // 中央寄せ対象の子（自身の上下 auto マージンで中央に置く）。
+        const centered = css({ margin_block: "auto" });
+        return {
+            root: cx(
+                css({
+                    display: "flex",
+                    flex_direction: "column",
+                    min_block_size: opts?.minHeight ?? d.coverMinHeight,
+                    padding: opts?.padding ?? gap,
+                }),
+                // centered 以外の子に縦の余白を入れる（centered には触れない）。
+                css({ margin_block: gap }, { selector: `& > :not(.${centered})` }),
+                css({ margin_block_start: "0" }, { selector: `& > :first-child:not(.${centered})` }),
+                css({ margin_block_end: "0" }, { selector: `& > :last-child:not(.${centered})` }),
+            ),
+            centered,
+        };
+    }
+
+    // Frame — アスペクト比を固定し、中身（img/video）を切り抜いて全面に敷く。
+    function frame(opts?: { ratio?: string }): string {
+        return cx(
+            css({
+                aspect_ratio: opts?.ratio ?? d.frameRatio,
+                overflow: "hidden",
+                display: "flex",
+                justify_content: "center",
+                align_items: "center",
+            }),
+            css({ inline_size: "100%", block_size: "100%", object_fit: "cover" }, { selector: "& > img, & > video" }),
+        );
+    }
+
+    // Reel — 横スクロールの帯。子は縮まず（flex 0 0）横に並び、はみ出した分はスクロールする。
+    function reel(opts?: { itemWidth?: string; height?: string; gap?: string }): string {
+        return cx(
+            css({
+                display: "flex",
+                block_size: opts?.height ?? "auto",
+                overflow_x: "auto",
+                overflow_y: "hidden",
+                gap: opts?.gap ?? d.gap,
+            }),
+            css({ flex: `0 0 ${opts?.itemWidth ?? "auto"}` }, { selector: "& > *" }),
+            css({ block_size: "100%", flex_basis: "auto", inline_size: "auto" }, { selector: "& > img" }),
+        );
+    }
+
+    // Imposter — 位置決め済みの親（position: relative 等）の中央へ絶対配置で重ねる。
+    // contain を付けると親をはみ出さないよう最大サイズを制限し、内部はスクロールさせる。
+    function imposter(opts?: { fixed?: boolean; contain?: boolean; margin?: string }): string {
+        const margin = opts?.margin ?? "0px";
+        return cx(
+            css({
+                position: opts?.fixed ? "fixed" : "absolute",
+                inset_block_start: "50%",
+                inset_inline_start: "50%",
+                transform: "translate(-50%, -50%)",
+            }),
+            opts?.contain
+                ? css({
+                      overflow: "auto",
+                      max_inline_size: `calc(100% - (${margin} * 2))`,
+                      max_block_size: `calc(100% - (${margin} * 2))`,
+                  })
+                : "",
+        );
+    }
+
+    // Box — padding を持つ枠。border は既定で出さない（線なし・色なし）。指定する場合は
+    // border ショートハンド（色を含む）を直接渡す。box-sizing: border-box でサイズを予測可能にする。
+    function box(opts?: { padding?: string; border?: string }): string {
+        return cx(css({ box_sizing: "border-box", padding: opts?.padding ?? d.boxPadding ?? d.gap }), opts?.border ? css({ border: opts.border }) : "");
+    }
+
+    return { stack, cluster, center, grid, switcher, sidebar, cover, frame, reel, imposter, box };
 }
