@@ -22,6 +22,7 @@ export interface LayoutDefaults {
     // プリミティブ個別の gap。未設定なら gap を使う。
     stackGap?: string;
     clusterGap?: string;
+    clusterWrap?: Properties["flex_wrap"];
     gridGap?: string;
     switcherGap?: string;
     sidebarGap?: string;
@@ -37,6 +38,8 @@ export interface LayoutDefaults {
     switcherLimit: number;
     // sidebar の主（content）の最小インライン幅（これを下回ると折り返す）。
     sidebarContentMin: string;
+    // sidebar の従（sidebar）のインライン幅（この値で固定されます）。
+    sidebarSideWidth: string;
     // cover の最小ブロックサイズ（高さ）。
     coverMinHeight: string;
     // frame のアスペクト比（"幅 / 高さ" の文字列）。
@@ -53,7 +56,8 @@ const DEFAULTS: LayoutDefaults = {
     gridMin: "16rem",
     switcherThreshold: "30rem",
     switcherLimit: 4,
-    sidebarContentMin: "50%",
+    sidebarContentMin: "65ch",
+    sidebarSideWidth: "30ch",
     coverMinHeight: "100vh",
     frameRatio: "16 / 9",
 };
@@ -113,10 +117,10 @@ export function createLayout(theme: LayoutTheme = {}): Layout {
     }
 
     // Cluster — 折り返す横並び。要素間は gap が所有する。
-    function cluster(opts?: { gap?: string; justify?: Properties["justify_content"]; align?: Properties["align_items"] }): string {
+    function cluster(opts?: { gap?: string; wrap?: Properties["flex_wrap"]; justify?: Properties["justify_content"]; align?: Properties["align_items"] }): string {
         return css({
             display: "flex",
-            flex_wrap: "wrap",
+            flex_wrap: opts?.wrap ?? d.clusterWrap ?? "wrap",
             gap: opts?.gap ?? d.clusterGap ?? d.gap,
             justify_content: opts?.justify ?? d.clusterJustify,
             align_items: opts?.align ?? d.clusterAlign,
@@ -161,7 +165,7 @@ export function createLayout(theme: LayoutTheme = {}): Layout {
     function sidebar(opts?: { sideWidth?: string; contentMin?: string; gap?: string }): SidebarSlots {
         return {
             root: css({ display: "flex", flex_wrap: "wrap", gap: opts?.gap ?? d.sidebarGap ?? d.gap }),
-            side: css({ flex_grow: "1", flex_basis: opts?.sideWidth ?? "auto" }),
+            side: css({ flex_grow: "1", flex_basis: opts?.sideWidth ?? d.sidebarSideWidth ?? "auto" }),
             content: css({
                 flex_grow: "999",
                 flex_basis: "0",
