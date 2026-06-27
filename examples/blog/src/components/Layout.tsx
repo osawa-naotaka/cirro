@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { Island } from "../islands/Island";
+import { center } from "../styles/layout";
 import { button } from "../styles/recipes";
 import { applyGlobalStyles, color, cssMain, cssMd, cx, fontSize, space } from "../styles/system";
 
@@ -25,8 +26,8 @@ export function Layout({ title, description, children, island = true }: LayoutPr
     // リセット・グローバルスタイルをこのルートの CSS に登録する。
     applyGlobalStyles();
 
-    // 横幅を md（約 56rem）に制限して中央寄せする共通コンテナ。
-    const container = cssMain({ width: "100%", max_width: "56rem", margin_left: "auto", margin_right: "auto", padding_left: space(4), padding_right: space(4) });
+    // 横幅を制限して中央寄せする共通コンテナ。最大幅は layout の既定（centerMax = 56rem）を使う。
+    const container = center({ gutters: space(4) });
 
     return (
         <html lang="ja">

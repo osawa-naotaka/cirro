@@ -88,8 +88,8 @@ export const cssMain = genCssFn({ layer: "main" });
 
 // レスポンシブ用 css（旧 panda の breakpoint 既定値）。@layer main + @media で出力する。
 // 基準スタイルを cssMain で先に登録してから cx() で結合すると、min-width 一致時に上書きされる。
-export const cssSm = genCssFn({ mediaAtRule: "min-width: 640px", layer: "main" }); // sm
-export const cssMd = genCssFn({ mediaAtRule: "min-width: 768px", layer: "main" }); // md
+export const cssSm = genCssFn({ atRules: ["@media (min-width: 640px)"], layer: "main" }); // sm
+export const cssMd = genCssFn({ atRules: ["@media (min-width: 768px)"], layer: "main" }); // md
 
 // クラス名を結合する（falsy は除外）。
 export function cx(...classes: (string | false | null | undefined)[]): string {

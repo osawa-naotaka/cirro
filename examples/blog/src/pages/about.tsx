@@ -1,5 +1,6 @@
 import { Layout } from "../components/Layout";
-import { color, cssMain, fontSize, radii, space } from "../styles/system";
+import { stack } from "../styles/layout";
+import { color, cssMain, cx, fontSize, radii, space } from "../styles/system";
 
 const FEATURES = [
     {
@@ -47,7 +48,7 @@ export function AboutPage() {
             <hr className={cssMain({ border: "0", border_top: `1px solid ${color.border}`, margin_top: space(8), margin_bottom: space(8) })} />
 
             <h2 className={cssMain({ font_size: fontSize.xl, font_weight: "700", margin_bottom: space(4) })}>Cirro の特徴</h2>
-            <ul className={cssMain({ display: "flex", flex_direction: "column", gap: space(4), list_style: "none", padding: "0" })}>
+            <ul className={cx(stack({ gap: space(4) }), cssMain({ list_style: "none", padding: "0" }))}>
                 {FEATURES.map((f) => (
                     <li key={f.title}>
                         <p className={cssMain({ font_weight: "700", margin_bottom: space(1) })}>{f.title}</p>

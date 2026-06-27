@@ -13,6 +13,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [0.0.10] - 2026-06-27
+
+### Added
+- New `cirrojs/layout` entry point exporting `createLayout`, a factory that produces the Every Layout primitives (`stack`, `cluster`, `center`, `grid`, `switcher`, `sidebar`, `cover`, `frame`, `reel`, `imposter`, `box`) as typed functions returning deterministic class names. `createLayout` accepts a `LayoutTheme` for overriding the output `css` function and partially overriding the defaults. Also exports the `Layout`, `LayoutTheme`, `LayoutDefaults`, `SidebarSlots`, and `CoverSlots` types.
+
+### Changed
+- Replaced the `mediaAtRule?: string` field of `GenCssFnOpt` with `atRules?: string[]`. `genCssFn` now accepts any at-rules directly instead of only a media query condition.
+- The dev server now responds with the error's stack trace instead of its string representation when a render throws.
+
 ## [0.0.9] - 2026-06-22
 
 ### Fixed
@@ -72,7 +81,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## 0.0.1 - 2026-06-15
 - initial release
 
-[Unreleased]: https://github.com/osawa-naotaka/cirro/compare/v0.0.9...HEAD
+[Unreleased]: https://github.com/osawa-naotaka/cirro/compare/v0.0.10...HEAD
+[0.0.10]: https://github.com/osawa-naotaka/cirro/compare/v0.0.9...v0.0.10
 [0.0.9]: https://github.com/osawa-naotaka/cirro/compare/v0.0.8...v0.0.9
 [0.0.8]: https://github.com/osawa-naotaka/cirro/compare/v0.0.7...v0.0.8
 [0.0.7]: https://github.com/osawa-naotaka/cirro/compare/v0.0.6...v0.0.7

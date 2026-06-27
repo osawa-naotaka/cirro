@@ -25,14 +25,14 @@ export function css(properties: Properties, opt?: CssOpt): string {
 export type CssFnT = (properties: Properties, opt?: Omit<CssOpt, "atrules">) => string;
 
 export type GenCssFnOpt = {
-    mediaAtRule?: string;
+    atRules?: string[];
     layer?: string;
 };
 
 export function genCssFn(opt: GenCssFnOpt): CssFnT {
     const atrules: string[] = [];
     if (opt.layer) atrules.push(`@layer ${opt.layer}`);
-    if (opt.mediaAtRule) atrules.push(`@media (${opt.mediaAtRule})`);
+    if (opt.atRules) atrules.push(...opt.atRules);
 
     return (properties, opt) => {
         return css(properties, { atrules, name: opt?.name, selector: opt?.selector });

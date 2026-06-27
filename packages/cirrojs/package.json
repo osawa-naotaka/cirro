@@ -1,6 +1,6 @@
 {
     "name": "cirrojs",
-    "version": "0.0.9",
+    "version": "0.0.10",
     "description": "React islands SSG with strict CSP (no unsafe-inline). Vite-based, MPA-first.",
     "license": "MIT",
     "type": "module",
@@ -19,6 +19,7 @@
         "./server": "./src/server.ts",
         "./vite": "./src/vite.ts",
         "./bin": "./src/cli.ts",
+        "./layout": "./src/layout.ts",
         "./registry": {
             "browser": "./src/registry.browser.ts",
             "default": "./src/registry.ts"
@@ -44,6 +45,10 @@
             "./bin": {
                 "types": "./dist/cli.d.ts",
                 "default": "./dist/cli.js"
+            },
+            "./layout": {
+                "types": "./dist/layout.d.ts",
+                "default": "./dist/layout.js"
             },
             "./registry": {
                 "types": "./dist/registry.d.ts",
