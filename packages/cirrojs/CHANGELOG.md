@@ -13,6 +13,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [0.0.14] - 2026-06-28
+
+### Added
+- A new optional `centerGutters` field on `LayoutDefaults`. When `center` is called without a `gutters` option, it now applies `centerGutters` as the default inline padding.
+
 ## [0.0.13] - 2026-06-28
 
 ### Changed
@@ -104,7 +109,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## 0.0.1 - 2026-06-15
 - initial release
 
-[Unreleased]: https://github.com/osawa-naotaka/cirro/compare/v0.0.13...HEAD
+[Unreleased]: https://github.com/osawa-naotaka/cirro/compare/v0.0.14...HEAD
+[0.0.14]: https://github.com/osawa-naotaka/cirro/compare/v0.0.13...v0.0.14
 [0.0.13]: https://github.com/osawa-naotaka/cirro/compare/v0.0.12...v0.0.13
 [0.0.12]: https://github.com/osawa-naotaka/cirro/compare/v0.0.11...v0.0.12
 [0.0.11]: https://github.com/osawa-naotaka/cirro/compare/v0.0.10...v0.0.11
