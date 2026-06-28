@@ -32,6 +32,7 @@ export interface LayoutDefaults {
     clusterAlign: Properties["align_items"];
     // center の最大インライン幅（測度。space スケール外）。
     centerMax: string;
+    centerGutters?: string;
     // grid の各トラックの最小幅（これを下回ると段数が減る）。
     gridMin: string;
     // switcher が縦積みへ切り替わる閾値幅、および横並びを許す最大要素数。
@@ -213,7 +214,11 @@ export function createLayout(theme: LayoutTheme = {}): Layout {
     function center(opts?: CenterOpt): string {
         return cx(
             css({ box_sizing: "border-box", margin_inline: "auto", max_inline_size: opts?.max ?? d.centerMax }, { name: "center" }),
-            opts?.gutters ? css({ padding_inline: opts.gutters }, { name: "center-gutters" }) : "",
+            opts?.gutters
+                ? css({ padding_inline: opts.gutters }, { name: "center-gutters" })
+                : d.centerGutters
+                  ? css({ padding_inline: d.centerGutters }, { name: "center-gutters" })
+                  : "",
             opts?.intrinsic ? css({ display: "flex", flex_direction: "column", align_items: "center" }, { name: "center-intrinsic" }) : "",
             opts?.andText ? css({ text_align: "center" }, { name: "center-andText" }) : "",
         );
