@@ -6,7 +6,7 @@ export default defineConfig({
         server: "src/server.ts",
         vite: "src/vite.ts",
         cli: "src/cli.ts",
-        layout: "src/layout.ts",
+        layout: "src/layout.tsx",
         // registry は browser/node を exports 条件で切り替えるため、別ファイルとして出力する。
         registry: "src/registry.ts",
         "registry.browser": "src/registry.browser.ts",

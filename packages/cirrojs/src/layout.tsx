@@ -1,3 +1,4 @@
+import type { ComponentPropsWithoutRef, ReactNode } from "react";
 import { type CssFnT, genCssFn } from "./css.ts";
 import type { Properties } from "./properties.ts";
 
@@ -146,6 +147,10 @@ export interface BoxOpt {
     border?: string;
 }
 
+// レイアウト用コンポーネント（Stack 等）が受け取る要素属性。div の標準属性をそのまま受けつつ、
+// インライン style は除外する（style-src 'self' を破る穴を型で塞ぐ）。className / children は含まれる。
+export type ElementOpt = Omit<ComponentPropsWithoutRef<"div">, "style">;
+
 export interface Layout {
     stack(opts?: StackOpt): string;
     cluster(opts?: ClusterOpt): string;
@@ -158,10 +163,22 @@ export interface Layout {
     reel(opts?: ReelOpt): string;
     imposter(opts?: ImposterOpt): string;
     box(opts?: BoxOpt): string;
+
+    // 純レイアウト目的の div を返すコンポーネント版（単一クラス系のみ）。意図が読みやすい場所で使う。
+    // セマンティック要素（ul / nav / section …）には対応する小文字の関数で className を当てる。
+    Stack(props?: StackOpt & ElementOpt): ReactNode;
+    Cluster(props?: ClusterOpt & ElementOpt): ReactNode;
+    Center(props?: CenterOpt & ElementOpt): ReactNode;
+    Grid(props?: GridOpt & ElementOpt): ReactNode;
+    Switcher(props?: SwitcherOpt & ElementOpt): ReactNode;
+    Frame(props?: FrameOpt & ElementOpt): ReactNode;
+    Reel(props?: ReelOpt & ElementOpt): ReactNode;
+    Imposter(props?: ImposterOpt & ElementOpt): ReactNode;
+    Box(props?: BoxOpt & ElementOpt): ReactNode;
 }
 
 // 複数クラス名を結合する（falsy は除外）。
-function cx(...classes: (string | false | null | undefined)[]): string {
+export function cx(...classes: (string | false | null | undefined)[]): string {
     return classes.filter(Boolean).join(" ");
 }
 
@@ -315,5 +332,103 @@ export function createLayout(theme: LayoutTheme = {}): Layout {
         return cx(css({ box_sizing: "border-box", padding: opts?.padding ?? d.boxPadding ?? d.gap }), opts?.border ? css({ border: opts.border }) : "");
     }
 
-    return { stack, cluster, center, grid, switcher, sidebar, cover, frame, reel, imposter, box };
+    // ============================================================
+    // コンポーネント版（単一クラス系のみ）— 純レイアウト目的の div を返す。
+    // 各々レイアウト用 opts を分離し、残りの div 属性（style 除外済み）を div へ spread する。
+    // ============================================================
+
+    function Stack({ gap, className, children, ...rest }: StackOpt & ElementOpt = {}): ReactNode {
+        return (
+            <div className={cx(stack({ gap }), className)} {...rest}>
+                {children}
+            </div>
+        );
+    }
+
+    function Cluster({ gap, wrap, justify, align, className, children, ...rest }: ClusterOpt & ElementOpt = {}): ReactNode {
+        return (
+            <div className={cx(cluster({ gap, wrap, justify, align }), className)} {...rest}>
+                {children}
+            </div>
+        );
+    }
+
+    function Center({ max, gutters, intrinsic, andText, className, children, ...rest }: CenterOpt & ElementOpt = {}): ReactNode {
+        return (
+            <div className={cx(center({ max, gutters, intrinsic, andText }), className)} {...rest}>
+                {children}
+            </div>
+        );
+    }
+
+    function Grid({ gap, min, className, children, ...rest }: GridOpt & ElementOpt = {}): ReactNode {
+        return (
+            <div className={cx(grid({ gap, min }), className)} {...rest}>
+                {children}
+            </div>
+        );
+    }
+
+    function Switcher({ threshold, gap, limit, className, children, ...rest }: SwitcherOpt & ElementOpt = {}): ReactNode {
+        return (
+            <div className={cx(switcher({ threshold, gap, limit }), className)} {...rest}>
+                {children}
+            </div>
+        );
+    }
+
+    function Frame({ ratio, className, children, ...rest }: FrameOpt & ElementOpt = {}): ReactNode {
+        return (
+            <div className={cx(frame({ ratio }), className)} {...rest}>
+                {children}
+            </div>
+        );
+    }
+
+    function Reel({ itemWidth, height, gap, className, children, ...rest }: ReelOpt & ElementOpt = {}): ReactNode {
+        return (
+            <div className={cx(reel({ itemWidth, height, gap }), className)} {...rest}>
+                {children}
+            </div>
+        );
+    }
+
+    function Imposter({ fixed, contain, margin, className, children, ...rest }: ImposterOpt & ElementOpt = {}): ReactNode {
+        return (
+            <div className={cx(imposter({ fixed, contain, margin }), className)} {...rest}>
+                {children}
+            </div>
+        );
+    }
+
+    function Box({ padding, border, className, children, ...rest }: BoxOpt & ElementOpt = {}): ReactNode {
+        return (
+            <div className={cx(box({ padding, border }), className)} {...rest}>
+                {children}
+            </div>
+        );
+    }
+
+    return {
+        stack,
+        cluster,
+        center,
+        grid,
+        switcher,
+        sidebar,
+        cover,
+        frame,
+        reel,
+        imposter,
+        box,
+        Stack,
+        Cluster,
+        Center,
+        Grid,
+        Switcher,
+        Frame,
+        Reel,
+        Imposter,
+        Box,
+    };
 }

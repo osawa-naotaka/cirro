@@ -19,7 +19,7 @@
         "./server": "./src/server.ts",
         "./vite": "./src/vite.ts",
         "./bin": "./src/cli.ts",
-        "./layout": "./src/layout.ts",
+        "./layout": "./src/layout.tsx",
         "./registry": {
             "browser": "./src/registry.browser.ts",
             "default": "./src/registry.ts"

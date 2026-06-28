@@ -12,8 +12,11 @@
 > `cover` / `frame` / `reel` / `imposter` / `box` を追加（計 11 プリミティブ）。`box` は色トークンに
 > 依存させず、padding を持ち border は既定で出さない（線が要る場合は色を含むショートハンドを直接渡す）。
 > `createLayout` ファクトリとして `cirrojs/layout` から提供し、既定値はユーザーが上書きできる（DI）。
-> 出力は `@layer low`。確定仕様は `05_STYLING.md` 10 章、実装は `packages/cirrojs/src/layout.ts`、適用例は
-> `examples/blog/src/styles/layout.ts`。収集方式（A/B/C）の結論は引き続き未確定で、本書はそのまま台帳として残す。
+> 出力は `@layer low`。単一クラス系の 9 種には `<div>` を返すコンポーネント版（`Stack` 等）も用意し、
+> 要素属性は `Omit<ComponentPropsWithoutRef<"div">, "style">` で受ける（インライン `style` を型で禁止し
+> `style-src 'self'` を保つ）。純レイアウト目的は コンポーネント、セマンティック要素は関数で `className`、と
+> 使い分ける。確定仕様は `05_STYLING.md` 10 章、実装は `packages/cirrojs/src/layout.tsx`、適用例は
+> `examples/blog/src/styles/layout.tsx`。収集方式（A/B/C）の結論は引き続き未確定で、本書はそのまま台帳として残す。
 
 関連: `05_STYLING.md`（現行のスタイリング仕様）、`03_ISLAND_SYSTEM.md`（島システム）。
 
@@ -314,7 +317,7 @@ dev の `<style>` 注入は許容範囲。
 
 実装ではこの規律を `createLayout`（`cirrojs/layout`）に落とし込んでいる。各プリミティブは単一の軸だけを
 担い、値は単位付き文字列で受け、既定値は `defaults` で上書きできる（下は実装の要旨。詳細は
-`05_STYLING.md` 10 章 / `packages/cirrojs/src/layout.ts`）。
+`05_STYLING.md` 10 章 / `packages/cirrojs/src/layout.tsx`）。
 
 ```ts
 // createLayout 内（css は既定で genCssFn({ layer: "low" })、d はマージ済み既定値）
