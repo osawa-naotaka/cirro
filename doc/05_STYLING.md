@@ -516,7 +516,7 @@ import { stack, cluster, center } from "../styles/layout";
 <ul className={cx(stack({ gap: space(4) }), cssMain({ list_style: "none", padding: "0" }))}>…</ul>
 ```
 
-実装は `packages/cirrojs/src/layout.ts`、適用例は `examples/blog/src/styles/layout.ts` と各
+実装は `packages/cirrojs/src/layout.tsx`、適用例は `examples/blog/src/styles/layout.ts` と各
 コンポーネント（`PostList` / `PostMeta` / `Layout` など）を参照。
 
 ### 10.5 生成 CSS 例
@@ -531,6 +531,36 @@ center({ gutters: "1rem" });
 @layer low { .cirro-xxxxxx { display: flex; flex-direction: column; gap: 2rem; } }
 @layer low { .cirro-yyyyyy { box-sizing: border-box; margin-inline: auto; max-inline-size: 60ch; } }
 @layer low { .cirro-zzzzzz { padding-inline: 1rem; } }
+```
+
+### 10.6 コンポーネント版（単一クラス系）
+
+単一クラスを返すプリミティブ（`stack` / `cluster` / `center` / `grid` / `switcher` / `frame` / `reel` /
+`imposter` / `box`）には、**`<div>` を返す PascalCase のコンポーネント版**（`Stack` / `Cluster` / …）も
+用意している。**純レイアウト目的の場所**では、関数で `className` を当てるより意図が読みやすい。
+
+```tsx
+const { Stack, Cluster } = createLayout({ defaults: { gap: space(4) } });
+
+<Stack gap={space(6)}>
+    <Cluster justify="space-between">…</Cluster>
+</Stack>
+```
+
+- 各コンポーネントはレイアウト用 opts（`gap` 等）と要素属性を受け取り、opts を分離して残りを `<div>` へ
+  渡す。要素属性の型は `ElementOpt = Omit<ComponentPropsWithoutRef<"div">, "style">` で、`id` / `aria-*` /
+  `data-*` / イベントハンドラ等は通るが、**インライン `style` は型で禁止**している（`style-src 'self'` を
+  保つため）。`className` を渡すとレイアウトクラスへ合成される（`cx`）。
+- **セマンティック要素**（`ul` / `nav` / `section` / `article` …）には、コンポーネントではなく対応する
+  小文字の関数（`stack()` 等）で `className` を当てる。コンポーネント版は常に `<div>` を返すため。
+- スロットを返す `sidebar` / `cover` にはコンポーネント版を用意していない（どの子がスロットかを
+  コンポーネントで表すと複雑になるため。関数版で `root` / `side` / `content` 等を当てる）。
+
+クラス名の結合には `cx()`（falsy を除外して空白結合）も `cirrojs/layout` から公開している。
+
+```ts
+import { cx } from "cirrojs/layout";
+<ul className={cx(stack({ gap: space(4) }), cssMain({ list_style: "none", padding: "0" }))}>…</ul>
 ```
 
 ---
@@ -552,10 +582,12 @@ center({ gutters: "1rem" });
 
 | 名前 | 役割 |
 | --- | --- |
-| `createLayout(theme?)` | Every Layout プリミティブ（stack / cluster / center / grid / switcher / sidebar / cover / frame / reel / imposter / box）を既定値で束縛して返す（10 章） |
+| `createLayout(theme?)` | Every Layout プリミティブ（関数: stack / cluster / center / grid / switcher / sidebar / cover / frame / reel / imposter / box、コンポーネント: Stack / Cluster / Center / Grid / Switcher / Frame / Reel / Imposter / Box）を既定値で束縛して返す（10 章） |
+| `cx(...classes)` | falsy を除外してクラス名を空白結合する |
 | `LayoutTheme` 型 | `createLayout` の引数（`{ css?, defaults? }`） |
 | `LayoutDefaults` 型 | 各プリミティブの既定値 |
-| `Layout` 型 | `createLayout` の戻り（プリミティブ関数群） |
+| `Layout` 型 | `createLayout` の戻り（プリミティブ関数群＋コンポーネント群） |
+| `ElementOpt` 型 | コンポーネント版が受ける要素属性（`Omit<ComponentPropsWithoutRef<"div">, "style">`） |
 | `SidebarSlots` 型 | `sidebar` の戻り（`{ root, side, content }`） |
 | `CoverSlots` 型 | `cover` の戻り（`{ root, centered }`） |
 

@@ -1,7 +1,7 @@
 import { getAuthor } from "../lib/authors";
 import { formatDate } from "../lib/format";
 import type { Post } from "../lib/types";
-import { cluster, stack } from "../styles/layout";
+import { Cluster, Stack } from "../styles/layout";
 import { chip } from "../styles/recipes";
 import { color, cssMain, cx, fontSize, space } from "../styles/system";
 
@@ -12,8 +12,8 @@ export function PostMeta({ post, size = "small" }: { post: Post; size?: "small" 
     const labelClass = cssMain({ color: color.fgMuted, font_size: size === "medium" ? fontSize.sm : fontSize.xs });
 
     return (
-        <div className={stack({ gap: space(2) })}>
-            <div className={cluster({ gap: space(3) })}>
+        <Stack gap={space(2)}>
+            <Cluster gap={space(3)}>
                 <span className={labelClass}>
                     <a
                         href={`/authors/${author.id}`}
@@ -27,17 +27,17 @@ export function PostMeta({ post, size = "small" }: { post: Post; size?: "small" 
                 </span>
                 <span className={labelClass}>・</span>
                 <time className={labelClass}>{formatDate(post.date)}</time>
-            </div>
+            </Cluster>
 
             {post.tags.length > 0 ? (
-                <div className={cluster({ gap: space(1.5) })}>
+                <Cluster gap={space(1.5)}>
                     {post.tags.map((tag) => (
                         <a key={tag} href={`/tags/${tag}`} className={chip()}>
                             {tag}
                         </a>
                     ))}
-                </div>
+                </Cluster>
             ) : null}
-        </div>
+        </Stack>
     );
 }
