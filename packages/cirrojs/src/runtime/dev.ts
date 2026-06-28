@@ -106,7 +106,7 @@ export async function runDev(port = 5173) {
                 if (err instanceof Error) {
                     res.end(err.stack);
                 } else {
-                    res.end(String(err));                    
+                    res.end(String(err));
                 }
             }
         });

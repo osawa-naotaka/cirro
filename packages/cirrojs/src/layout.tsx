@@ -192,38 +192,44 @@ export function createLayout(theme: LayoutTheme = {}): Layout {
 
     // Stack — 縦積み。flex column + gap で隣接間に等間隔の余白を入れる。
     function stack(opts?: StackOpt): string {
-        return css({ display: "flex", flex_direction: "column", gap: opts?.gap ?? d.stackGap ?? d.gap });
+        return css({ display: "flex", flex_direction: "column", gap: opts?.gap ?? d.stackGap ?? d.gap }, { name: "stack" });
     }
 
     // Cluster — 折り返す横並び。要素間は gap が所有する。
     function cluster(opts?: ClusterOpt): string {
-        return css({
-            display: "flex",
-            flex_wrap: opts?.wrap ?? d.clusterWrap ?? "wrap",
-            gap: opts?.gap ?? d.clusterGap ?? d.gap,
-            justify_content: opts?.justify ?? d.clusterJustify,
-            align_items: opts?.align ?? d.clusterAlign,
-        });
+        return css(
+            {
+                display: "flex",
+                flex_wrap: opts?.wrap ?? d.clusterWrap ?? "wrap",
+                gap: opts?.gap ?? d.clusterGap ?? d.gap,
+                justify_content: opts?.justify ?? d.clusterJustify,
+                align_items: opts?.align ?? d.clusterAlign,
+            },
+            { name: "cluster" },
+        );
     }
 
     // Center — 中央寄せ＋最大幅。intrinsic で中身も中央寄せ、andText で文字も中央寄せ。
     function center(opts?: CenterOpt): string {
         return cx(
-            css({ box_sizing: "border-box", margin_inline: "auto", max_inline_size: opts?.max ?? d.centerMax }),
-            opts?.gutters ? css({ padding_inline: opts.gutters }) : "",
-            opts?.intrinsic ? css({ display: "flex", flex_direction: "column", align_items: "center" }) : "",
-            opts?.andText ? css({ text_align: "center" }) : "",
+            css({ box_sizing: "border-box", margin_inline: "auto", max_inline_size: opts?.max ?? d.centerMax }, { name: "center" }),
+            opts?.gutters ? css({ padding_inline: opts.gutters }, { name: "center-gutters" }) : "",
+            opts?.intrinsic ? css({ display: "flex", flex_direction: "column", align_items: "center" }, { name: "center-intrinsic" }) : "",
+            opts?.andText ? css({ text_align: "center" }, { name: "center-andText" }) : "",
         );
     }
 
     // Grid — auto-fit による自動段組。トラック最小幅を下回ると段数が減る。メディアクエリ不要。
     function grid(opts?: GridOpt): string {
         const min = opts?.min ?? d.gridMin;
-        return css({
-            display: "grid",
-            gap: opts?.gap ?? d.gridGap ?? d.gap,
-            grid_template_columns: `repeat(auto-fit, minmax(min(${min}, 100%), 1fr))`,
-        });
+        return css(
+            {
+                display: "grid",
+                gap: opts?.gap ?? d.gridGap ?? d.gap,
+                grid_template_columns: `repeat(auto-fit, minmax(min(${min}, 100%), 1fr))`,
+            },
+            { name: "grid" },
+        );
     }
 
     // Switcher — 閾値で横並び↔縦積みを切り替える。flex-basis の calc により内在的にレスポンシブ。
@@ -232,10 +238,22 @@ export function createLayout(theme: LayoutTheme = {}): Layout {
         const threshold = opts?.threshold ?? d.switcherThreshold;
         const limit = opts?.limit ?? d.switcherLimit;
         return cx(
-            css({ display: "flex", flex_wrap: "wrap", gap: opts?.gap ?? d.switcherGap ?? d.gap }),
-            css({ flex_grow: "1", flex_basis: `calc((${threshold} - 100%) * 999)` }, { selector: "& > *" }),
-            css({ flex_basis: "100%" }, { selector: `& > :nth-last-child(n+${limit + 1})` }),
-            css({ flex_basis: "100%" }, { selector: `& > :nth-last-child(n+${limit + 1}) ~ *` }),
+            css({ display: "flex", flex_wrap: "wrap", gap: opts?.gap ?? d.switcherGap ?? d.gap }, { name: "switcher" }),
+            css({ flex_grow: "1", flex_basis: `calc((${threshold} - 100%) * 999)` }, { selector: "& > *", name: "switcher-item" }),
+            css(
+                { flex_basis: "100%" },
+                {
+                    selector: `& > :nth-last-child(n+${limit + 1})`,
+                    name: "switcher-item-last",
+                },
+            ),
+            css(
+                { flex_basis: "100%" },
+                {
+                    selector: `& > :nth-last-child(n+${limit + 1}) ~ *`,
+                    name: "switcher-item-last-child",
+                },
+            ),
         );
     }
 
@@ -243,13 +261,16 @@ export function createLayout(theme: LayoutTheme = {}): Layout {
     // 主従の指定は消費側がスロットを当てて行う（方式B）。左右は DOM の並び順で決まる。
     function sidebar(opts?: SidebarOpt): SidebarSlots {
         return {
-            root: css({ display: "flex", flex_wrap: "wrap", gap: opts?.gap ?? d.sidebarGap ?? d.gap }),
-            side: css({ flex_grow: "1", flex_basis: opts?.sideWidth ?? d.sidebarSideWidth ?? "auto" }),
-            content: css({
-                flex_grow: "999",
-                flex_basis: "0",
-                min_inline_size: opts?.contentMin ?? d.sidebarContentMin,
-            }),
+            root: css({ display: "flex", flex_wrap: "wrap", gap: opts?.gap ?? d.sidebarGap ?? d.gap }, { name: "sidebar" }),
+            side: css({ flex_grow: "1", flex_basis: opts?.sideWidth ?? d.sidebarSideWidth ?? "auto" }, { name: "sidebar-side" }),
+            content: css(
+                {
+                    flex_grow: "999",
+                    flex_basis: "0",
+                    min_inline_size: opts?.contentMin ?? d.sidebarContentMin,
+                },
+                { name: "sidebar-content" },
+            ),
         };
     }
 
@@ -258,19 +279,22 @@ export function createLayout(theme: LayoutTheme = {}): Layout {
     function cover(opts?: CoverOpt): CoverSlots {
         const gap = opts?.gap ?? d.gap;
         // 中央寄せ対象の子（自身の上下 auto マージンで中央に置く）。
-        const centered = css({ margin_block: "auto" });
+        const centered = css({ margin_block: "auto" }, { name: "cover-centered" });
         return {
             root: cx(
-                css({
-                    display: "flex",
-                    flex_direction: "column",
-                    min_block_size: opts?.minHeight ?? d.coverMinHeight,
-                    padding: opts?.padding ?? gap,
-                }),
+                css(
+                    {
+                        display: "flex",
+                        flex_direction: "column",
+                        min_block_size: opts?.minHeight ?? d.coverMinHeight,
+                        padding: opts?.padding ?? gap,
+                    },
+                    { name: "cover" },
+                ),
                 // centered 以外の子に縦の余白を入れる（centered には触れない）。
-                css({ margin_block: gap }, { selector: `& > :not(.${centered})` }),
-                css({ margin_block_start: "0" }, { selector: `& > :first-child:not(.${centered})` }),
-                css({ margin_block_end: "0" }, { selector: `& > :last-child:not(.${centered})` }),
+                css({ margin_block: gap }, { selector: `& > :not(.${centered})`, name: "cover-gap" }),
+                css({ margin_block_start: "0" }, { selector: `& > :first-child:not(.${centered})`, name: "cover-gap-first" }),
+                css({ margin_block_end: "0" }, { selector: `& > :last-child:not(.${centered})`, name: "cover-gap-last" }),
             ),
             centered,
         };
@@ -279,29 +303,35 @@ export function createLayout(theme: LayoutTheme = {}): Layout {
     // Frame — アスペクト比を固定し、中身（img/video）を切り抜いて全面に敷く。
     function frame(opts?: FrameOpt): string {
         return cx(
-            css({
-                aspect_ratio: opts?.ratio ?? d.frameRatio,
-                overflow: "hidden",
-                display: "flex",
-                justify_content: "center",
-                align_items: "center",
-            }),
-            css({ inline_size: "100%", block_size: "100%", object_fit: "cover" }, { selector: "& > img, & > video" }),
+            css(
+                {
+                    aspect_ratio: opts?.ratio ?? d.frameRatio,
+                    overflow: "hidden",
+                    display: "flex",
+                    justify_content: "center",
+                    align_items: "center",
+                },
+                { name: "frame" },
+            ),
+            css({ inline_size: "100%", block_size: "100%", object_fit: "cover" }, { selector: "& > img, & > video", name: "frame-img" }),
         );
     }
 
     // Reel — 横スクロールの帯。子は縮まず（flex 0 0）横に並び、はみ出した分はスクロールする。
     function reel(opts?: ReelOpt): string {
         return cx(
-            css({
-                display: "flex",
-                block_size: opts?.height ?? "auto",
-                overflow_x: "auto",
-                overflow_y: "hidden",
-                gap: opts?.gap ?? d.gap,
-            }),
-            css({ flex: `0 0 ${opts?.itemWidth ?? "auto"}` }, { selector: "& > *" }),
-            css({ block_size: "100%", flex_basis: "auto", inline_size: "auto" }, { selector: "& > img" }),
+            css(
+                {
+                    display: "flex",
+                    block_size: opts?.height ?? "auto",
+                    overflow_x: "auto",
+                    overflow_y: "hidden",
+                    gap: opts?.gap ?? d.gap,
+                },
+                { name: "reel" },
+            ),
+            css({ flex: `0 0 ${opts?.itemWidth ?? "auto"}` }, { selector: "& > *", name: "reel-child" }),
+            css({ block_size: "100%", flex_basis: "auto", inline_size: "auto" }, { selector: "& > img", name: "reel-img" }),
         );
     }
 
@@ -310,18 +340,24 @@ export function createLayout(theme: LayoutTheme = {}): Layout {
     function imposter(opts?: ImposterOpt): string {
         const margin = opts?.margin ?? "0px";
         return cx(
-            css({
-                position: opts?.fixed ? "fixed" : "absolute",
-                inset_block_start: "50%",
-                inset_inline_start: "50%",
-                transform: "translate(-50%, -50%)",
-            }),
+            css(
+                {
+                    position: opts?.fixed ? "fixed" : "absolute",
+                    inset_block_start: "50%",
+                    inset_inline_start: "50%",
+                    transform: "translate(-50%, -50%)",
+                },
+                { name: "imposter" },
+            ),
             opts?.contain
-                ? css({
-                      overflow: "auto",
-                      max_inline_size: `calc(100% - (${margin} * 2))`,
-                      max_block_size: `calc(100% - (${margin} * 2))`,
-                  })
+                ? css(
+                      {
+                          overflow: "auto",
+                          max_inline_size: `calc(100% - (${margin} * 2))`,
+                          max_block_size: `calc(100% - (${margin} * 2))`,
+                      },
+                      { name: "imposter-contain" },
+                  )
                 : "",
         );
     }
@@ -329,7 +365,10 @@ export function createLayout(theme: LayoutTheme = {}): Layout {
     // Box — padding を持つ枠。border は既定で出さない（線なし・色なし）。指定する場合は
     // border ショートハンド（色を含む）を直接渡す。box-sizing: border-box でサイズを予測可能にする。
     function box(opts?: BoxOpt): string {
-        return cx(css({ box_sizing: "border-box", padding: opts?.padding ?? d.boxPadding ?? d.gap }), opts?.border ? css({ border: opts.border }) : "");
+        return cx(
+            css({ box_sizing: "border-box", padding: opts?.padding ?? d.boxPadding ?? d.gap }, { name: "box" }),
+            opts?.border ? css({ border: opts.border }, { name: "box-border" }) : "",
+        );
     }
 
     // ============================================================
