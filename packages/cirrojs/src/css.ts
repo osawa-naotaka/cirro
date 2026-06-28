@@ -1,9 +1,9 @@
-import type { Properties } from "./properties";
-import type { Registry } from "./registry.ts";
 // registerCss はランタイム値なので自己参照 import 経由で解決する。
 // これにより exports の browser 条件が効き、クライアントでは async_hooks 非依存の
 // no-op 実装（registry.browser.ts）に差し替わる。型は erase される import type で real から取得する。
 import { registerCss } from "cirrojs/registry";
+import type { Properties } from "./properties";
+import type { Registry } from "./registry.ts";
 
 export type CssOpt = {
     name?: string;
