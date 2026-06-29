@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [0.0.15] - 2026-06-29
+
 ### Added
 - New properties on the `Properties` type: `accent_color`, `background_position_x`, `background_position_y`, `box_reflect`, `hyphenate_character`, `initial_letter`, `marker`, `marker_end`, `marker_mid`, `marker_start`, `offset_position`, and `zoom`.
 - Exported helper types `Kw<T>` and `Multi<T>` used by the `Properties` value types.
@@ -125,7 +127,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## 0.0.1 - 2026-06-15
 - initial release
 
-[Unreleased]: https://github.com/osawa-naotaka/cirro/compare/v0.0.14...HEAD
+[Unreleased]: https://github.com/osawa-naotaka/cirro/compare/v0.0.15...HEAD
+[0.0.15]: https://github.com/osawa-naotaka/cirro/compare/v0.0.14...v0.0.15
 [0.0.14]: https://github.com/osawa-naotaka/cirro/compare/v0.0.13...v0.0.14
 [0.0.13]: https://github.com/osawa-naotaka/cirro/compare/v0.0.12...v0.0.13
 [0.0.12]: https://github.com/osawa-naotaka/cirro/compare/v0.0.11...v0.0.12
