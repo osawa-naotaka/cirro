@@ -78,6 +78,8 @@ export async function runDev(port = 5173) {
             } else {
                 candidate.add(`${pathname}.html`);
                 candidate.add(`${pathname}.htm`);
+                candidate.add(`${pathname}/index.html`);
+                candidate.add(`${pathname}/index.htm`);
                 candidate.add(pathname);
             }
 

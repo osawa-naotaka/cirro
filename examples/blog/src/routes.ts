@@ -1,4 +1,4 @@
-import { type AnyRoute } from "cirrojs";
+import { defineRoutes, type AnyRoute } from "cirrojs";
 import { authors } from "./lib/authors";
 import { allTags, posts } from "./lib/content";
 import { AboutPage } from "./pages/about";
@@ -19,7 +19,7 @@ export { runWithRegistry } from "cirrojs";
 // 動的ルートは getStaticPaths でビルド対象の URL を列挙する。
 // cssPath は CSS ファイルの URL（.css 終端）。動的ルートの全インスタンスで 1 つの CSS を共有し、
 // 同一プレフィックスの静的ルート（/blog, /tags が生成する index.css）とは衝突しない名前にする。
-export const routes: AnyRoute[] = [
+export default defineRoutes(
     { type: "static", path: "/index.html", cssPath: "/index.css", component: HomePage },
     { type: "static", path: "/about.html", cssPath: "/about.css", component: AboutPage },
     { type: "static", path: "/blog/index.html", cssPath: "/blog/index.css", component: BlogIndexPage },
@@ -50,4 +50,4 @@ export const routes: AnyRoute[] = [
         path: "/search-index.json",
         component: genearteSearchIndex,
     }
-];
+);
