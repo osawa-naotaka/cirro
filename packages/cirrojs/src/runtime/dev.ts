@@ -55,11 +55,11 @@ export async function runDev(port = 5173) {
             res.end(body);
         }
 
-        function errorResp(ext: string) {
+        function errorResp(ext: string, content: string) {
             res.statusCode = 404;
             res.setHeader("Content-Type", contentType(ext));
             if (ext === ".html") {
-                res.end('<!DOCTYPE html><meta charset="utf-8"><h1>404 Not Found</h1>');
+                res.end(errorHtml(content));
             } else {
                 res.end();
             }
@@ -69,20 +69,39 @@ export async function runDev(port = 5173) {
         vite.middlewares(req, res, async () => {
             const rawUrl = req.url ?? "/";
             const pathname = new URL(rawUrl, "http://localhost").pathname;
-            const normalized = pathname.replace(/\/+$/, "") || "/";
+            const candidate = new Set();
+            if (pathname.endsWith(".html") || pathname.endsWith(".htm")) {
+                candidate.add(pathname);
+            } else if (pathname.endsWith("/")) {
+                candidate.add(`${pathname}index.html`);
+                candidate.add(`${pathname}index.htm`);
+            } else {
+                candidate.add(`${pathname}.html`);
+                candidate.add(`${pathname}.htm`);
+                candidate.add(pathname);
+            }
+
             try {
                 // routes は Module Runner で最新を読む（HMR と整合）。
-                const { routes, runWithRegistry } = await runner.import(routesPath);
-                const pages = expandRoutes(routes);
-                const page = pages.find((p) => p.path === normalized);
+                const objs = await runner.import(routesPath);
+                if (typeof objs.runWithRegistry !== "function") {
+                    errorResp(".html", "you must export a `runWithRegistry` function");
+                    return;
+                }
+                if (!Array.isArray(objs.default)) {
+                    errorResp(".html", "you must define routes and export it as `default`");
+                    return;
+                }
+                const pages = expandRoutes(objs.default);
+                const page = pages.find((p) => candidate.has(p.path));
                 if (page === undefined) {
-                    errorResp(".html");
+                    errorResp(".html", `no route found for the requested path: ${pathname}`);
                     return;
                 }
 
                 switch (page.type) {
                     case "html": {
-                        const { result: html } = runWithRegistry(() => {
+                        const { result: html } = objs.runWithRegistry(() => {
                             const tree = appendClientScriptAndCss(page.render(), CLIENT_DEV_URL, page.cssPath);
                             return `<!DOCTYPE html>${renderToStaticMarkup(tree)}`;
                         });
@@ -91,7 +110,7 @@ export async function runDev(port = 5173) {
                         break;
                     }
                     case "css": {
-                        const { registry } = runWithRegistry(() => renderToStaticMarkup(page.render()));
+                        const { registry } = objs.runWithRegistry(() => renderToStaticMarkup(page.render()));
                         const css = stringifyCss(registry);
                         successResp(".css", css);
                         break;
@@ -106,10 +125,11 @@ export async function runDev(port = 5173) {
             } catch (err) {
                 // Module Runner はスタックトレースを自動補正するため ssrFixStacktrace は不要。
                 res.statusCode = 500;
+                res.setHeader("Content-Type", contentType(".html"));
                 if (err instanceof Error) {
-                    res.end(err.stack);
+                    res.end(errorHtml(err.stack ?? String(err)));
                 } else {
-                    res.end(String(err));
+                    res.end(errorHtml(String(err)));
                 }
             }
         });
@@ -138,4 +158,24 @@ export async function runDev(port = 5173) {
     httpServer.listen(port, () => {
         console.log(`cirro dev: http://localhost:${port}`);
     });
+}
+
+function errorHtml(message: string): string {
+    return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Error - cirro</title>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <style>
+        body {
+          font-family: sans-serif;
+          background-color: #f8f8f8;
+          color: #333;
+        }
+      </style>
+    </head>
+    <body><h1>Error</h1><pre>${message}</pre></body>
+    </html>`;
 }

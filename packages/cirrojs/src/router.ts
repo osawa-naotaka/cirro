@@ -1,4 +1,4 @@
-import { extname, join } from "node:path";
+import { extname } from "node:path";
 import type { AnyRoute, DynamicRoute, FileRoute, Params, ResolvedPath, StaticRoute } from "./route";
 
 // 動的ルートの型パラメータ P を保持するための型推論ヘルパー。
@@ -19,12 +19,12 @@ export function expandRoutes(routes: AnyRoute[]): ResolvedPath[] {
                 pages.push({
                     type: "html",
                     path: r.path,
-                    cssPath: join(r.path, "index.css"),
+                    cssPath: r.cssPath,
                     render: () => r.component({ params: {} }),
                 });
                 pages.push({
                     type: "css",
-                    path: join(r.path, "index.css"),
+                    path: r.cssPath,
                     render: () => r.component({ params: {} }),
                 });
                 break;
@@ -54,15 +54,4 @@ export function expandRoutes(routes: AnyRoute[]): ResolvedPath[] {
         }
     }
     return pages;
-}
-
-// クリーン URL → 出力ファイルパス（"/" は index.html、"/about" は about/index.html）。
-export function urlToFilePath(url: string): string {
-    if (url === "/") return "index.html";
-    return `${url.replace(/^\/+|\/+$/g, "")}/index.html`;
-}
-
-export function urlToCssFilePath(url: string): string {
-    if (url === "/") return "index.css";
-    return `${url.replace(/^\/+|\/+$/g, "")}`;
 }

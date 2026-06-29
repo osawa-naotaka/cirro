@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { createServerModuleRunner, createServer as createViteServer, build as viteBuild } from "vite";
 import { stringifyCss } from "../css.ts";
 import type { Registry } from "../registry.ts";
-import { expandRoutes, urlToCssFilePath, urlToFilePath } from "../router.ts";
+import { expandRoutes } from "../router.ts";
 import { appendClientScriptAndCss } from "./head.ts";
 import { getCirroOptions } from "./options.ts";
 
@@ -21,6 +21,7 @@ export async function runBuild() {
     const server = await createViteServer({ server: { middlewareMode: true, hmr: false }, appType: "custom" });
     const runner = createServerModuleRunner(server.environments.ssr);
     try {
+        const startTime = Date.now();
         const config = server.config;
         const options = getCirroOptions(config);
         const root = config.root;
@@ -38,7 +39,7 @@ export async function runBuild() {
                 case "css": {
                     const { registry } = runWithRegistry(() => renderToStaticMarkup(page.render())) as { registry: Registry };
                     const css = stringifyCss(registry);
-                    const filePath = join(outDir, urlToCssFilePath(page.path));
+                    const filePath = join(outDir, page.path);
                     await mkdir(dirname(filePath), { recursive: true });
                     await writeFile(filePath, css);
                     console.log(`wrote ${filePath} (url: ${page.path})`);
@@ -49,7 +50,7 @@ export async function runBuild() {
                         const tree = appendClientScriptAndCss(page.render(), scriptSrc, page.cssPath);
                         return `<!DOCTYPE html>${renderToStaticMarkup(tree)}`;
                     });
-                    const filePath = join(outDir, urlToFilePath(page.path));
+                    const filePath = join(outDir, page.path);
                     await mkdir(dirname(filePath), { recursive: true });
                     await writeFile(filePath, html);
                     console.log(`wrote ${filePath} (url: ${page.path})`);
@@ -65,6 +66,7 @@ export async function runBuild() {
                 }
             }
         }
+        console.log(`build completed in ${Date.now() - startTime}ms`);
     } finally {
         await server.close();
     }

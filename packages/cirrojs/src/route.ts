@@ -6,6 +6,7 @@ export type Params = Record<string, unknown>;
 export type StaticRoute = {
     type: "static";
     path: string;
+    cssPath: string;
     component: (props: { params: Record<string, never> }) => ReactElement;
 };
 
@@ -46,3 +47,7 @@ export type ResolvedPath =
           ext: string;
           render: () => string;
       };
+
+export function defineRoutes(...routes: AnyRoute[]): AnyRoute[] {
+    return routes;
+}
