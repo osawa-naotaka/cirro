@@ -38,6 +38,9 @@ function invalidateModuleAndImporters(vite: ViteDevServer, file: string): void {
 
 // `cirro dev`: Vite を middleware モードで起動し、SSR + ルーティング + HMR を提供する。
 export async function runDev(port = 5173) {
+    // dev / build の区別をページの SSR 描画へ伝える（runBuild と対。process.env.CIRRO_COMMAND を参照）。
+    process.env.CIRRO_COMMAND = "dev";
+
     const vite = await createViteServer({ server: { middlewareMode: true }, appType: "custom" });
     const runner = createServerModuleRunner(vite.environments.ssr);
     const options = getCirroOptions(vite.config);

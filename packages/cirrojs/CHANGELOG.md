@@ -13,6 +13,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [0.0.17] - 2026-06-29
+
+### Added
+- The CLI now sets the `CIRRO_COMMAND` environment variable during rendering: `"build"` under `cirro build` and `"dev"` under `cirro dev`. Pages can read `process.env.CIRRO_COMMAND` at render time to vary their output between development and build, for example to emit a `<meta http-equiv="Content-Security-Policy">` element only in build.
+
 ## [0.0.16] - 2026-06-29
 
 ### Changed
@@ -132,7 +137,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## 0.0.1 - 2026-06-15
 - initial release
 
-[Unreleased]: https://github.com/osawa-naotaka/cirro/compare/v0.0.16...HEAD
+[Unreleased]: https://github.com/osawa-naotaka/cirro/compare/v0.0.17...HEAD
+[0.0.17]: https://github.com/osawa-naotaka/cirro/compare/v0.0.16...v0.0.17
 [0.0.16]: https://github.com/osawa-naotaka/cirro/compare/v0.0.15...v0.0.16
 [0.0.15]: https://github.com/osawa-naotaka/cirro/compare/v0.0.14...v0.0.15
 [0.0.14]: https://github.com/osawa-naotaka/cirro/compare/v0.0.13...v0.0.14

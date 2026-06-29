@@ -528,6 +528,38 @@ Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'
 | `style-src 'self'` | 自前 CSS（`05_STYLING.md`）／Panda CSS（9 章）がビルド時に外部 CSS を生成。`<style>` も `style=""` も出さない |
 | `font-src 'self'` | システムフォントスタックを使い外部フォントを読まない（9 章） |
 
+### 10.1 CSP の meta 要素は利用者の任意（dev / build で出し分けできる）
+
+CSP は HTTP レスポンスヘッダで与えるのが本来の形だが、配信先（Cloudflare 等）でヘッダを付けられない
+場合などに備え、`<head>` へ `<meta http-equiv="Content-Security-Policy">` を出力する選択肢を**利用者の任意**
+として残している。Cirro は meta を自動挿入しない。
+
+dev サーバ（`cirro dev`）では、HMR クライアントなど開発時専用のインラインスクリプトが Vite から注入される
+ため、厳格な CSP を当てると開発が成立しない。そこで **`cirro build` のときだけ CSP meta を出力し、
+`cirro dev` では出力しない**という出し分けが必要になる。
+
+この判別には Cirro が CLI 側で立てる環境変数 **`process.env.CIRRO_COMMAND`** を使う（`cirro build` で
+`"build"`、`cirro dev` で `"dev"`）。ページの SSR 描画は dev / build どちらも serve モードの Vite サーバ経由
+のため `import.meta.env.PROD` では区別できない。`CIRRO_COMMAND` がこの区別の確実な発生源である。
+
+```tsx
+// src/components/Layout.tsx など、<head> を組み立てる箇所
+const CSP = "default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self'";
+
+<head>
+    <meta charSet="utf-8" />
+    {/* build 時のみ CSP meta を出力。dev では出力しない */}
+    {process.env.CIRRO_COMMAND === "build" ? (
+        <meta httpEquiv="Content-Security-Policy" content={CSP} />
+    ) : null}
+    <title>{title}</title>
+</head>
+```
+
+`process.env.CIRRO_COMMAND` は Node の SSR（ページの静的描画）で読む。`<head>` は静的部分なのでブラウザに
+送られず、島（クライアント）バンドルへこの分岐は含まれない。ヘッダで CSP を付けられる配信なら meta は
+不要なので、この出し分け自体を使わなくてもよい。
+
 ---
 
 ## 付録
