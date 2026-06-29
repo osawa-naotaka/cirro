@@ -13,6 +13,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [0.0.19] - 2026-06-29
+
+### Fixed
+- `cirro build` did not support the route definition format introduced in 0.0.18. It still expected a named `routes` export and failed on sites that export their routes as the default export. The build now reads routes from the module's default export and the `runWithRegistry` named export, reporting an error when either is missing.
+- The dev server now also resolves a request path to an `index.html` or `index.htm` file within the matching directory (for example `/posts` resolves to `/posts/index.html`), in addition to the existing `.html` and `.htm` resolution.
+
 ## [0.0.18] - 2026-06-29
 
 ### Added
@@ -147,7 +153,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## 0.0.1 - 2026-06-15
 - initial release
 
-[Unreleased]: https://github.com/osawa-naotaka/cirro/compare/v0.0.18...HEAD
+[Unreleased]: https://github.com/osawa-naotaka/cirro/compare/v0.0.19...HEAD
+[0.0.19]: https://github.com/osawa-naotaka/cirro/compare/v0.0.18...v0.0.19
 [0.0.18]: https://github.com/osawa-naotaka/cirro/compare/v0.0.17...v0.0.18
 [0.0.17]: https://github.com/osawa-naotaka/cirro/compare/v0.0.16...v0.0.17
 [0.0.16]: https://github.com/osawa-naotaka/cirro/compare/v0.0.15...v0.0.16
