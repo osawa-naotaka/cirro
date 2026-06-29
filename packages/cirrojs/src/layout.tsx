@@ -21,33 +21,33 @@ export interface LayoutDefaults {
     // 大本の gap。各プリミティブ個別の gap が未設定ならこれにフォールバックする。
     gap: string;
     // プリミティブ個別の gap。未設定なら gap を使う。
-    stackGap?: string;
-    clusterGap?: string;
+    stackGap?: Properties["gap"];
+    clusterGap?: Properties["gap"];
     clusterWrap?: Properties["flex_wrap"];
-    gridGap?: string;
-    switcherGap?: string;
-    sidebarGap?: string;
+    gridGap?: Properties["gap"];
+    switcherGap?: Properties["gap"];
+    sidebarGap?: Properties["gap"];
     // cluster の整列。
     clusterJustify: Properties["justify_content"];
     clusterAlign: Properties["align_items"];
     // center の最大インライン幅（測度。space スケール外）。
-    centerMax: string;
-    centerGutters?: string;
+    centerMax: Properties["max_inline_size"];
+    centerGutters?: Properties["padding_inline"];
     // grid の各トラックの最小幅（これを下回ると段数が減る）。
     gridMin: string;
     // switcher が縦積みへ切り替わる閾値幅、および横並びを許す最大要素数。
     switcherThreshold: string;
     switcherLimit: number;
     // sidebar の主（content）の最小インライン幅（これを下回ると折り返す）。
-    sidebarContentMin: string;
+    sidebarContentMin: Properties["min_inline_size"];
     // sidebar の従（sidebar）のインライン幅（この値で固定されます）。
-    sidebarSideWidth: string;
+    sidebarSideWidth: Properties["flex_basis"];
     // cover の最小ブロックサイズ（高さ）。
-    coverMinHeight: string;
+    coverMinHeight: Properties["min_block_size"];
     // frame のアスペクト比（"幅 / 高さ" の文字列）。
-    frameRatio: string;
+    frameRatio: Properties["aspect_ratio"];
     // box の既定 padding。未設定なら gap を使う。
-    boxPadding?: string;
+    boxPadding?: Properties["padding"];
 }
 
 const DEFAULTS: LayoutDefaults = {
@@ -87,65 +87,68 @@ export interface CoverSlots {
 }
 
 export interface StackOpt {
-    gap?: string;
+    gap?: Properties["gap"];
 }
 
 export interface ClusterOpt {
-    gap?: string;
+    gap?: Properties["gap"];
     wrap?: Properties["flex_wrap"];
     justify?: Properties["justify_content"];
     align?: Properties["align_items"];
 }
 
 export interface CenterOpt {
-    max?: string;
-    gutters?: string;
+    max?: Properties["max_inline_size"];
+    gutters?: Properties["padding_inline"];
     intrinsic?: boolean;
     andText?: boolean;
 }
 
 export interface GridOpt {
-    gap?: string;
+    gap?: Properties["gap"];
+    // grid トラックの最小幅。対応する CSS プロパティを持たない素の長さなので string のまま。
     min?: string;
 }
 
 export interface SwitcherOpt {
+    // 縦積みへ切り替わる閾値幅。対応する CSS プロパティを持たない素の長さなので string のまま。
     threshold?: string;
-    gap?: string;
+    gap?: Properties["gap"];
     limit?: number;
 }
 
 export interface SidebarOpt {
-    sideWidth?: string;
-    contentMin?: string;
-    gap?: string;
+    sideWidth?: Properties["flex_basis"];
+    contentMin?: Properties["min_inline_size"];
+    gap?: Properties["gap"];
 }
 
 export interface CoverOpt {
-    minHeight?: string;
-    gap?: string;
-    padding?: string;
+    minHeight?: Properties["min_block_size"];
+    gap?: Properties["gap"];
+    padding?: Properties["padding"];
 }
 
 export interface FrameOpt {
-    ratio?: string;
+    ratio?: Properties["aspect_ratio"];
 }
 
 export interface ReelOpt {
-    itemWidth?: string;
-    height?: string;
-    gap?: string;
+    itemWidth?: Properties["flex_basis"];
+    height?: Properties["block_size"];
+    gap?: Properties["gap"];
 }
 
 export interface ImposterOpt {
     fixed?: boolean;
     contain?: boolean;
+    // 中央配置の余白。calc 内で単一の長さとして使う素の長さなので string のまま。
     margin?: string;
 }
 
 export interface BoxOpt {
-    padding?: string;
-    border?: string;
+    padding?: Properties["padding"];
+    border?: Properties["border"];
 }
 
 // レイアウト用コンポーネント（Stack 等）が受け取る要素属性。div の標準属性をそのまま受けつつ、

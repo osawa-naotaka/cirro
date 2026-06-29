@@ -13,6 +13,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [0.0.16] - 2026-06-29
+
+### Changed
+- The layout option types (`StackOpt`, `ClusterOpt`, `CenterOpt`, `GridOpt`, `SwitcherOpt`, `SidebarOpt`, `CoverOpt`, `FrameOpt`, `ReelOpt`, `BoxOpt`) now type their CSS-derived fields with the matching `Properties` value types instead of `string`, enabling keyword autocompletion. Affected fields: `gap`, `CenterOpt.max`/`gutters`, `SidebarOpt.sideWidth`/`contentMin`, `CoverOpt.minHeight`/`padding`, `FrameOpt.ratio`, `ReelOpt.itemWidth`/`height`, and `BoxOpt.padding`/`border`. The `GridOpt.min`, `SwitcherOpt.threshold`, and `ImposterOpt.margin` fields remain `string` as they have no single corresponding CSS property.
+
 ## [0.0.15] - 2026-06-29
 
 ### Added
@@ -127,7 +132,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## 0.0.1 - 2026-06-15
 - initial release
 
-[Unreleased]: https://github.com/osawa-naotaka/cirro/compare/v0.0.15...HEAD
+[Unreleased]: https://github.com/osawa-naotaka/cirro/compare/v0.0.16...HEAD
+[0.0.16]: https://github.com/osawa-naotaka/cirro/compare/v0.0.15...v0.0.16
 [0.0.15]: https://github.com/osawa-naotaka/cirro/compare/v0.0.14...v0.0.15
 [0.0.14]: https://github.com/osawa-naotaka/cirro/compare/v0.0.13...v0.0.14
 [0.0.13]: https://github.com/osawa-naotaka/cirro/compare/v0.0.12...v0.0.13
