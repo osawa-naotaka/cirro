@@ -2,7 +2,7 @@
 // これにより exports の browser 条件が効き、クライアントでは async_hooks 非依存の
 // no-op 実装（registry.browser.ts）に差し替わる。型は erase される import type で real から取得する。
 import { registerCss } from "cirrojs/registry";
-import { property_names, type Properties } from "./properties.ts";
+import { type Properties, property_names } from "./properties.ts";
 import type { Registry } from "./registry.ts";
 
 export type CssOpt = {
@@ -66,7 +66,7 @@ export function validatePropertyName(name: string): boolean {
 function stringifyProperty(k: string, v: unknown): string {
     if (k.length > 128) throw new Error(`Property name "${k}" is too long(max 128 characters)`);
     if (!validatePropertyName(k)) throw new Error(`Property name "${k}" is not a valid CSS property name`);
-    
+
     if (Array.isArray(v)) {
         for (const item of v) {
             if (typeof item !== "string") throw new Error(`Property value "${item}" is not a string`);

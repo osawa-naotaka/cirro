@@ -20,27 +20,27 @@ export { runWithRegistry } from "cirrojs";
 // cssPath は CSS ファイルの URL（.css 終端）。動的ルートの全インスタンスで 1 つの CSS を共有し、
 // 同一プレフィックスの静的ルート（/blog, /tags が生成する index.css）とは衝突しない名前にする。
 export const routes: AnyRoute[] = [
-    { type: "static", path: "/", component: HomePage },
-    { type: "static", path: "/about", component: AboutPage },
-    { type: "static", path: "/blog", component: BlogIndexPage },
-    { type: "static", path: "/tags", component: TagIndexPage },
+    { type: "static", path: "/index.html", cssPath: "/index.css", component: HomePage },
+    { type: "static", path: "/about.html", cssPath: "/about.css", component: AboutPage },
+    { type: "static", path: "/blog/index.html", cssPath: "/blog/index.css", component: BlogIndexPage },
+    { type: "static", path: "/tags/index.html", cssPath: "/tags/index.css", component: TagIndexPage },
     {
         type: "dynamic",
-        path: ({ slug }) => `/blog/${slug}`,
+        path: ({ slug }) => `/blog/${slug}.html`,
         cssPath: "/blog/post.css",
         getStaticPaths: () => posts.map(({ slug }) => ({ slug })),
         component: PostPage,
     },
     {
         type: "dynamic",
-        path: ({ tag }) => `/tags/${tag}`,
+        path: ({ tag }) => `/tags/${tag}.html`,
         cssPath: "/tags/tag.css",
         getStaticPaths: () => allTags().map(({ tag }) => ({ tag })),
         component: TagPage,
     },
     {
         type: "dynamic",
-        path: ({ id }) => `/authors/${id}`,
+        path: ({ id }) => `/authors/${id}.html`,
         cssPath: "/authors/index.css",
         getStaticPaths: () => authors.map(({ id }) => ({ id })),
         component: AuthorPage,

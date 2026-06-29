@@ -3,6 +3,7 @@
         "outDir": "dist",
         "rootDir": "src",
         "declaration": true,
+        "noEmit": true,
         "allowImportingTsExtensions": true,
         "module": "ESNext",
         "moduleResolution": "bundler",

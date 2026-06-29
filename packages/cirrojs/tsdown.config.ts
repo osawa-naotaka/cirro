@@ -14,7 +14,7 @@ export default defineConfig({
     format: ["esm"],
     platform: "node",
     target: "esnext",
-    tsconfig: "tsconfig.build.json",
+    tsconfig: "tsconfig.json",
     dts: true,
     minify: true,
     clean: true,

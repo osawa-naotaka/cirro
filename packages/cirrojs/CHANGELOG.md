@@ -13,6 +13,16 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [0.0.18] - 2026-06-29
+
+### Added
+- `defineRoutes`, exported from the package entry point. It is an identity helper that returns its route arguments as an `AnyRoute[]`, used to define a site's routes for export.
+
+### Changed
+- A route's `path` is now the full output path (for example `/index.html`, `/about.html`, `/posts/hello.html`) instead of a clean URL. The build writes each page to that path verbatim, without appending `index.html`.
+- `StaticRoute` now requires a `cssPath` field naming the output path of its generated stylesheet, matching `DynamicRoute` and `FileRoute`.
+- Sites must export their routes as the default export (typically the result of `defineRoutes`) instead of a named `routes` export. The dev server reads the default export and reports an error when it is missing or is not an array.
+
 ## [0.0.17] - 2026-06-29
 
 ### Added
@@ -137,7 +147,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## 0.0.1 - 2026-06-15
 - initial release
 
-[Unreleased]: https://github.com/osawa-naotaka/cirro/compare/v0.0.17...HEAD
+[Unreleased]: https://github.com/osawa-naotaka/cirro/compare/v0.0.18...HEAD
+[0.0.18]: https://github.com/osawa-naotaka/cirro/compare/v0.0.17...v0.0.18
 [0.0.17]: https://github.com/osawa-naotaka/cirro/compare/v0.0.16...v0.0.17
 [0.0.16]: https://github.com/osawa-naotaka/cirro/compare/v0.0.15...v0.0.16
 [0.0.15]: https://github.com/osawa-naotaka/cirro/compare/v0.0.14...v0.0.15
