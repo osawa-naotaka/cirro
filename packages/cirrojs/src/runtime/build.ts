@@ -33,11 +33,14 @@ export async function runBuild() {
         if (!entry) throw new Error('cirro: manifest entry "virtual:cirro/client" not found');
         const scriptSrc = `/${entry.file}`;
 
-        const { routes, runWithRegistry } = await runner.import(routesPath);
-        for (const page of expandRoutes(routes)) {
+        const obj = await runner.import(routesPath);
+        if (typeof obj.runWithRegistry !== "function") throw new Error("cirro: you must export runWithRegistry.");
+        if (typeof obj.default !== "object") throw new Error("cirro: you must export routes.");
+        
+        for (const page of expandRoutes(obj.default)) {
             switch (page.type) {
                 case "css": {
-                    const { registry } = runWithRegistry(() => renderToStaticMarkup(page.render())) as { registry: Registry };
+                    const { registry } = obj.runWithRegistry(() => renderToStaticMarkup(page.render())) as { registry: Registry };
                     const css = stringifyCss(registry);
                     const filePath = join(outDir, page.path);
                     await mkdir(dirname(filePath), { recursive: true });
@@ -46,7 +49,7 @@ export async function runBuild() {
                     break;
                 }
                 case "html": {
-                    const { result: html } = runWithRegistry(() => {
+                    const { result: html } = obj.runWithRegistry(() => {
                         const tree = appendClientScriptAndCss(page.render(), scriptSrc, page.cssPath);
                         return `<!DOCTYPE html>${renderToStaticMarkup(tree)}`;
                     });
