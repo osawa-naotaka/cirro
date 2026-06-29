@@ -10,6 +10,10 @@ import { getCirroOptions } from "./options.ts";
 
 // `cirro build`: クライアントバンドルを作り、各ルートを静的 HTML として書き出す（node:fs のみ、bun 非依存）。
 export async function runBuild() {
+    // dev / build の区別をページの SSR 描画へ伝える。HTML 描画は dev / build どちらも serve モードの
+    // Vite サーバ経由のため import.meta.env では区別できない。CLI 側で process.env に明示する。
+    process.env.CIRRO_COMMAND = "build";
+
     // 1. クライアントバンドル + manifest（cirro プラグインが input/manifest/CSP 設定を注入）。
     await viteBuild();
 

@@ -36,6 +36,7 @@ export function Layout({ title, description, children, island = true }: LayoutPr
                 <meta name="viewport" content="width=device-width, initial-scale=1" />
                 <title>{title}</title>
                 {description ? <meta name="description" content={description} /> : null}
+                {process.env.CIRRO_COMMAND === "build" && <meta httpEquiv="Content-Security-Policy" content="default-src 'self';" /> }
             </head>
             <body>
                 <div className={cssMain({ display: "flex", flex_direction: "column", min_height: "100vh" })}>
