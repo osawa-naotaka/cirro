@@ -6,7 +6,7 @@ export function HomePage() {
     // reset css
     css({ margin: "0", padding: "0" }, { selector: "*", atrules: ["@layer base"] });
 
-    const cssPC = genCssFn({ mediaAtRule: "min-width: 800px" });
+    const cssPC = genCssFn({ atRules: ["@media (min-width: 800px)"] });
 
     const pageTitle = cssPC({ padding: "1rem", font_size: "2rem" });
 

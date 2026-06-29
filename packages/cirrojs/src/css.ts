@@ -2,7 +2,7 @@
 // これにより exports の browser 条件が効き、クライアントでは async_hooks 非依存の
 // no-op 実装（registry.browser.ts）に差し替わる。型は erase される import type で real から取得する。
 import { registerCss } from "cirrojs/registry";
-import type { Properties } from "./properties";
+import { property_names, type Properties } from "./properties.ts";
 import type { Registry } from "./registry.ts";
 
 export type CssOpt = {
@@ -43,14 +43,40 @@ export function stringifyCss(registry: Registry): string {
     let css = '@charset "utf-8";\n@layer base, font, low, main, high;\n';
     for (const [_keys, [selectors, properties]] of registry) {
         css += selectors.reduceRight(
-            (p, c) => `${c} { ${p} }`,
+            (p, c) => {
+                if (c.length > 512) throw new Error(`At rule or selector "${c}" is too long(max 512 characters)`);
+                return `${c} { ${p} }`;
+            },
             Object.entries(properties)
-                .map(([k, v]) => `${k.replaceAll("_", "-")}: ${v};`)
+                .map(([k, v]) => stringifyProperty(k, v))
                 .join(" "),
         );
         css += `\n`;
     }
     return css;
+}
+
+// CSS Property
+const allowed_property_names = /* @__PURE__*/ new Set<string>(property_names);
+
+export function validatePropertyName(name: string): boolean {
+    return name.startsWith("--") || allowed_property_names.has(name);
+}
+
+function stringifyProperty(k: string, v: unknown): string {
+    if (k.length > 128) throw new Error(`Property name "${k}" is too long(max 128 characters)`);
+    if (!validatePropertyName(k)) throw new Error(`Property name "${k}" is not a valid CSS property name`);
+    
+    if (Array.isArray(v)) {
+        for (const item of v) {
+            if (typeof item !== "string") throw new Error(`Property value "${item}" is not a string`);
+            if (item.length > 512) throw new Error(`Property value "${item}" is too long(max 512 characters)`);
+        }
+        return `${k.replaceAll("_", "-")}: ${v.join(" ")};`;
+    }
+    if (typeof v !== "string") throw new Error(`Property value "${v}" is not a string`);
+    if (v.length > 512) throw new Error(`Property value "${v}" is too long(max 512 characters)`);
+    return `${k.replaceAll("_", "-")}: ${v};`;
 }
 
 function cssWithSelector(selectors: string[], properties: Properties, designator: string): void {
