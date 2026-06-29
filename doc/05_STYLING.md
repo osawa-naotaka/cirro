@@ -36,7 +36,7 @@ export function HomePage() {
 ```
 
 - 戻り値は `cirro-<hash>` 形式のクラス名（例: `cirro-1a2b3c`）。
-- `<hash>` は **プロパティ部分（第 1 引数）の内容から決まる djb2 ハッシュ**。同じプロパティなら常に同じ
+- `<hash>` は **プロパティ部分（第 1 引数）とセレクタ、アットルールの内容から決まる djb2 ハッシュ**。同じプロパティ、セレクタ、アットルールなら常に同じ
   クラス名になるため、結果は決定的（deterministic）でビルドごとにブレない。
 - スタイルそのものは Cirro 内部の**レジストリ**に登録され、後段でルート用 CSS にまとめて書き出される
   （詳細は 7 章）。
@@ -132,14 +132,14 @@ css({ padding: "1rem" }, { atrules: ["@layer main", "@media (min-width: 800px)"]
 
 ```ts
 type GenCssFnOpt = {
-    mediaAtRule?: string; // @media のルール本体（括弧なし。例 "min-width: 800px"）
+    atRules?: string[];   // @layer以外のアットルール（例 ["@media (min-width: 800px)"]）
     layer?: string;       // @layer 名。省略するとどのレイヤーにも属さない
 };
 
 function genCssFn(opt: GenCssFnOpt): CssFnT;
 ```
 
-`layer` と `mediaAtRule` の指定有無に応じて `@layer` / `@media` のアットルールが組み立てられる。
+`layer` と `atRules` の指定有無に応じて `@layer` やその他のアットルールが組み立てられる。
 **どちらも省略すると、アットルール無し**（＝どのレイヤーにも属さない最優先のスタイル）になる点に注意する。
 通常のコンポーネントスタイルは `layer: "main"` を明示するのがよい（`examples/blog` の `cssMain` がこの形）。
 
@@ -147,7 +147,7 @@ function genCssFn(opt: GenCssFnOpt): CssFnT;
 import { genCssFn } from "cirrojs";
 
 // 「@layer main かつ PC幅（min-width: 800px）」用の css 関数
-const cssPC = genCssFn({ mediaAtRule: "min-width: 800px", layer: "main" });
+const cssPC = genCssFn({ aatRules: ["@media (min-width: 800px)"], layer: "main" });
 
 const pageTitle = cssPC({ padding: "1rem", font_size: "2rem" });
 // → @layer main { @media (min-width: 800px) { .cirro-xxx { padding: 1rem; font-size: 2rem; } } }
@@ -157,7 +157,7 @@ const pageTitle = cssPC({ padding: "1rem", font_size: "2rem" });
 渡せない）。`layer` を変えれば書き込み先レイヤーを切り替えられる。
 
 ```tsx
-const cssMobileHigh = genCssFn({ mediaAtRule: "max-width: 480px", layer: "high" });
+const cssMobileHigh = genCssFn({ atRules: ["@media (max-width: 480px)"], layer: "high" });
 ```
 
 ---
@@ -385,11 +385,6 @@ const pageTitle = cssPC({ padding: "1rem", font_size: "2rem" });
 
 ## 9. 現状の制約と注意
 
-- **クラス名はプロパティのみから算出される**。`selector` や `atrules` はハッシュに含まれない。
-  したがって同じプロパティ集合は、セレクタ・メディアクエリが違っても同じクラス名になる。レイヤーと
-  メディアで正しくカスケードされるため通常は問題にならないが、クラス名は「スタイル内容の指紋」だと
-  理解しておくとよい。
-- **重複排除はしない**。まったく同じ `css()` を 2 回呼べば、CSS にも同じ規則が 2 回出る。
 - **`css()` は描画時に呼ぶ**。レジストリは `runWithRegistry()` が描画ごとに新しく割り当てる
   `AsyncLocalStorage` コンテキストに紐付くため、モジュールのトップレベルで `const x = css(...)` としても
   描画コンテキスト外となり例外になる。スタイル定義は必ずコンポーネント（または描画時に呼ばれる関数）の

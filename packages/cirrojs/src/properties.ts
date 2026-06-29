@@ -587,7 +587,7 @@ export type AnimationValueBase =
     | AnimationPlayStateValue
     | AnimationTimeline;
 
-export type AnimationValue = AnimationValueBase | AnimationValueBase[] | AnimationValueBase[][];
+export type AnimationValue = AnimationValueBase | AnimationValueBase[] | AnimationValueBase[];
 
 // Font関連の型
 export type FontStyleValue = "normal" | "italic" | "oblique" | string;
@@ -606,9 +606,9 @@ export type FontValue = string | string[] | string[];
 export type GridTemplateAreasValue = "none" | string | string[]; // 複数行のグリッド定義
 
 // Grid関連の複合プロパティのためのカンマと空白区切り型
-export type GridTemplateValue = string | string[] | string[][];
-export type GridTemplateColumnsValue = string | string[] | string[][] | "none";
-export type GridTemplateRowsValue = string | string[] | string[][] | "none";
+export type GridTemplateValue = string | string[];
+export type GridTemplateColumnsValue = string | string[] | "none";
+export type GridTemplateRowsValue = string | string[] | "none";
 
 // Transform関数の型
 export type TransformFunctionValue = string;
@@ -623,10 +623,7 @@ export type TransitionTimingFunctionValue = "ease" | "ease-in" | "ease-out" | "e
 export type TransitionDelayValue = string;
 
 // Transition複合型
-export type TransitionValue =
-    | string
-    | string[] // 空白区切りの値
-    | string[][]; // カンマと空白区切りの値
+export type TransitionValue = string | string[];
 
 // Main CSS Properties type
 export type Properties = Partial<{
@@ -636,37 +633,37 @@ export type Properties = Partial<{
     align_self: AlignSelfValue | PGlobal;
     alignment_baseline: AlignmentBaselineValue | PGlobal;
     all: PGlobal;
-    anchor_name: string | string[][];
+    anchor_name: string | string[];
     animation: AnimationValue | PAnimationGlobal;
     animation_composition: AnimationCompositionValue | AnimationCompositionValue[] | PAnimationGlobal;
-    animation_delay: string | string[][] | PAnimationGlobal;
-    animation_direction: AnimationDirectionValue | AnimationDirectionValue[][] | PAnimationGlobal;
-    animation_duration: string | string[][] | PAnimationGlobal;
-    animation_fill_mode: AnimationFillModeValue | AnimationFillModeValue[][] | PAnimationGlobal;
-    animation_iteration_count: AnimationIterationCountValue | AnimationIterationCountValue[][] | PAnimationGlobal;
-    animation_name: string | string[][] | PAnimationGlobal;
-    animation_play_state: AnimationPlayStateValue | AnimationPlayStateValue[][] | PAnimationGlobal;
-    animation_range: string | string[] | string[][] | PAnimationGlobal;
-    animation_range_end: string | string[] | string[][] | PAnimationGlobal;
-    animation_range_start: string | string[] | string[][] | PAnimationGlobal;
-    animation_timeline: string | string[][] | PAnimationGlobal;
-    animation_timing_function: AnimationTimingFunctionValue | AnimationTimingFunctionValue[][] | PAnimationGlobal;
+    animation_delay: string | string[] | PAnimationGlobal;
+    animation_direction: AnimationDirectionValue | AnimationDirectionValue[] | PAnimationGlobal;
+    animation_duration: string | string[] | PAnimationGlobal;
+    animation_fill_mode: AnimationFillModeValue | AnimationFillModeValue[] | PAnimationGlobal;
+    animation_iteration_count: AnimationIterationCountValue | AnimationIterationCountValue[] | PAnimationGlobal;
+    animation_name: string | string[] | PAnimationGlobal;
+    animation_play_state: AnimationPlayStateValue | AnimationPlayStateValue[] | PAnimationGlobal;
+    animation_range: string | string[] | string[] | PAnimationGlobal;
+    animation_range_end: string | string[] | string[] | PAnimationGlobal;
+    animation_range_start: string | string[] | string[] | PAnimationGlobal;
+    animation_timeline: string | string[] | PAnimationGlobal;
+    animation_timing_function: AnimationTimingFunctionValue | AnimationTimingFunctionValue[] | PAnimationGlobal;
     appearance: "none" | "auto" | PGlobal;
     aspect_ratio: "auto" | string | [string, "/", string];
 
     // B
     backdrop_filter: string | string[] | PGlobal;
     backface_visibility: "visible" | "hidden" | PGlobal;
-    background: string | string[] | string[][] | PGlobal;
-    background_attachment: "scroll" | "fixed" | "local" | string | string[] | string[][] | PGlobal;
-    background_blend_mode: string | string[] | string[][] | PGlobal;
-    background_clip: "border-box" | "padding-box" | "content-box" | "text" | string | string[] | string[][] | PGlobal;
+    background: string | string[] | string[] | PGlobal;
+    background_attachment: "scroll" | "fixed" | "local" | string | string[] | PGlobal;
+    background_blend_mode: string | string[] | PGlobal;
+    background_clip: "border-box" | "padding-box" | "content-box" | "text" | string | string[] | PGlobal;
     background_color: string | PColorGlobal;
-    background_image: string | string[] | string[][] | PGlobal;
-    background_origin: "border-box" | "padding-box" | "content-box" | string | string[] | string[][] | PGlobal;
-    background_position: BackgroundPositionValue | BackgroundPositionValue[] | BackgroundPositionValue[][] | PGlobal;
-    background_repeat: "repeat" | "repeat-x" | "repeat-y" | "no-repeat" | "space" | "round" | string | string[] | string[][] | PGlobal;
-    background_size: string | string[] | string[][] | PGlobal;
+    background_image: string | string[] | PGlobal;
+    background_origin: "border-box" | "padding-box" | "content-box" | string | string[]| PGlobal;
+    background_position: BackgroundPositionValue | BackgroundPositionValue[] | PGlobal;
+    background_repeat: "repeat" | "repeat-x" | "repeat-y" | "no-repeat" | "space" | "round" | string | string[] | PGlobal;
+    background_size: string | string[] | PGlobal;
     block_size: string | "auto" | PGlobal;
     border: BorderValue | BorderValue[] | PGlobal;
     border_block: string | PGlobal;
@@ -731,7 +728,7 @@ export type Properties = Partial<{
     border_width: string | string[] | PGlobal;
     bottom: string | "auto" | PGlobal;
     box_decoration_break: "slice" | "clone" | PGlobal;
-    box_shadow: string | string[] | string[][] | PGlobal;
+    box_shadow: string | string[] | PGlobal;
     box_sizing: "content-box" | "border-box" | PGlobal;
     break_after:
         | "auto"
@@ -816,8 +813,7 @@ export type Properties = Partial<{
     flex_wrap: FlexWrapValue | PGlobal;
     float: "left" | "right" | "none" | "inline-start" | "inline-end" | PGlobal;
     font: FontValue | PFontGlobal;
-    // その他のカンマ区切りと空白区切りの組み合わせが可能なプロパティ
-    font_family: string | string[] | string[][] | PFontGlobal;
+    font_family: string | string[] | PFontGlobal;
     font_feature_settings: string | string[] | "normal" | PFontGlobal;
     font_kerning: "auto" | "normal" | "none" | PFontGlobal;
     font_language_override: string | "normal" | PFontGlobal;
@@ -839,7 +835,7 @@ export type Properties = Partial<{
 
     // G
     gap: string | string[] | PGlobal;
-    grid: string | string[] | string[][] | PGlobal;
+    grid: string | string[] | PGlobal;
     grid_area: string | PGlobal;
     grid_auto_columns: string | string[] | PGlobal;
     grid_auto_flow: "row" | "column" | "dense" | string | string[] | PGlobal;
@@ -1099,21 +1095,6 @@ export type Properties = Partial<{
 
     // Z
     z_index: string | "auto" | PGlobal;
-
-    // // ベンダープレフィックスなしでウェブキット特有のプロパティ
-    // webkit_appearance: string | "none" | "auto" | PGlobal;
-    // webkit_font_smoothing: "auto" | "none" | "antialiased" | "subpixel-antialiased" | PGlobal;
-    // webkit_line_clamp: string | "none" | PGlobal;
-    // webkit_overflow_scrolling: "auto" | "touch" | PGlobal;
-    // webkit_tap_highlight_color: string | PGlobal;
-    // webkit_text_fill_color: string | PGlobal;
-    // webkit_text_stroke: string | string[] | PGlobal;
-    // webkit_text_stroke_color: string | PGlobal;
-    // webkit_text_stroke_width: string | PGlobal;
-
-    // // moz特有のプロパティ
-    // moz_appearance: string | "none" | "auto" | PGlobal;
-    // moz_osx_font_smoothing: "auto" | "grayscale" | PGlobal;
 
     // CSS変数
     [key: `--${string}`]: string;
