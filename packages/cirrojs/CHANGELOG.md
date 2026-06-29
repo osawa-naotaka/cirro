@@ -13,6 +13,22 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- New properties on the `Properties` type: `accent_color`, `background_position_x`, `background_position_y`, `box_reflect`, `hyphenate_character`, `initial_letter`, `marker`, `marker_end`, `marker_mid`, `marker_start`, `offset_position`, and `zoom`.
+- Exported helper types `Kw<T>` and `Multi<T>` used by the `Properties` value types.
+
+### Changed
+- `Properties` value types now preserve keyword autocompletion. Properties whose values mix keywords with open values (lengths, colors, etc.) keep their keyword suggestions instead of collapsing to `string`, and closed enumerations no longer accept arbitrary strings.
+- `PropertyName` now resolves to the union of valid property names (previously it resolved to the array's index keys).
+
+### Removed
+- Nested-array value types (`string[][]`) from `text_shadow`, `transform_origin`, `transition_delay`, `transition_duration`, `transition_property`, `transition_timing_function`, and `mask_position`. Property values accept a string or an array of strings only.
+- At-rule names (`@media`, `@layer`, `@keyframes`, etc.) from the property allowlist; at-rules are specified through the `atrules` option, not as property names.
+
+### Fixed
+- Properties declared on the `Properties` type but missing from the runtime property allowlist (including `appearance`, `contain`, `touch_action`, `will_change`, `transform_box`, the `mask_border_*` longhands, `font_optical_sizing`, and `text_rendering`) were rejected during CSS generation despite passing type checks. They are now registered.
+- Corrected the `hypenate_character` property name to `hyphenate_character`.
+
 ## [0.0.14] - 2026-06-28
 
 ### Added
