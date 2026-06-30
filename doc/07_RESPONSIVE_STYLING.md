@@ -5,9 +5,9 @@
 > 検討経緯は `06_STYLING_DIRECTION.md` に置く。本書は、それらの上で具体のサイト（`lulliecat.com`）を
 > 題材に「読みにくさの正体」を切り分け、対処方針とタスクへ落とし込んだものである。
 >
-> **結論は出している**が、本書時点で**コード修正は未実行**。修正は後日、第 8 章のタスクリストに沿って行う。
+> **結論は出している**。第 8 章のタスクリスト（T1〜T8）は **2026-06-30 に実装完了**。確定分は `05_STYLING.md` §5.1 へ昇格済み。
 >
-> 記録日: 2026-06-30
+> 記録日: 2026-06-30 / 実装完了: 2026-06-30
 
 関連: `05_STYLING.md`（現行スタイリング仕様）、`06_STYLING_DIRECTION.md`（収集方式・直交辞書の検討記録）、
 `03_ISLAND_SYSTEM.md`（島システム）。
@@ -243,34 +243,54 @@ export const hideOnPhone = () => cssPh({ display: "none" }); // = PC 専用
 
 > 後日、本リストに沿って実装する。各タスクは独立に近いが、T1 → T2 → (T3/T4) の順を推奨。
 
-- [ ] **T1: `responsive()` のシグネチャ確定と実装**
+- [x] **T1: `responsive()` のシグネチャ確定と実装**
   - `styles/system.ts` に `responsive({ base?, pc?, ph? })` を追加。
   - 内部は `cx(base && cssMain(base), pc && cssPc(pc), ph && cssPh(ph))`。空オブジェクト/未指定の扱いを決める。
   - 命名（`responsive` か `rcss` か）と、キー名（`base/pc/ph` か `base/pc/phone` か）を確定する。
-- [ ] **T2: 可視性ヘルパー `hideOnPc` / `hideOnPhone` を `styles/system.ts` に追加**
+- [x] **T2: 可視性ヘルパー `hideOnPc` / `hideOnPhone` を `styles/system.ts` に追加**
   - `SidePane` のローカル `hideOnPhone` を削除し、共有版に置換。
   - `PostPane` のインライン `cssPc({display:none})`（L30 / L36 相当）を `hideOnPc()` に置換。
-- [ ] **T3: `PostPane.tsx` の癒着分離**
+- [x] **T3: `PostPane.tsx` の癒着分離**
   - `tocClass = cx(focusableCard(cssPh), cssPc({display:none}))` を
     `cx(focusableCard(), hideOnPc())` へ（スタイルは `cssMain`、可視性は意図名）。
   - seriesCard の className も同様に `cx(focusableCard(), hideOnPc())` へ。
-- [ ] **T4: `SidePane.tsx` の癒着分離と threading 撤去**
+- [x] **T4: `SidePane.tsx` の癒着分離と threading 撤去**
   - `cssFn={cssPc}`（`FocusableCard` / `StackWithSeparator`）と `focusableCard(cssPh)` / `focusableCard(cssPc)` の
     threading を見直し、可視性は `hideOnPc`/`hideOnPhone`、スタイルは `cssMain` に寄せる。
   - `stickyBox`（PC だけ sticky）は responsive 用途として `responsive({ pc: {...} })` に畳む（または `cssPc` のまま残す）。
   - コンテナと中身でブレークポイントが混在している箇所（`cssPc` コンテナ内の `focusableCard(cssPh)`）を解消する。
-- [ ] **T5: `PageHeader` 系の小改善**
+- [x] **T5: `PageHeader` 系の小改善**
   - `NavDrawer` の `cssPc({display:none})` 2 重記述を 1 箇所へ集約。
   - `NavInline`/`NavDrawer`/`PageHeader` の `cssPc({display:none})` / `cssPh({display:none})` を
     `hideOnPhone()` / `hideOnPc()` に置換。
-- [ ] **T6: `order` / `grid-area` で代替できる二重化の洗い出し**
+- [x] **T6: `order` / `grid-area` で代替できる二重化の洗い出し**
   - 「順番を変えるだけ」で二重 DOM になっている箇所がないか全体を点検し、あれば 1 本 DOM + 並べ替えへ。
     （アクセシビリティ: 読み上げ順が変わる場合は二重 DOM のまま）
-- [ ] **T7: `cssFn` を受け取る recipe（`focusableCard` 等）の引数見直し**
+- [x] **T7: `cssFn` を受け取る recipe（`focusableCard` 等）の引数見直し**
   - 可視性駆動の呼び出しから `cssFn` 引数が不要になったら、デフォルトを `cssMain` にして引数を任意化、または廃止を検討。
-- [ ] **T8: ドキュメント反映**
+- [x] **T8: ドキュメント反映**
   - 方針が実装で固まったら、`05_STYLING.md` に `responsive()` / `hideOnPc` / `hideOnPhone` の節を追記し、本書の確定分を
     そちらへ昇格する。
+
+### 8.1 実装メモ（2026-06-30）
+
+実装で確定・判明した点。
+
+- **`responsive()` の確定 API**: 関数名 `responsive`、キー `base` / `pc` / `phone`。`styles/system.ts` に実装。
+  `hideOnPc()` / `hideOnPhone()` も同ファイルに 1 組だけ追加。
+- **T4（SidePane）の解釈**: SidePane は「カードらしさが PC/スマホで変わる」正当な responsive であって純粋な可視性ゲート
+  ではない（PC = 外枠 1 枚のカード、スマホ = 各子が個別カード）。そこで **threading は撤去しつつカードらしさは各所有者へ
+  寄せた**: `StackWithSeparator` の未使用 `cssFn`（no-op）を削除、`AuthorCard` への重複 `focusableCard(cssPh)` を削除
+  （AuthorCard は内部で自己適用済み）、`PostNavigation` はカードを自己所有化（`ShareCard` / `AuthorCard` と対称）。
+  外枠の PC カード（`FocusableCard cssFn={cssPc}`）と `stickyBox`（→ `responsive({pc})`）だけが残る正当な responsive。
+- **T6 の結論**: 二重 DOM はすべて点検した結果、`order` / `grid-area` で代替できる「純粋な並べ替え二重化」は**無かった**。
+  既存の二重 DOM は ①`NavInline`/`NavDrawer`（構造・インタラクションが別物）、②`toc`/`series`（本文カラムと
+  サイドカラムという別の親）、③著者（スマホ=`PostMeta` の `AuthorImage` / PC=`SidePane` の `AuthorCard`、別コンテンツ＋別親）
+  でいずれも正当。よって構造変更は行わず、生の `display:none` を意図名へ寄せるに留めた。
+- **T2/T5 の範囲外で見つかった可視性ゲートも意図名へ統一**: `PostMeta` の `cssPc({display:none})` → `hideOnPc()`、
+  `recipe.tsx` の Popover backdrop `cssPh({display:none})` → `hideOnPhone()`。
+- **検証**: `pnpm run typecheck` 通過。`pnpm run check`（biome）で残る 1 件は `islands/TocCard.tsx` の既存 a11y 警告で
+  本修正とは無関係（今回未着手）。
 
 ---
 

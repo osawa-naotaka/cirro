@@ -160,6 +160,52 @@ const pageTitle = cssPC({ padding: "1rem", font_size: "2rem" });
 const cssMobileHigh = genCssFn({ atRules: ["@media (max-width: 480px)"], layer: "high" });
 ```
 
+### 5.1 可視性ヘルパーと `responsive()`（サイト側の規約）
+
+`genCssFn()` で作った `cssMain` / `cssPc` / `cssPh`（`examples/blog`・`lulliecat.com` の `styles/system.ts`）を
+そのまま生で使うと、**「可視性ゲート」と「ブレークポイント別スタイル」という性質の違う 2 つの関心事が同じ
+`cssPc` / `cssPh` に混ざり**、読みにくくなる。サイト側では次の規約で 2 つを分離する（背景と検討経緯は
+`07_RESPONSIVE_STYLING.md`）。
+
+**(1) 可視性は意図名ヘルパーで表す。** `display:none` による表示/非表示は「how（`cssPc({display:none})`）」ではなく
+「what（PC で隠す / スマホで隠す）」で書く。`styles/system.ts` に **1 組だけ**置いて共有し、ローカル再定義はしない。
+
+```ts
+export const hideOnPc = (): string => cssPc({ display: "none" });    // = スマホ専用（PC で隠す）
+export const hideOnPhone = (): string => cssPh({ display: "none" }); // = PC 専用（スマホで隠す）
+```
+
+- 1 ノードに当てる可視性ヘルパーは 1 つだけにする。
+- **可視性を `display:none` で制御するノードの下のスタイルは、原則 `cssMain`（無条件）に戻す。**
+  `cssPc` / `cssPh` を「スタイルの置き場所のゲート」として使ったり、`cssFn={cssPc}` のようにブレークポイント関数を
+  props で配り歩く（viral threading）のをやめる。代償としてバイトはわずかに増えるが、決定的ハッシュ共有・
+  per-route のため誤差であり、可読性を優先する。
+
+**(2) `cssPc` / `cssPh`（= responsive）は「表示中の 1 要素の値がブレークポイントで変わる」場合だけに限定する。**
+例: PC だけ `position: sticky`、`&::before { content }` がクリック/タップで変わる、など。複数ブレークポイントの値分岐は
+`responsive()` で 1 ブロックに畳むと、同じ要素の宣言が 1 箇所に集まって読みやすい。
+
+```ts
+export interface ResponsiveProps {
+    base?: Properties; // cssMain（無条件）
+    pc?: Properties;   // cssPc（min-width: 900px）
+    phone?: Properties; // cssPh（max-width: 899px）
+}
+
+export function responsive({ base, pc, phone }: ResponsiveProps): string {
+    return cx(base && cssMain(base), pc && cssPc(pc), phone && cssPh(phone));
+}
+
+// 使用例: PC だけ sticky にする
+const stickyBox = responsive({
+    pc: { position: "sticky", top: "74px", max_height: "calc(100vh - 74px)", overflow_y: "auto" },
+});
+```
+
+- `responsive()` は「1 デザイン内の値分岐」専用。**構造分割（PC/スマホで別物のとき別コンポーネントへ割る）とは別レイヤー**で、
+  構造分割には使わない。構造もインタラクションも別物のときは、デザインごとに別コンポーネントへ割り、内部はメディアクエリ
+  フリー、切替はマウント地点の `hideOnPc()` / `hideOnPhone()` 1 行に保つ（`PageHeader` の `NavInline` / `NavDrawer` が例）。
+
 ---
 
 ## 6. レイヤー順序とリセット CSS
