@@ -13,6 +13,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [0.0.20] - 2026-06-30
+
+### Added
+- New `row_rule`, `row_rule_color`, `row_rule_style`, and `row_rule_width` properties on the `Properties` type, for the CSS rules drawn between flex and grid rows.
+
+### Changed
+- `BorderStyleValue` now allows arbitrary strings in addition to its keyword suggestions, matching the other border value types.
+
 ## [0.0.19] - 2026-06-29
 
 ### Fixed
@@ -153,7 +161,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## 0.0.1 - 2026-06-15
 - initial release
 
-[Unreleased]: https://github.com/osawa-naotaka/cirro/compare/v0.0.19...HEAD
+[Unreleased]: https://github.com/osawa-naotaka/cirro/compare/v0.0.20...HEAD
+[0.0.20]: https://github.com/osawa-naotaka/cirro/compare/v0.0.19...v0.0.20
 [0.0.19]: https://github.com/osawa-naotaka/cirro/compare/v0.0.18...v0.0.19
 [0.0.18]: https://github.com/osawa-naotaka/cirro/compare/v0.0.17...v0.0.18
 [0.0.17]: https://github.com/osawa-naotaka/cirro/compare/v0.0.16...v0.0.17
