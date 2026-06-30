@@ -313,6 +313,10 @@ export const property_names = [
     "right",
     "rotate",
     "row_gap",
+    "row_rule",
+    "row_rule_color",
+    "row_rule_style",
+    "row_rule_width",
     "scale",
     "scroll_behavior",
     "scroll_margin",
@@ -562,7 +566,7 @@ export type TextDecorationMultiValue = TextDecorationValue | TextDecorationValue
 export type TextTransformValue = "none" | "capitalize" | "uppercase" | "lowercase" | "full-width" | "full-size-kana";
 
 // Border style values
-export type BorderStyleValue = "none" | "hidden" | "dotted" | "dashed" | "solid" | "double" | "groove" | "ridge" | "inset" | "outset";
+export type BorderStyleValue = Kw<"none" | "hidden" | "dotted" | "dashed" | "solid" | "double" | "groove" | "ridge" | "inset" | "outset">;
 
 // Border幅値（長さも取るためキーワード補完を残しつつ任意文字列を許容）
 export type BorderWidthValue = Kw<"thin" | "medium" | "thick">;
@@ -1123,6 +1127,10 @@ export type Properties = Partial<{
     right: Kw<"auto"> | PGlobal;
     rotate: Kw<"none"> | string[] | PGlobal;
     row_gap: Kw<"normal"> | PGlobal;
+    row_rule: BorderValue | BorderValue[] | PGlobal;
+    row_rule_color: string | PGlobal;
+    row_rule_style: BorderStyleValue | PGlobal;
+    row_rule_width: BorderWidthValue | PGlobal;
 
     // S
     scale: Kw<"none"> | string[] | PGlobal;
