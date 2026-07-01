@@ -1,6 +1,6 @@
 {
     "name": "cirrojs",
-    "version": "0.0.20",
+    "version": "0.0.21",
     "description": "React islands SSG with strict CSP (no unsafe-inline). Vite-based, MPA-first.",
     "license": "MIT",
     "type": "module",
