@@ -13,6 +13,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [0.0.22] - 2026-07-01
+
+### Added
+- New properties on the `Properties` type: `container`, `container_name`, `container_type`, `field_sizing`, `font_palette`, `font_synthesis_small_caps`, `font_synthesis_style`, `font_synthesis_weight`, `forced_color_adjust`, `hyphenate_limit_chars`, `math_depth`, `math_shift`, `math_style`, `page`, `position_area`, `position_try`, `position_try_fallbacks`, `position_try_order`, `position_visibility`, `print_color_adjust`, `reading_flow`, `reading_order`, `ruby_align`, `ruby_position`, `scroll_timeline`, `scroll_timeline_axis`, `scroll_timeline_name`, `scrollbar_gutter`, `text_autospace`, `text_box`, `text_box_edge`, `text_box_trim`, `text_spacing_trim`, `text_wrap`, `text_wrap_mode`, `text_wrap_style`, `timeline_scope`, `transition_behavior`, `view_timeline`, `view_timeline_axis`, `view_timeline_inset`, `view_timeline_name`, `view_transition_class`, `view_transition_name`, `view_transition_scope`, and `white_space_collapse`.
+
+### Removed
+- SVG-only presentation properties from the `Properties` type: `alignment_baseline`, `marker`, `marker_end`, `marker_mid`, and `marker_start`. The `Properties` type now covers styling CSS only. The `AlignmentBaselineValue` type is no longer exported.
+
 ## [0.0.21] - 2026-07-01
 
 ### Added
@@ -166,7 +174,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## 0.0.1 - 2026-06-15
 - initial release
 
-[Unreleased]: https://github.com/osawa-naotaka/cirro/compare/v0.0.21...HEAD
+[Unreleased]: https://github.com/osawa-naotaka/cirro/compare/v0.0.22...HEAD
+[0.0.22]: https://github.com/osawa-naotaka/cirro/compare/v0.0.21...v0.0.22
 [0.0.21]: https://github.com/osawa-naotaka/cirro/compare/v0.0.20...v0.0.21
 [0.0.20]: https://github.com/osawa-naotaka/cirro/compare/v0.0.19...v0.0.20
 [0.0.19]: https://github.com/osawa-naotaka/cirro/compare/v0.0.18...v0.0.19

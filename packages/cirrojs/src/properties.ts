@@ -5,7 +5,6 @@ export const property_names = [
     "align_content",
     "align_items",
     "align_self",
-    "alignment_baseline",
     "all",
     "anchor_name",
     "animation",
@@ -131,6 +130,9 @@ export const property_names = [
     "contain_intrinsic_inline_size",
     "contain_intrinsic_size",
     "contain_intrinsic_width",
+    "container_name",
+    "container_type",
+    "container",
     "content",
     "content_visibility",
     "counter_increment",
@@ -140,6 +142,7 @@ export const property_names = [
     "direction",
     "display",
     "empty_cells",
+    "field_sizing",
     "filter",
     "flex",
     "flex_basis",
@@ -155,11 +158,15 @@ export const property_names = [
     "font_kerning",
     "font_language_override",
     "font_optical_sizing",
+    "font_palette",
     "font_size",
     "font_size_adjust",
     "font_stretch",
     "font_style",
     "font_synthesis",
+    "font_synthesis_small_caps",
+    "font_synthesis_style",
+    "font_synthesis_weight",
     "font_variant",
     "font_variant_alternates",
     "font_variant_caps",
@@ -169,6 +176,7 @@ export const property_names = [
     "font_variant_position",
     "font_variation_settings",
     "font_weight",
+    "forced_color_adjust",
     "gap",
     "grid",
     "grid_area",
@@ -191,6 +199,7 @@ export const property_names = [
     "hanging_punctuation",
     "height",
     "hyphenate_character",
+    "hyphenate_limit_chars",
     "hyphens",
     "image_orientation",
     "image_rendering",
@@ -227,10 +236,6 @@ export const property_names = [
     "margin_left",
     "margin_right",
     "margin_top",
-    "marker",
-    "marker_end",
-    "marker_mid",
-    "marker_start",
     "mask",
     "mask_border",
     "mask_border_mode",
@@ -248,6 +253,9 @@ export const property_names = [
     "mask_repeat",
     "mask_size",
     "mask_type",
+    "math_depth",
+    "math_shift",
+    "math_style",
     "max_block_size",
     "max_height",
     "max_inline_size",
@@ -297,6 +305,7 @@ export const property_names = [
     "padding_left",
     "padding_right",
     "padding_top",
+    "page",
     "page_break_after",
     "page_break_before",
     "page_break_inside",
@@ -308,7 +317,15 @@ export const property_names = [
     "place_self",
     "pointer_events",
     "position",
+    "position_area",
+    "position_try",
+    "position_try_fallbacks",
+    "position_try_order",
+    "position_visibility",
+    "print_color_adjust",
     "quotes",
+    "reading_flow",
+    "reading_order",
     "resize",
     "right",
     "rotate",
@@ -317,6 +334,8 @@ export const property_names = [
     "row_rule_color",
     "row_rule_style",
     "row_rule_width",
+    "ruby_align",
+    "ruby_position",
     "scale",
     "scroll_behavior",
     "scroll_margin",
@@ -344,7 +363,11 @@ export const property_names = [
     "scroll_snap_align",
     "scroll_snap_stop",
     "scroll_snap_type",
+    "scroll_timeline",
+    "scroll_timeline_axis",
+    "scroll_timeline_name",
     "scrollbar_color",
+    "scrollbar_gutter",
     "scrollbar_width",
     "shape_image_threshold",
     "shape_margin",
@@ -353,6 +376,10 @@ export const property_names = [
     "table_layout",
     "text_align",
     "text_align_last",
+    "text_autospace",
+    "text_box",
+    "text_box_edge",
+    "text_box_trim",
     "text_combine_upright",
     "text_decoration",
     "text_decoration_color",
@@ -372,9 +399,14 @@ export const property_names = [
     "text_rendering",
     "text_shadow",
     "text_size_adjust",
+    "text_spacing_trim",
     "text_transform",
     "text_underline_offset",
     "text_underline_position",
+    "text_wrap",
+    "text_wrap_mode",
+    "text_wrap_style",
+    "timeline_scope",
     "top",
     "touch_action",
     "transform",
@@ -382,6 +414,7 @@ export const property_names = [
     "transform_origin",
     "transform_style",
     "transition",
+    "transition_behavior",
     "transition_delay",
     "transition_duration",
     "transition_property",
@@ -390,8 +423,16 @@ export const property_names = [
     "unicode_bidi",
     "user_select",
     "vertical_align",
+    "view_timeline",
+    "view_timeline_axis",
+    "view_timeline_inset",
+    "view_timeline_name",
+    "view_transition_class",
+    "view_transition_name",
+    "view_transition_scope",
     "visibility",
     "white_space",
+    "white_space_collapse",
     "widows",
     "width",
     "will_change",
@@ -535,8 +576,6 @@ export type AlignSelfValue =
     | AlignItemsSelfPosition
     | ["unsafe", AlignItemsSelfPosition]
     | ["safe", AlignItemsSelfPosition];
-
-export type AlignmentBaselineValue = "baseline" | "text-bottom" | "alphabetic" | "ideographic" | "middle" | "central" | "mathematical" | "text-top";
 
 // Text align values
 export type TextAlignValue = "left" | "right" | "center" | "justify" | "start" | "end";
@@ -704,7 +743,6 @@ export type Properties = Partial<{
     align_content: AlignContentKeyword | PGlobal;
     align_items: AlignItemsValue | PGlobal;
     align_self: AlignSelfValue | PGlobal;
-    alignment_baseline: AlignmentBaselineValue | PGlobal;
     all: PGlobal;
     anchor_name: Kw<"none"> | string[] | PGlobal;
     animation: AnimationValue | PAnimationGlobal;
@@ -864,6 +902,9 @@ export type Properties = Partial<{
     contain_intrinsic_inline_size: Kw<"none"> | string[] | PGlobal;
     contain_intrinsic_size: Kw<"none"> | string[] | PGlobal;
     contain_intrinsic_width: Kw<"none"> | string[] | PGlobal;
+    container: Kw<"none"> | string[] | PGlobal;
+    container_name: Kw<"none"> | string[] | PGlobal;
+    container_type: "normal" | "size" | "inline-size" | PGlobal;
     content: Kw<"normal" | "none"> | string[] | PGlobal;
     content_visibility: "visible" | "auto" | "hidden" | PGlobal;
     counter_increment: Kw<"none"> | string[] | PGlobal;
@@ -879,6 +920,7 @@ export type Properties = Partial<{
     empty_cells: "show" | "hide" | PGlobal;
 
     // F
+    field_sizing: "content" | "fixed" | PGlobal;
     filter: Kw<"none"> | string[] | PGlobal;
     flex: Kw<"auto" | "none" | "content"> | string[] | PGlobal;
     flex_basis: Kw<"auto" | "fill" | "max-content" | "min-content" | "fit-content" | "content"> | PGlobal;
@@ -894,6 +936,7 @@ export type Properties = Partial<{
     font_kerning: "auto" | "normal" | "none" | PFontGlobal;
     font_language_override: Kw<"normal"> | PFontGlobal;
     font_optical_sizing: "auto" | "none" | PFontGlobal;
+    font_palette: Kw<"normal" | "light" | "dark"> | PFontGlobal;
     font_size: FontSizeValue | PFontGlobal;
     font_size_adjust: Kw<"none" | "from-font"> | string[] | PFontGlobal;
     font_stretch:
@@ -911,6 +954,9 @@ export type Properties = Partial<{
         | PFontGlobal;
     font_style: FontStyleValue | PFontGlobal;
     font_synthesis: Multi<"none" | "weight" | "style" | "small-caps" | "position"> | PFontGlobal;
+    font_synthesis_small_caps: "auto" | "none" | PFontGlobal;
+    font_synthesis_style: "auto" | "none" | PFontGlobal;
+    font_synthesis_weight: "auto" | "none" | PFontGlobal;
     font_variant: Kw<"normal" | "none"> | string[] | PFontGlobal;
     font_variant_alternates: Kw<"normal"> | string[] | PFontGlobal;
     font_variant_caps: "normal" | "small-caps" | "all-small-caps" | "petite-caps" | "all-petite-caps" | "unicase" | "titling-caps" | PFontGlobal;
@@ -920,6 +966,7 @@ export type Properties = Partial<{
     font_variant_position: "normal" | "sub" | "super" | PFontGlobal;
     font_variation_settings: Kw<"normal"> | string[] | PFontGlobal;
     font_weight: FontWeightValue | PFontGlobal;
+    forced_color_adjust: "auto" | "none" | "preserve-parent-color" | PGlobal;
 
     // G
     gap: Kw<"normal"> | string[] | PGlobal;
@@ -946,6 +993,7 @@ export type Properties = Partial<{
     hanging_punctuation: Multi<"none" | "first" | "last" | "force-end" | "allow-end"> | PGlobal;
     height: Kw<"auto" | "max-content" | "min-content" | "fit-content"> | PGlobal;
     hyphenate_character: Kw<"auto"> | PGlobal;
+    hyphenate_limit_chars: Kw<"auto"> | string[] | PGlobal;
     hyphens: "none" | "manual" | "auto" | PGlobal;
 
     // I
@@ -1033,10 +1081,6 @@ export type Properties = Partial<{
     margin_left: Kw<"auto"> | PBoxModelGlobal;
     margin_right: Kw<"auto"> | PBoxModelGlobal;
     margin_top: Kw<"auto"> | PBoxModelGlobal;
-    marker: Kw<"none"> | PGlobal;
-    marker_end: Kw<"none"> | PGlobal;
-    marker_mid: Kw<"none"> | PGlobal;
-    marker_start: Kw<"none"> | PGlobal;
     mask: Kw<"none"> | string[] | PGlobal;
     mask_border: string | string[] | PGlobal;
     mask_border_mode: "luminance" | "alpha" | PGlobal;
@@ -1054,6 +1098,9 @@ export type Properties = Partial<{
     mask_repeat: Multi<"repeat" | "repeat-x" | "repeat-y" | "space" | "round" | "no-repeat"> | PGlobal;
     mask_size: Kw<"auto" | "cover" | "contain"> | string[] | PGlobal;
     mask_type: "luminance" | "alpha" | PGlobal;
+    math_depth: Kw<"auto-add"> | PGlobal;
+    math_shift: "normal" | "compact" | PGlobal;
+    math_style: "normal" | "compact" | PGlobal;
     max_block_size: Kw<"none" | "max-content" | "min-content" | "fit-content"> | PGlobal;
     max_height: Kw<"none" | "max-content" | "min-content" | "fit-content"> | PGlobal;
     max_inline_size: Kw<"none" | "max-content" | "min-content" | "fit-content"> | PGlobal;
@@ -1107,6 +1154,7 @@ export type Properties = Partial<{
     padding_left: string | PBoxModelGlobal;
     padding_right: string | PBoxModelGlobal;
     padding_top: string | PBoxModelGlobal;
+    page: Kw<"auto"> | PGlobal;
     page_break_after: "auto" | "always" | "avoid" | "left" | "right" | PGlobal;
     page_break_before: "auto" | "always" | "avoid" | "left" | "right" | PGlobal;
     page_break_inside: "auto" | "avoid" | PGlobal;
@@ -1118,11 +1166,19 @@ export type Properties = Partial<{
     place_self: string | string[] | PGlobal;
     pointer_events: "auto" | "none" | "visiblePainted" | "visibleFill" | "visibleStroke" | "visible" | "painted" | "fill" | "stroke" | "all" | PGlobal;
     position: PositionValue | PPositionGlobal;
+    position_area: Kw<"none"> | string[] | PPositionGlobal;
+    position_try: Kw<"none"> | string[] | PPositionGlobal;
+    position_try_fallbacks: Kw<"none"> | string[] | PPositionGlobal;
+    position_try_order: "normal" | "most-width" | "most-height" | "most-block-size" | "most-inline-size" | PPositionGlobal;
+    position_visibility: Multi<"always" | "anchors-valid" | "anchors-visible" | "no-overflow"> | PPositionGlobal;
+    print_color_adjust: "economy" | "exact" | PGlobal;
 
     // Q
     quotes: Kw<"none" | "auto"> | string[] | PGlobal;
 
     // R
+    reading_flow: "normal" | "source-order" | "flex-visual" | "flex-flow" | "grid-rows" | "grid-columns" | "grid-order" | PGlobal;
+    reading_order: string | PGlobal;
     resize: "none" | "both" | "horizontal" | "vertical" | "block" | "inline" | PGlobal;
     right: Kw<"auto"> | PGlobal;
     rotate: Kw<"none"> | string[] | PGlobal;
@@ -1131,6 +1187,8 @@ export type Properties = Partial<{
     row_rule_color: string | PGlobal;
     row_rule_style: BorderStyleValue | PGlobal;
     row_rule_width: BorderWidthValue | PGlobal;
+    ruby_align: "start" | "center" | "space-between" | "space-around" | PGlobal;
+    ruby_position: Multi<"over" | "under" | "alternate" | "inter-character"> | PGlobal;
 
     // S
     scale: Kw<"none"> | string[] | PGlobal;
@@ -1160,7 +1218,11 @@ export type Properties = Partial<{
     scroll_snap_align: Multi<"none" | "start" | "end" | "center"> | PGlobal;
     scroll_snap_stop: "normal" | "always" | PGlobal;
     scroll_snap_type: Multi<"none" | "x" | "y" | "block" | "inline" | "both" | "mandatory" | "proximity"> | PGlobal;
+    scroll_timeline: string | string[] | PGlobal;
+    scroll_timeline_axis: Multi<"block" | "inline" | "x" | "y"> | PGlobal;
+    scroll_timeline_name: Kw<"none"> | string[] | PGlobal;
     scrollbar_color: Kw<"auto"> | string[] | PGlobal;
+    scrollbar_gutter: "auto" | "stable" | ["stable", "both-edges"] | PGlobal;
     scrollbar_width: "auto" | "thin" | "none" | PGlobal;
     shape_image_threshold: string | PGlobal;
     shape_margin: string | PGlobal;
@@ -1169,6 +1231,10 @@ export type Properties = Partial<{
     table_layout: "auto" | "fixed" | PGlobal;
     text_align: TextAlignValue | PGlobal;
     text_align_last: TextAlignValue | "auto" | PGlobal;
+    text_autospace: Kw<"normal" | "no-autospace"> | string[] | PGlobal;
+    text_box: Kw<"normal"> | string[] | PGlobal;
+    text_box_edge: Kw<"auto"> | string[] | PGlobal;
+    text_box_trim: "none" | "trim-start" | "trim-end" | "trim-both" | PGlobal;
     text_combine_upright: Kw<"none" | "all" | "digits"> | string[] | PGlobal;
     text_decoration: TextDecorationMultiValue | PGlobal;
     text_decoration_color: string | PGlobal;
@@ -1188,9 +1254,14 @@ export type Properties = Partial<{
     text_rendering: "auto" | "optimizeSpeed" | "optimizeLegibility" | "geometricPrecision" | PGlobal;
     text_shadow: Kw<"none"> | string[] | PGlobal;
     text_size_adjust: Kw<"none" | "auto"> | PGlobal;
+    text_spacing_trim: "normal" | "space-all" | "space-first" | "trim-start" | PGlobal;
     text_transform: TextTransformValue | PGlobal;
     text_underline_offset: Kw<"auto"> | PGlobal;
     text_underline_position: Multi<"auto" | "from-font" | "under" | "left" | "right"> | PGlobal;
+    text_wrap: "wrap" | "nowrap" | "balance" | "stable" | "pretty" | PGlobal;
+    text_wrap_mode: "wrap" | "nowrap" | PGlobal;
+    text_wrap_style: "auto" | "balance" | "stable" | "pretty" | PGlobal;
+    timeline_scope: Kw<"none"> | string[] | PGlobal;
     top: Kw<"auto"> | PGlobal;
     touch_action: Multi<"auto" | "none" | "pan-x" | "pan-y" | "pan-left" | "pan-right" | "pan-up" | "pan-down" | "pinch-zoom" | "manipulation"> | PGlobal;
     transform: TransformValue | PGlobal;
@@ -1198,6 +1269,7 @@ export type Properties = Partial<{
     transform_origin: string | string[] | PGlobal;
     transform_style: "flat" | "preserve-3d" | PGlobal;
     transition: TransitionValue | PTransitionGlobal;
+    transition_behavior: Multi<"normal" | "allow-discrete"> | PTransitionGlobal;
     transition_delay: string | string[] | PTransitionGlobal;
     transition_duration: string | string[] | PTransitionGlobal;
     transition_property: TransitionPropertyValue | TransitionPropertyValue[] | PTransitionGlobal;
@@ -1210,10 +1282,18 @@ export type Properties = Partial<{
 
     // V
     vertical_align: Kw<"baseline" | "sub" | "super" | "text-top" | "text-bottom" | "middle" | "top" | "bottom"> | PGlobal;
+    view_timeline: string | string[] | PGlobal;
+    view_timeline_axis: Multi<"block" | "inline" | "x" | "y"> | PGlobal;
+    view_timeline_inset: Kw<"auto"> | string[] | PGlobal;
+    view_timeline_name: Kw<"none"> | string[] | PGlobal;
+    view_transition_class: Kw<"none"> | string[] | PGlobal;
+    view_transition_name: Kw<"none" | "match-element"> | PGlobal;
+    view_transition_scope: Kw<"none" | "all"> | PGlobal;
     visibility: "visible" | "hidden" | "collapse" | PGlobal;
 
     // W
     white_space: "normal" | "nowrap" | "pre" | "pre-wrap" | "pre-line" | "break-spaces" | PGlobal;
+    white_space_collapse: "collapse" | "preserve" | "preserve-breaks" | "preserve-spaces" | "break-spaces" | PGlobal;
     widows: string | PGlobal;
     width: Kw<"auto" | "max-content" | "min-content" | "fit-content"> | PGlobal;
     will_change: Kw<"auto" | "scroll-position" | "contents"> | string[] | PGlobal;
