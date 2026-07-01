@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- CSSプロパティを追加。
+
 ## [0.0.21] - 2026-07-01
 
 ### Added
