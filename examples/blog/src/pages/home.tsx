@@ -1,5 +1,6 @@
 import { Layout } from "../components/Layout";
 import { PostList } from "../components/PostList";
+import { Island } from "../islands/Island";
 import { allTags, posts } from "../lib/content";
 import { Cluster } from "../styles/layout";
 import { button, chip } from "../styles/recipes";
@@ -60,6 +61,19 @@ export function HomePage() {
                     </a>
                 ))}
             </Cluster>
+
+            <hr className={cssMain({ border: "0", border_top: `1px solid ${color.border}`, margin_top: space(10), margin_bottom: space(10) })} />
+
+            {/* 条件付きマウント + styleSample() のデモ（島）。パネルは開いて初めてマウントされるが、
+                styleSample() のおかげでパネルの CSS も初期 SSR 描画で収集される。 */}
+            <Island
+                name="disclosure"
+                props={{
+                    summary: "この折りたたみパネルはどう動いている？",
+                    detail:
+                        "このパネルは島（disclosure）で、開くまで DOM にマウントされません。マウントされない部分の css() は通常は収集されませんが、島の本体で styleSample() にサンプル要素を渡してあるため、このパネルのスタイルも初期 SSR 描画時に per-route CSS へ生成されています。",
+                }}
+            />
         </Layout>
     );
 }

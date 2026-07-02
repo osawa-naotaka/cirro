@@ -260,6 +260,8 @@ const css = stringifyCss(registry);
    集める。描画結果の HTML 文字列は破棄し、レジストリだけを使う場合もある（CSS ファイル生成時）。
    トップのページ関数を呼ぶだけでは `Layout` や各島など**ネストしたコンポーネントの関数が実行されず**、
    その `css()` が収集されない。そのため CSS 生成でも HTML 生成と同じく完全描画する。
+   また、描画中に `styleSample()`（7.3）が登録したサンプル要素は、`fn` の完了後に同じコンテキストで
+   順に描画され（出力 HTML は破棄）、その `css()` も同じレジストリへ収集される。
 3. `runWithRegistry()` が返した `registry` を `stringifyCss()` で CSS 文字列にする。
 4. そのルート専用の CSS ファイルとして書き出す（dev では `text/css` で配信）。
 
@@ -323,6 +325,27 @@ function Toggle() {
 
 #### 守るためのパターン
 
+- **遅延マウントされる部分は `styleSample()` でサンプルを登録する**。島の本体でサンプル要素を渡して
+  おくと、本描画の完了後にサーバー側でだけレンダリングされ（出力 HTML は破棄）、その**子孫コンポーネント
+  まで含めた** `css()` が収集される。クライアントでは no-op。ダミー props は実際のレンダリングを通るため、
+  スキーマ検証等も通る値にすること。利用例は `examples/blog` の `Disclosure` 島。
+
+  ```tsx
+  import { styleSample } from "cirrojs";
+
+  function Toggle() {
+      const [open, setOpen] = useState(false);
+      styleSample(<Panel />); // Panel とその子孫の css() を初期 SSR 描画で収集
+      return <div>{open && <Panel />}</div>;
+  }
+  ```
+
+  なお `Panel({ ... })` のような**コンポーネントの直接呼び出しは代わりにならない**。直接呼び出しは
+  関数本体しか実行せず、返り値の JSX 内の子コンポーネントは実行されない（`<Child/>` は要素オブジェクトを
+  作るだけで、関数を呼ぶのはレンダラーである）。属性式（`className={recipe()}` 等）だけが評価される
+  中途半端な収集になるうえ、呼び先にフックがあると呼び出し元の hook 列に混ざる。`styleSample()` は
+  独立したレンダリングルートとして描画するため、どちらの問題もない。
+
 - **全バリアントを無条件に評価し、`className` の差し替えで切り替える**。`examples/blog` の `ScrollTop`
   島がこの形（`base` / `shown` / `hidden` を本体で無条件に `css()` 済みにし、`visible ? shown : hidden` は
   登録済みクラスを選ぶだけ）。状態が変わっても未生成クラスは出ない。
@@ -339,9 +362,10 @@ function Toggle() {
 
 - **条件付きマウントより「CSS で表示/非表示」を優先**する。`{open && <Modal/>}` ではなく `<Modal/>` を
   常に描画し、`display:none` 用クラスと表示用クラス（両方を無条件に `css()` 済み）を切り替える。
-- どうしても遅延マウントが必要な子は、**親の本体で子のスタイル関数を先に呼ぶ**
-  （例: `const panelClass = panelStyles();` を無条件に実行してクラスを props で渡す）。トークン・レシピを
-  「関数」として用意しておく（`examples/blog` の `src/styles/`）と、この先行登録がやりやすい。
+- 子のスタイルが「関数」として切り出せている場合は、**親の本体で子のスタイル関数を先に呼ぶ**
+  （例: `const panelClass = panelStyles();` を無条件に実行してクラスを props で渡す）方法もある。
+  トークン・レシピを「関数」として用意しておく（`examples/blog` の `src/styles/`）と、この先行登録が
+  やりやすい。コンポーネントごと収集したい場合は `styleSample()` を使う。
 
 #### なぜ根本回避が難しいか
 
@@ -614,6 +638,7 @@ import { cx } from "cirrojs/layout";
 | --- | --- |
 | `css(properties, opt?)` | スタイルを登録しクラス名を返す |
 | `genCssFn(opt)` | アットルール（`{ atRules?, layer? }`）を固定した `css` 関数を生成する |
+| `styleSample(element)` | サンプル要素を登録する。本描画の完了後に描画され、遅延マウントされる部分の `css()` も収集される（7.3。クライアントでは no-op） |
 | `runWithRegistry(fn)` | `fn` を専用レジストリのコンテキストで実行し、戻り値とレジストリを返す（ランタイムが呼ぶ／`routes.ts` で再 export） |
 | `Properties` 型 | 指定可能なプロパティ名と値の型 |
 | `Registry` 型 | レジストリ（`Map<designator, [selectors, properties]>`）の型 |

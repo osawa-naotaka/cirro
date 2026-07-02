@@ -36,7 +36,7 @@ export async function runBuild() {
         const obj = await runner.import(routesPath);
         if (typeof obj.runWithRegistry !== "function") throw new Error("cirro: you must export runWithRegistry.");
         if (typeof obj.default !== "object") throw new Error("cirro: you must export routes.");
-        
+
         for (const page of expandRoutes(obj.default)) {
             switch (page.type) {
                 case "css": {
