@@ -13,6 +13,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [0.0.23] - 2026-07-02
+
+### Added
+- `styleSample(element)`, exported from the package entry point. It registers a sample element during server rendering. `runWithRegistry` renders the queued samples after the main render pass and discards the HTML, so `css()` calls in components that are not part of the initial SSR output (such as conditionally mounted children of islands) are still collected into the route CSS, including descendant components. On the client it is a no-op. Rendering is deferred until after the main pass because a nested `renderToStaticMarkup` inside a component body resets the hook state of react-dom/server and breaks hooks called after it.
+
 ## [0.0.22] - 2026-07-01
 
 ### Added
@@ -174,7 +179,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## 0.0.1 - 2026-06-15
 - initial release
 
-[Unreleased]: https://github.com/osawa-naotaka/cirro/compare/v0.0.22...HEAD
+[Unreleased]: https://github.com/osawa-naotaka/cirro/compare/v0.0.23...HEAD
+[0.0.23]: https://github.com/osawa-naotaka/cirro/compare/v0.0.22...v0.0.23
 [0.0.22]: https://github.com/osawa-naotaka/cirro/compare/v0.0.21...v0.0.22
 [0.0.21]: https://github.com/osawa-naotaka/cirro/compare/v0.0.20...v0.0.21
 [0.0.20]: https://github.com/osawa-naotaka/cirro/compare/v0.0.19...v0.0.20

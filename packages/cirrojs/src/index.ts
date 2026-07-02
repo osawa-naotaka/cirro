@@ -5,9 +5,10 @@
 // runWithRegistry はランタイム値。css.ts の registerCss と同一モジュールインスタンス（=同一 als）を
 // 共有させるため、こちらも自己参照 import 経由で解決する。SSR では real の registry.ts に解決される。
 export { runWithRegistry } from "cirrojs/registry";
-export type { CssOpt, CssFnT } from "./css.ts";
+export type { CssFnT, CssOpt } from "./css.ts";
 export { css, genCssFn } from "./css.ts";
 export type { Properties } from "./properties.ts";
 export type { Registry } from "./registry.ts";
 export type { AnyRoute, DynamicRoute, FileRoute, Params, StaticRoute } from "./route.ts";
 export { defineRoutes } from "./route.ts";
+export { styleSample } from "./styleSample.ts";
