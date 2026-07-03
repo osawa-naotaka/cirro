@@ -25,7 +25,7 @@ export function PostPage({ params }: { params: { slug: string } }) {
     const author = getAuthor(post.author);
     const crumbLink = cx(
         cssMain({ color: color.fgMuted, text_decoration: "none" }),
-        cssMain({ text_decoration: "underline" }, { selector: "&:hover" }),
+        cssMain({ text_decoration: "underline" }, { selector: "$:hover" }),
     );
     // 本文（renderMarkdown が返すサニタイズ済み HTML）のコンテナクラスを生成する。
     const article = articleClass();
@@ -84,7 +84,7 @@ export function PostPage({ params }: { params: { slug: string } }) {
                                 href={`/authors/${author.id}`}
                                 className={cx(
                                     cssMain({ color: "inherit", text_decoration: "none" }),
-                                    cssMain({ text_decoration: "underline" }, { selector: "&:hover" }),
+                                    cssMain({ text_decoration: "underline" }, { selector: "$:hover" }),
                                 )}
                             >
                                 {author.name}

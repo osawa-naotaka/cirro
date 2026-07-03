@@ -5,10 +5,11 @@ Cirro はこれまでスタイリングを Panda CSS（`04_USAGE.md` 9 章）に
 
 設計の要点は次の 2 つ。
 
-- **ランタイムにスタイルを注入しない**。`css()` は事前計算済みのクラス名を返すだけで、`<style>` も
-  `style=""` 属性も出さない。生成 CSS は外部ファイル（`<link rel="stylesheet">`）として配信される。
-  これにより Cirro の原則どおり **`style-src 'self'` まで満たす厳格 CSP** を維持できる。
-- **CSS はルート単位に 1 個生成する**。ページを SSR で描画する過程で呼ばれた `css()` を集め、
+- **ランタイムにスタイルを注入しない**。スタイル登録 API（`toStyle()` や `genCssFn()` が返す css 関数）は
+  事前計算済みのクラス名を返すだけで、`<style>` も `style=""` 属性も出さない。生成 CSS は外部ファイル
+  （`<link rel="stylesheet">`）として配信される。これにより Cirro の原則どおり
+  **`style-src 'self'` まで満たす厳格 CSP** を維持できる。
+- **CSS はルート単位に 1 個生成する**。ページを SSR で描画する過程で登録されたスタイルを集め、
   そのルート専用の CSS ファイルとして書き出す。
 
 > Panda CSS は引き続き「非組み込みの選択肢」として利用できるが（`04_USAGE.md` 9 章）、本書で説明する
@@ -20,38 +21,63 @@ Cirro はこれまでスタイリングを Panda CSS（`04_USAGE.md` 9 章）に
 
 ---
 
-## 1. 基本 — `css()`
+## 1. 基本 — ルールノードと `ss()` / `toStyle()`
 
-`css()` にスタイルを渡すと、そのスタイルに対応する**クラス名（designator）を文字列で返す**。
+API は「**ルールノード（CSS を表す小さな AST）を組み立てて登録する**」形をとる。ビルダーは 3 つ。
+
+- `ss(declarations, opt?, ...children)` — **スタイルルール**（セレクタ 1 個＋宣言ブロック＋任意のネストルール）を作る
+- `at(prelude, ...children)` — `@layer` / `@media` などの**ブロックアットルール**で子ルールを包む（4 章）
+- `atStatement(statement)` — `@layer a, b` のような**文アットルール**を作る（4 章）
+
+組み立てたノードを `toStyle()` に渡すと、レジストリへ登録され、**クラス名（designator）が文字列で返る**。
 返ったクラス名を `className` に渡すだけでよい。
 
 ```tsx
-import { css } from "cirrojs";
+import { ss, toStyle } from "cirrojs";
 
 export function HomePage() {
-    const title = css({ padding: "1rem", font_size: "2rem", color: "#222" });
+    const title = toStyle(ss({ padding: "1rem", font_size: "2rem", color: "#222" }));
 
     return <h1 className={title}>cirro プロトタイプ</h1>;
 }
 ```
 
 - 戻り値は `cirro-<hash>` 形式のクラス名（例: `cirro-1a2b3c`）。
-- `<hash>` は **プロパティ部分（第 1 引数）とセレクタ、アットルールの内容から決まる djb2 ハッシュ**。同じプロパティ、セレクタ、アットルールなら常に同じ
-  クラス名になるため、結果は決定的（deterministic）でビルドごとにブレない。
+- `<hash>` は**ルールノードのツリー全体から決まる djb2 ハッシュ**。同じ内容なら常に同じクラス名になるため、
+  結果は決定的（deterministic）でビルドごとにブレない。
 - スタイルそのものは Cirro 内部の**レジストリ**に登録され、後段でルート用 CSS にまとめて書き出される
   （詳細は 7 章）。
+- 毎回 `toStyle(ss(...))` と書くのは冗長なので、通常のコンポーネントスタイルは `genCssFn()`（5 章）で
+  生成した関数（`examples/blog` の `cssMain` 等）を使う。本書では以降、`genCssFn()` が返す関数を
+  **css 関数**と呼ぶ。
 
 シグネチャ:
 
 ```ts
-function css(properties: Properties, opt?: CssOpt): string;
+function ss(declarations: Properties, opt?: SsOpt, ...children: RuleNode[]): RuleNode;
 
-type CssOpt = {
+type SsOpt = {
+    selector?: string;  // セレクタ（既定 "$" = 自クラス参照。3 章）
+};
+
+function toStyle(node: RuleNode, opt?: ToStyleOpt): string; // クラス名を返す
+
+type ToStyleOpt = {
     name?: string;      // クラス名の接頭辞（既定 "cirro"）
-    atrules?: string[];   // @layer / @media などのアットルール（外側から内側の順）
-    selector?: string;  // セレクタ（既定 "&"）
 };
 ```
+
+ルールノードの型（レジストリが保持する AST そのもの。7.1）:
+
+```ts
+type RuleNode = StyleRule | AtBlockRule | AtStatementRule;
+
+type StyleRule = { type: "style"; selector: string; declarations: Declarations; children?: RuleNode[] };
+type AtBlockRule = { type: "at-block"; prelude: string; children: RuleNode[] };
+type AtStatementRule = { type: "at-statement"; statement: string };
+```
+
+ノードを手書きする必要はなく、常にビルダー（`ss` / `at` / `atStatement`）で作ればよい。
 
 ---
 
@@ -63,11 +89,11 @@ type CssOpt = {
 ハイフンへ変換される。
 
 ```tsx
-css({
+toStyle(ss({
     font_size: "1.25rem",     // → font-size
     background_color: "#fff",   // → background-color
     border_bottom_width: "2px", // → border-bottom-width
-});
+}));
 ```
 
 プロパティ名と取り得る値は `packages/cirrojs/src/properties.ts` の `Properties` 型で定義されており、
@@ -78,86 +104,115 @@ css({
 `--` で始まるキーはカスタムプロパティとしてそのまま出力される（アンダースコア変換の対象外）。
 
 ```tsx
-css({ "--brand": "#0a7", color: "var(--brand)" });
+toStyle(ss({ "--brand": "#0a7", color: "var(--brand)" }));
 ```
 
 ---
 
 ## 3. セレクタ — `selector`
 
-`selector` を省略すると既定値 `"&"` が使われる。`&` は**このスタイルが生成するクラス自身**に置き換わる。
-つまり `css({ ... })` は `.cirro-<hash> { ... }` を生成する。
+`ss()`（および css 関数）の `selector` を省略すると既定値 `"$"` が使われる。`$` は**このスタイルが生成する
+クラス自身**に置き換わる。つまり `toStyle(ss({ ... }))` は `.cirro-<hash> { ... }` を生成する。
 
-`&` を使って、生成クラスを基点にした子孫セレクタや擬似クラスを書ける。
+`$` を使って、生成クラスを基点にした子孫セレクタや擬似クラスを書ける。
 
 ```tsx
 // .cirro-xxx:hover { ... }
-const link = css({ color: "blue" }, { selector: "&:hover" });
+const link = toStyle(ss({ color: "blue" }, { selector: "$:hover" }));
 
 // .cirro-xxx h2 { ... }（Markdown 本文など、自分が要素を持たない箇所へ子孫指定する用途）
-const article = css({ margin_top: "2rem" }, { selector: "& h2" });
+const article = toStyle(ss({ margin_top: "2rem" }, { selector: "$ h2" }));
 ```
 
-`&` を含まないセレクタを渡すと、クラスに紐付かない**任意セレクタ**として出力される。リセット CSS の
+置換の細則:
+
+- `$` は先頭に限らず**任意の位置**に書ける。`.parent:has(> $)` のように「自分を子に持つ親要素」を
+  狙うセレクタも書ける。
+- `$` は `toStyle()` での登録時に**機械的に全置換**される。引用符内も対象になるため、属性値の文字列に
+  `$` を含むセレクタは当面書けない（将来セレクタパーサー導入時に緩和予定）。
+- 属性セレクタの後方一致 `[attr$="..."]` は使えない（`$` が機械置換されるとセレクタが壊れるため、
+  `$=` を含むセレクタは `toStyle()` の登録時にエラーになる）。
+- `&` は置換されない。`&` は**ネストルール（11 章）の親参照**としてブラウザに解釈させるトークンであり、
+  自クラス参照（`$`）とは別物である。入れ子でない（ネストルール以外の）セレクタに `&` を書くと
+  登録時エラーになる（トップレベルの `&` は `:scope` 扱いになり意図とズレるため）。
+
+`$` を含まないセレクタを渡すと、クラスに紐付かない**任意セレクタ**として出力される。リセット CSS の
 ように要素そのものへ当てたい場合に使う（この場合、戻り値のクラス名は使わない）。
 
 ```tsx
-// * { margin: 0; padding: 0; }
-css({ margin: "0", padding: "0" }, { selector: "*", atrules: ["@layer base"] });
+// @layer base { * { margin: 0; padding: 0; } }
+toStyle(at("@layer base", ss({ margin: "0", padding: "0" }, { selector: "*" })));
 ```
 
 ---
 
-## 4. アットルール — `atrules`
+## 4. アットルール — `at()` / `atStatement()`
 
-`atrules` には `@layer ...` や `@media (...)` などのアットルールを**外側から内側の順に**並べる。
-セレクタはこれらの内側に入れ子で出力される。
+`at()` は子ルールをブロックアットルールで包むノードを作る。**外側から内側へのネストは `at()` の入れ子**で
+表す。
 
 ```tsx
 // @media (min-width: 800px) { .cirro-xxx { padding: 1rem; } }
-css({ padding: "1rem" }, { atrules: ["@media (min-width: 800px)"] });
+toStyle(at("@media (min-width: 800px)", ss({ padding: "1rem" })));
 
 // @layer main { @media (min-width: 800px) { .cirro-xxx { ... } } }
-css({ padding: "1rem" }, { atrules: ["@layer main", "@media (min-width: 800px)"] });
+toStyle(at("@layer main", at("@media (min-width: 800px)", ss({ padding: "1rem" }))));
 ```
 
-`atrules` → `selector` → プロパティの順で内側に入れ子になる、と覚えればよい。
+アットルール名は `@layer` / `@media` に限らず、`@supports` / `@container` など**任意のブロック
+アットルール**を書ける。ただし CSS 書き出し時に検証があり、`@` + 識別子で始まらないもの、512 文字を
+超えるもの、`{` `}` `;` `/*` を含むもの（ブロック注入）はエラーになる（セレクタも同じ検証を受ける）。
+
+`atStatement()` はブロックを持たない**文アットルール**（例: `@layer a, b`）を作る。レジストリの
+トップレベル専用で、`toStyle(atStatement("@layer a, b"))` のように登録すると、生成 CSS の固定
+プリアンブル（6 章）の直後にまとめて出力される（末尾の `;` は出力時に付与。この場合の戻り値の
+クラス名は使わない）。ネストの内側に置くとエラーになる。
 
 ---
 
-## 5. メディアクエリ用ヘルパー — `genCssFn()`
+## 5. css 関数の生成 — `genCssFn()`
 
-決まったレイヤー・メディアクエリ向けの `css()` を毎回手書きするのは冗長なので、`genCssFn()` で
-**アットルールを固定した専用関数**を生成できる。引数はオプションオブジェクトで受け取る。
+決まったレイヤー・メディアクエリ向けの `toStyle(at(..., ss(...)))` を毎回手書きするのは冗長なので、
+`genCssFn()` で**アットルールを固定した専用関数（css 関数）**を生成できる。
 
 ```ts
-type GenCssFnOpt = {
-    atRules?: string[];   // @layer以外のアットルール（例 ["@media (min-width: 800px)"]）
-    layer?: string;       // @layer 名。省略するとどのレイヤーにも属さない
-};
+type InjectFn = (injected: () => RuleNode) => RuleNode;
 
-function genCssFn(opt: GenCssFnOpt): CssFnT;
+function genCssFn(inject: InjectFn): CssFn;
+
+type CssFn = (properties: Properties, opt?: CssFnOpt, ...children: RuleNode[]) => string;
+
+type CssFnOpt = {
+    name?: string;      // クラス名の接頭辞（既定 "cirro"）
+    selector?: string;  // セレクタ（既定 "$"）
+};
 ```
 
-`layer` と `atRules` の指定有無に応じて `@layer` やその他のアットルールが組み立てられる。
-**どちらも省略すると、アットルール無し**（＝どのレイヤーにも属さない最優先のスタイル）になる点に注意する。
-通常のコンポーネントスタイルは `layer: "main"` を明示するのがよい（`examples/blog` の `cssMain` がこの形）。
+`genCssFn()` には「**スタイルノードをどこに置くか**」を表すラッパー関数（`InjectFn`）を渡す。
+css 関数が呼ばれるたびに、引数から作ったスタイルノードが `injected()` として渡ってくるので、
+それを `at()` で包んで返せばよい。
 
 ```tsx
-import { genCssFn } from "cirrojs";
+import { at, genCssFn } from "cirrojs";
+
+// 「@layer main」用の css 関数
+const cssMain = genCssFn((inject) => at("@layer main", inject()));
 
 // 「@layer main かつ PC幅（min-width: 800px）」用の css 関数
-const cssPC = genCssFn({ atRules: ["@media (min-width: 800px)"], layer: "main" });
+const cssPC = genCssFn((inject) => at("@layer main", at("@media (min-width: 800px)", inject())));
 
 const pageTitle = cssPC({ padding: "1rem", font_size: "2rem" });
 // → @layer main { @media (min-width: 800px) { .cirro-xxx { padding: 1rem; font-size: 2rem; } } }
 ```
 
-`genCssFn` が返す関数は `properties` と `{ name?, selector? }` を受け取る（`atrules` は固定済みなので
-渡せない）。`layer` を変えれば書き込み先レイヤーを切り替えられる。
+- 恒等ラッパー（`genCssFn((inject) => inject())`）を渡すと**アットルール無し**（＝どのレイヤーにも
+  属さない最優先のスタイル）になる点に注意する。通常のコンポーネントスタイルは `@layer main` を
+  明示するのがよい（`examples/blog` の `cssMain` がこの形）。
+- css 関数は `properties` と `{ name?, selector? }` に加え、第 3 引数以降に**ネストルール**も
+  受け取れる（11 章）。
 
 ```tsx
-const cssMobileHigh = genCssFn({ atRules: ["@media (max-width: 480px)"], layer: "high" });
+const cssMobileHigh = genCssFn((inject) => at("@layer high", at("@media (max-width: 480px)", inject())));
 ```
 
 ### 5.1 可視性ヘルパーと `responsive()`（サイト側の規約）
@@ -182,7 +237,7 @@ export const hideOnPhone = (): string => cssPh({ display: "none" }); // = PC 専
   per-route のため誤差であり、可読性を優先する。
 
 **(2) `cssPc` / `cssPh`（= responsive）は「表示中の 1 要素の値がブレークポイントで変わる」場合だけに限定する。**
-例: PC だけ `position: sticky`、`&::before { content }` がクリック/タップで変わる、など。複数ブレークポイントの値分岐は
+例: PC だけ `position: sticky`、`$::before { content }` がクリック/タップで変わる、など。複数ブレークポイントの値分岐は
 `responsive()` で 1 ブロックに畳むと、同じ要素の宣言が 1 箇所に集まって読みやすい。
 
 ```ts
@@ -231,7 +286,7 @@ const stickyBox = responsive({
 
 ```tsx
 // reset css（base レイヤーへ）
-css({ margin: "0", padding: "0" }, { selector: "*", atrules: ["@layer base"] });
+toStyle(at("@layer base", ss({ margin: "0", padding: "0" }, { selector: "*" })));
 ```
 
 ---
@@ -240,34 +295,38 @@ css({ margin: "0", padding: "0" }, { selector: "*", atrules: ["@layer base"] });
 
 ### 7.1 仕組み
 
-`css()` は呼ばれるたびにスタイルを**レジストリ**（`registry.ts`）へ積む。レジストリは
+`toStyle()`（および css 関数）は呼ばれるたびにスタイルを**レジストリ**（`registry.ts`）へ積む。レジストリは
 `AsyncLocalStorage`（Node の `node:async_hooks`）で管理され、**レンダリング 1 回ごとに専用の
 レジストリが暗黙に引き継がれる**。モジュールグローバルな可変 Map を共有しないため、レンダリングが
-インターリーブしても別ルートの `css()` が混ざらない（順序依存・初期化忘れの不具合を構造的に排除する）。
+インターリーブしても別ルートのスタイル登録が混ざらない（順序依存・初期化忘れの不具合を構造的に排除する）。
 
 ランタイムは各ルートについて、`runWithRegistry()` で描画を包む（`runtime/dev.ts` / `runtime/build.ts`）。
 
 ```ts
 // runWithRegistry は fn を専用レジストリのコンテキストで実行し、
-// fn の戻り値（result）と、描画中に css() が登録したレジストリ（registry）を返す。
+// fn の戻り値（result）と、描画中に登録されたスタイル（registry）を返す。
 const { result, registry } = runWithRegistry(() => renderToStaticMarkup(page.render()));
 const css = stringifyCss(registry);
 ```
 
 1. `runWithRegistry(fn)` が新しい空のレジストリを割り当て、その `AsyncLocalStorage` コンテキスト内で
    `fn` を実行する。
-2. `fn` の中でページを `renderToStaticMarkup()` で**ツリー全体まで描画**し、その過程の `css()` 呼び出しを
+2. `fn` の中でページを `renderToStaticMarkup()` で**ツリー全体まで描画**し、その過程のスタイル登録を
    集める。描画結果の HTML 文字列は破棄し、レジストリだけを使う場合もある（CSS ファイル生成時）。
    トップのページ関数を呼ぶだけでは `Layout` や各島など**ネストしたコンポーネントの関数が実行されず**、
-   その `css()` が収集されない。そのため CSS 生成でも HTML 生成と同じく完全描画する。
+   そのスタイルが収集されない。そのため CSS 生成でも HTML 生成と同じく完全描画する。
    また、描画中に `styleSample()`（7.3）が登録したサンプル要素は、`fn` の完了後に同じコンテキストで
-   順に描画され（出力 HTML は破棄）、その `css()` も同じレジストリへ収集される。
+   順に描画され（出力 HTML は破棄）、そのスタイルも同じレジストリへ収集される。
 3. `runWithRegistry()` が返した `registry` を `stringifyCss()` で CSS 文字列にする。
 4. そのルート専用の CSS ファイルとして書き出す（dev では `text/css` で配信）。
 
-レジストリは `Map<designator, [selectors, properties]>` で、`css()` が `registerCss()` を通じて
-現在のコンテキストのレジストリへ書き込む。`css()` が描画コンテキスト外（`runWithRegistry` の外）で
-呼ばれた場合は例外を投げる。
+レジストリは `Map<string, RuleNode[]>`（キーは designator）で、値は生成 CSS を表す小さな AST
+（`RuleNode` = `StyleRule` | `AtBlockRule` | `AtStatementRule`。1 章）。`StyleRule` はネストルール
+（11 章）を `children` に保持し、ネイティブ CSS ネストとして出力される。`toStyle()` が
+`registerRules()` を通じて現在のコンテキストのレジストリへ書き込み、`stringifyCss()` が再帰的に
+文字列化する。キーは決定的ハッシュなので、同一スタイルの再登録は同一キーへの上書きになり、重複出力が
+自然に排除される。文アットルール（`AtStatementRule`）はプリアンブル直後にまとめて出力される（4 章）。
+`toStyle()` が描画コンテキスト外（`runWithRegistry` の外）で呼ばれた場合は例外を投げる。
 
 CSS の URL は `expandRoutes()`（`router.ts`）が決める。
 
@@ -278,8 +337,8 @@ CSS の URL は `expandRoutes()`（`router.ts`）が決める。
 ### 7.2 【必須】`routes.ts` で `runWithRegistry` を再 export する
 
 レジストリは `AsyncLocalStorage` のインスタンス（モジュールスコープの状態）に紐付く。ランタイムは
-**ルート定義モジュール（`routes.ts`）から import した `runWithRegistry`** で描画を包む。`css()` 側の
-`registerCss` と**同一モジュールインスタンス（＝同一の `AsyncLocalStorage`）**を共有させる必要があるため、
+**ルート定義モジュール（`routes.ts`）から import した `runWithRegistry`** で描画を包む。`toStyle()` 側の
+`registerRules` と**同一モジュールインスタンス（＝同一の `AsyncLocalStorage`）**を共有させる必要があるため、
 利用側の `routes.ts` で `runWithRegistry` を**再 export する必要がある**。
 
 ```ts
@@ -304,11 +363,12 @@ export const routes: AnyRoute[] = [
 
 ### 7.3 【重要】島（ハイドレーション）でのスタイル収集の制約
 
-CSS は **SSR 描画パスで実際に実行された `css()` だけ**を集めて生成する（7.1）。静的（非島）コンテンツは
+CSS は **SSR 描画パスで実際に実行されたスタイル登録だけ**を集めて生成する（7.1）。静的（非島）コンテンツは
 一度描画した結果がそのまま固定表示されるため、生成 CSS と表示は必ず一致する。問題になるのは
 **島（クライアントで再描画される箇所）**である。
 
-> **制約**: 島の中のすべての `css()` は、その島の**初期 SSR 描画で必ず実行される**こと。
+> **制約**: 島の中のすべてのスタイル登録（css 関数 / `toStyle()` の呼び出し）は、その島の
+> **初期 SSR 描画で必ず実行される**こと。
 
 破綻するのは次のパターン。クラス名（`cirro-<hash>`）は決定的なのでクライアント再描画時に DOM へ付くが、
 その状態が初期 SSR 描画で実行されないと、対応する `.cirro-<hash> { ... }` 規則が CSS に**生成されない**。
@@ -316,10 +376,10 @@ CSS は **SSR 描画パスで実際に実行された `css()` だけ**を集め�
 できず、無スタイルで表示される。
 
 ```tsx
-// ✗ 破綻例: 初期状態 open=false では <Panel> が描画されず、Panel 内の css() が一度も走らない
+// ✗ 破綻例: 初期状態 open=false では <Panel> が描画されず、Panel 内のスタイル登録が一度も走らない
 function Toggle() {
     const [open, setOpen] = useState(false);
-    return <div>{open && <Panel />}</div>; // Panel が内部で css() を呼ぶ → CSS 未生成
+    return <div>{open && <Panel />}</div>; // Panel が内部で css 関数を呼ぶ → CSS 未生成
 }
 ```
 
@@ -327,7 +387,7 @@ function Toggle() {
 
 - **遅延マウントされる部分は `styleSample()` でサンプルを登録する**。島の本体でサンプル要素を渡して
   おくと、本描画の完了後にサーバー側でだけレンダリングされ（出力 HTML は破棄）、その**子孫コンポーネント
-  まで含めた** `css()` が収集される。クライアントでは no-op。ダミー props は実際のレンダリングを通るため、
+  まで含めた**スタイルが収集される。クライアントでは no-op。ダミー props は実際のレンダリングを通るため、
   スキーマ検証等も通る値にすること。利用例は `examples/blog` の `Disclosure` 島。
 
   ```tsx
@@ -335,7 +395,7 @@ function Toggle() {
 
   function Toggle() {
       const [open, setOpen] = useState(false);
-      styleSample(<Panel />); // Panel とその子孫の css() を初期 SSR 描画で収集
+      styleSample(<Panel />); // Panel とその子孫のスタイルを初期 SSR 描画で収集
       return <div>{open && <Panel />}</div>;
   }
   ```
@@ -347,7 +407,7 @@ function Toggle() {
   独立したレンダリングルートとして描画するため、どちらの問題もない。
 
 - **全バリアントを無条件に評価し、`className` の差し替えで切り替える**。`examples/blog` の `ScrollTop`
-  島がこの形（`base` / `shown` / `hidden` を本体で無条件に `css()` 済みにし、`visible ? shown : hidden` は
+  島がこの形（`base` / `shown` / `hidden` を本体で無条件に登録済みにし、`visible ? shown : hidden` は
   登録済みクラスを選ぶだけ）。状態が変わっても未生成クラスは出ない。
 
   ```tsx
@@ -361,7 +421,7 @@ function Toggle() {
   ```
 
 - **条件付きマウントより「CSS で表示/非表示」を優先**する。`{open && <Modal/>}` ではなく `<Modal/>` を
-  常に描画し、`display:none` 用クラスと表示用クラス（両方を無条件に `css()` 済み）を切り替える。
+  常に描画し、`display:none` 用クラスと表示用クラス（両方を無条件に登録済み）を切り替える。
 - 子のスタイルが「関数」として切り出せている場合は、**親の本体で子のスタイル関数を先に呼ぶ**
   （例: `const panelClass = panelStyles();` を無条件に実行してクラスを props で渡す）方法もある。
   トークン・レシピを「関数」として用意しておく（`examples/blog` の `src/styles/`）と、この先行登録が
@@ -370,8 +430,8 @@ function Toggle() {
 #### なぜ根本回避が難しいか
 
 「クライアントで初めて現れる DOM のスタイル」を事前に用意する方法は原理的に 3 つしかない。
-(1) そのコードを実行して `css()` を走らせる（＝全状態を列挙して描画する／一般に列挙不能）、
-(2) ソースを静的解析して `css()` を全部抽出する（コンパイラが必要・動的値は不可）、
+(1) そのコードを実行してスタイル登録を走らせる（＝全状態を列挙して描画する／一般に列挙不能）、
+(2) ソースを静的解析してスタイル登録を全部抽出する（コンパイラが必要・動的値は不可）、
 (3) ランタイムで CSS を注入する（`style-src 'self'` の方針で封印済み）。
 (3) を採らない以上、残るのは (1) の規律か (2) の静的抽出であり、本書は **(1) の規律（上記パターン）を
 制約として課す**立場をとる。
@@ -415,7 +475,7 @@ Cirro はゼロランタイム陣営の中でもさらに厳格で、変数を�
 （`style-src 'self'` は `style` 属性も封じる）。よって制約は必然的に残り、現実的な緩和は次の順で行う。
 
 1. **有限 variant に寄せる**（Panda recipe 方式）。取りうる見た目が宣言済みの有限集合なら、初期 SSR 描画で
-   全バリアントを `css()` 済みにできる。`examples/blog` の `src/styles/recipes.ts`（関数化したレシピ）がこの形。
+   全バリアントを登録済みにできる。`examples/blog` の `src/styles/recipes.ts`（関数化したレシピ）がこの形。
 2. **CSS 変数を CSSOM 経由で差し替える**。`var(--c)` の静的規則は SSR で生成し、島の JS が
    `element.style.setProperty("--c", v)` で値を入れる。CSP の `style-src` は**宣言的な inline スタイル**を
    規制するもので、許可済み外部スクリプトからの **CSSOM 操作は規制しない**ため、`style-src 'self'` を保ったまま
@@ -435,9 +495,9 @@ Cirro はゼロランタイム陣営の中でもさらに厳格で、変数を�
 入力:
 
 ```tsx
-css({ margin: "0", padding: "0" }, { selector: "*", atrules: ["@layer base"] });
+toStyle(at("@layer base", ss({ margin: "0", padding: "0" }, { selector: "*" })));
 
-const cssPC = genCssFn({ atRules: ["@media (min-width: 800px)"], layer: "main" });
+const cssPC = genCssFn((inject) => at("@layer main", at("@media (min-width: 800px)", inject())));
 const pageTitle = cssPC({ padding: "1rem", font_size: "2rem" });
 // pageTitle === "cirro-xxxxxx"
 ```
@@ -455,21 +515,21 @@ const pageTitle = cssPC({ padding: "1rem", font_size: "2rem" });
 
 ## 9. 現状の制約と注意
 
-- **`css()` は描画時に呼ぶ**。レジストリは `runWithRegistry()` が描画ごとに新しく割り当てる
-  `AsyncLocalStorage` コンテキストに紐付くため、モジュールのトップレベルで `const x = css(...)` としても
-  描画コンテキスト外となり例外になる。スタイル定義は必ずコンポーネント（または描画時に呼ばれる関数）の
-  中で行う。利用例は
+- **スタイル登録は描画時に呼ぶ**。レジストリは `runWithRegistry()` が描画ごとに新しく割り当てる
+  `AsyncLocalStorage` コンテキストに紐付くため、モジュールのトップレベルで `const x = toStyle(...)` と
+  しても描画コンテキスト外となり例外になる。スタイル定義は必ずコンポーネント（または描画時に呼ばれる
+  関数）の中で行う。利用例は
   `examples/blog`（トークン・レシピを `src/styles/` に型付き関数として用意し、各コンポーネント内で
   呼び出す）を参照。
-- **インラインを出さない原則は維持**。`css()` はクラス名を返すだけで `<style>` / `style=""` を生成
-  しないため、`style-src 'self'` を満たす（`04_USAGE.md` 10 章の CSP 表と整合）。
+- **インラインを出さない原則は維持**。`toStyle()` / css 関数はクラス名を返すだけで `<style>` /
+  `style=""` を生成しないため、`style-src 'self'` を満たす（`04_USAGE.md` 10 章の CSP 表と整合）。
 
 ---
 
 ## 10. レイアウトプリミティブ — `createLayout`（`cirrojs/layout`）
 
 "Every Layout"（every-layout.dev）の「**意図で名付けた**レイアウト語彙」（Stack / Cluster / Center …）を、
-`css()` / `genCssFn()` の上に乗せた**型付き関数**として提供する。サブパス `cirrojs/layout` から import する。
+css 関数の上に乗せた**型付き関数**として提供する。サブパス `cirrojs/layout` から import する。
 
 ```ts
 import { createLayout } from "cirrojs/layout";
@@ -484,7 +544,7 @@ import { createLayout } from "cirrojs/layout";
   利用者がデフォルトを差し替えられる。
 - **出力先は既定で `@layer low`**。component レシピ（`button` 等＝`@layer main`）より下に置くことで、
   component 側が常にレイアウトを上書きできる正しいカスケードになる。`theme.css` を渡せば変更できる。
-- 配置の軸は**要素非依存**（`& > *` 系セレクタ）に保ち、各プロパティの所有者を一意にする
+- 配置の軸は**要素非依存**（`$ > *` 系セレクタ）に保ち、各プロパティの所有者を一意にする
   （single-owner-per-property。`06_STYLING_DIRECTION.md` 7.2）。
 
 ### 10.2 `createLayout(theme?)`
@@ -493,7 +553,7 @@ import { createLayout } from "cirrojs/layout";
 
 ```ts
 interface LayoutTheme {
-    css?: CssFnT;                       // 出力先。省略時 genCssFn({ layer: "low" })
+    css?: CssFn;                        // 出力先。省略時 genCssFn((inject) => at("@layer low", inject()))
     defaults?: Partial<LayoutDefaults>; // 既定値の部分上書き
 }
 
@@ -630,19 +690,125 @@ import { cx } from "cirrojs/layout";
 
 ---
 
+## 11. ネストルール — `children`
+
+`ss()` と css 関数は、第 3 引数以降に**ネストルール**（`RuleNode`）を受け取る。base / hover / 子孫 /
+メディアクエリを **1 つのクラス名の下に 1 箇所で**書ける。
+
+### 11.1 出力はネイティブ CSS ネスト
+
+ネストルールは**フラット化されず、CSS ネスト（CSS Nesting）構文のまま出力される**。ネスト内の `&` は
+生成時に置換されず、**ブラウザがそのまま解釈する**（意味論は CSS ネスト仕様そのもの: `:is()` ラップ、
+`&` を含まないセレクタへの暗黙の子孫結合、`.parent:has(> &)` のような親側参照など）。
+
+> **ブラウザ要件**: 生成 CSS は CSS Nesting 対応ブラウザ（Chrome 120+ / Safari 17.2+ /
+> Firefox 117+、2023 年以降のエバーグリーン）を前提とする。Cirro は生成 CSS を PostCSS 等で
+> 後処理しないため、ネスト構文がそのまま配信される。
+
+```tsx
+const card = cssMain(
+    { color: "#222" },
+    { name: "card" },
+    ss({ color: "#0a7" }, { selector: "&:hover" }),              // 自分の :hover
+    ss({ color: "#a70" }, { selector: "&:focus, &:active" }),    // カンマ区切りも可（ネイティブ仕様どおり）
+    ss({ text_decoration: "none" }, { selector: "& a" },
+        ss({ text_decoration: "underline" }, { selector: "&:hover" })), // & は直近の親（= & a）を指す
+    ss({ border: "1px solid #ccc" }, { selector: ".parent:has(> &)" }), // 自分を子に持つ親要素
+    ss({ margin: "0" }, { selector: "> li" }),                   // 結合子始まりの相対セレクタ
+    at("@media (min-width: 800px)",
+        ss({ padding: "2rem" }, { selector: "&" }),              // アットルール内も & 基点で書く
+        ss({ color: "#07a" }, { selector: "&:hover" }),
+    ),
+);
+// → @layer main { .card-x { color: #222; &:hover { ... } &:focus, &:active { ... }
+//      & a { text-decoration: none; &:hover { ... } } .parent:has(> &) { ... } > li { ... }
+//      @media (min-width: 800px) { & { padding: 2rem; } &:hover { ... } } } }
+```
+
+### 11.2 書き方のイディオム
+
+記号で始められないセレクタにも、ネイティブネスト上**意味が等価な書き換え**が必ず存在する。
+
+| 書きたいセレクタ | セレクタの書き方 | 根拠 |
+| --- | --- | --- |
+| `h2`（要素型の子孫） | `"& h2"` | ネスト仕様で裸の相対セレクタは `&` 子孫と同義 |
+| `div.card &`（要素型で始まる親側参照） | `":is(div.card) &"` | `:is()` ラップは同義 |
+| 自分を子に持つ親 | `".parent:has(> &)"` | `&` は任意の位置に書ける |
+
+### 11.3 制約
+
+- ハッシュはルールノードのツリー全体から決まる。**1 呼び出し = 1 クラス名**で、全ネストルールがそれを
+  参照する。
+- **ネスト内のセレクタに `$` は書けない（登録時エラー）**。仮に `$` を置換すると、置換結果
+  （`.cirro-x`）は `&` を含まないため**暗黙の子孫結合**が働き、「ルート参照のつもりが
+  `& .cirro-x`（子孫セレクタ）」という無言のズレになる。これを防ぐため `toStyle()` が拒否する。
+  `ss()` の既定セレクタは `"$"` なので、**ネストルールでは `selector` の明示が必須**になる。
+  ネスト内の自己参照・親参照は `&` で書く。
+- セレクタ・アットルールの検証（4 章）はネスト内にも適用される。文アットルール（`atStatement`）は
+  ネストの内側に置けない。
+
+---
+
+## 12. キーフレーム — `toKeyframes()`
+
+`toKeyframes()` はフレーム群（`ss()` で作ったスタイルルール）から `@keyframes` を登録し、
+**アニメーション名**（`animation` / `animation-name` に渡す文字列）を返す。戻り値はクラス名ではない。
+
+```ts
+function toKeyframes(frames: RuleNode[], opt?: ToKeyframesOpt): string; // アニメーション名を返す
+
+type ToKeyframesOpt = {
+    name?: string;    // 名前の接頭辞（既定 "cirro-kf"）
+    wrap?: InjectFn;  // @layer 等の外側アットルールで包む（genCssFn と同じ形式）
+};
+```
+
+```tsx
+const spin = toKeyframes([
+    ss({ transform: "rotate(0deg)" }, { selector: "from" }),
+    ss({ transform: "rotate(360deg)" }, { selector: "to" }),
+]);
+const loader = cssMain({ animation: `${spin} 1s linear infinite` });
+
+// @layer main の中に置く場合
+const pulse = toKeyframes(
+    [ss({ opacity: "0.4" }, { selector: "0%, 100%" }), ss({ opacity: "1" }, { selector: "50%" })],
+    { wrap: (fn) => at("@layer main", fn()) },
+);
+```
+
+- 名前は**フレーム内容から決まる決定的ハッシュ**（既定接頭辞 `cirro-kf`）。同じフレーム定義なら常に
+  同じ名前になり、レジストリ上で自然に重複排除される（手動命名と違い、名前の衝突管理が不要）。
+- フレームのセレクタは `from` / `to` / `<数値>%`、およびそれらの**カンマ区切りリスト**（`"0%, 100%"`）。
+  それ以外（`ss()` の既定セレクタ `"$"` を含む）は登録時エラーになるため、**フレームでは `selector` の
+  明示が必須**。フレームにネストルールは書けない。
+- `wrap` はハッシュに含まれない。同一フレーム内容を異なる `wrap` で複数回登録した場合、名前が同じに
+  なるため最後の 1 件だけが出力される点に注意。
+- `at("@keyframes 名前", ...)` を `toStyle()` に渡す手動命名も引き続き可能（名前の衝突管理は利用側の
+  責任になる）。
+
+---
+
 ## 付録
 
 ### 公開 API（`cirrojs`）
 
 | 名前 | 役割 |
 | --- | --- |
-| `css(properties, opt?)` | スタイルを登録しクラス名を返す |
-| `genCssFn(opt)` | アットルール（`{ atRules?, layer? }`）を固定した `css` 関数を生成する |
-| `styleSample(element)` | サンプル要素を登録する。本描画の完了後に描画され、遅延マウントされる部分の `css()` も収集される（7.3。クライアントでは no-op） |
+| `ss(declarations, opt?, ...children)` | スタイルルールノードを作る（1 章） |
+| `at(prelude, ...children)` | ブロックアットルールノードを作る（4 章） |
+| `atStatement(statement)` | 文アットルールノードを作る（4 章） |
+| `toStyle(node, opt?)` | ルールノードを登録しクラス名を返す（1 章） |
+| `toKeyframes(frames, opt?)` | `@keyframes` を登録しアニメーション名を返す（12 章） |
+| `genCssFn(inject)` | アットルールを固定した css 関数を生成する（5 章） |
+| `styleSample(element)` | サンプル要素を登録する。本描画の完了後に描画され、遅延マウントされる部分のスタイルも収集される（7.3。クライアントでは no-op） |
 | `runWithRegistry(fn)` | `fn` を専用レジストリのコンテキストで実行し、戻り値とレジストリを返す（ランタイムが呼ぶ／`routes.ts` で再 export） |
 | `Properties` 型 | 指定可能なプロパティ名と値の型 |
-| `Registry` 型 | レジストリ（`Map<designator, [selectors, properties]>`）の型 |
-| `CssOpt` 型 | `css()` の第 2 引数の型 |
+| `Registry` 型 | レジストリ（`Map<string, RuleNode[]>`）の型 |
+| `RuleNode` / `StyleRule` / `AtBlockRule` / `AtStatementRule` 型 | レジストリが保持する CSS AST の型（1 章・7.1）。`Declarations` 型は `cirrojs/registry` から公開 |
+| `CssFn` / `CssFnOpt` 型 | css 関数の型と、その第 2 引数の型（5 章） |
+| `InjectFn` 型 | `genCssFn()` の引数（スタイルノードの配置を決めるラッパー関数）の型（5 章） |
+| `SsOpt` / `ToStyleOpt` / `ToKeyframesOpt` 型 | `ss()` / `toStyle()` / `toKeyframes()` の第 2 引数の型（1 章・12 章） |
 
 ### 公開 API（`cirrojs/layout`）
 

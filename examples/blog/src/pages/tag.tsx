@@ -15,7 +15,7 @@ export function TagPage({ params }: { params: { tag: string } }) {
                     href="/tags"
                     className={cx(
                         cssMain({ color: color.fgMuted, text_decoration: "none" }),
-                        cssMain({ text_decoration: "underline" }, { selector: "&:hover" }),
+                        cssMain({ text_decoration: "underline" }, { selector: "$:hover" }),
                     )}
                 >
                     タグ一覧

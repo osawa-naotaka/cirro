@@ -13,6 +13,31 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- `toKeyframes(frames, opt?)`, exported from the package entry point. It registers a `@keyframes` block built from style rule nodes and returns the animation name, a deterministic hash of the frame contents with the default prefix `cirro-kf`, so identical frame definitions share one name and are deduplicated in the registry. Frame selectors must be `from`, `to`, `<number>%`, or a comma-separated list of them, and frames must not contain nested rules; both are validated at registration time. The optional `wrap` (an `InjectFn`) places the block inside outer at-rules such as `@layer`. `wrap` is not part of the hash, so registering identical frames with different wrappers emits only the last registration.
+- `ToKeyframesOpt` type, exported from the package entry point.
+- Registration-time validation in `toStyle()`. Selectors containing `$=` (the attribute suffix matcher) are rejected because every `$` is replaced with the generated class name. Non-nested selectors containing `&` are rejected because a top-level `&` behaves as `:scope` rather than a class reference. Selectors nested inside a style rule containing `$` are rejected because the replaced class name would be subject to the implicit descendant combinator of CSS Nesting; since the default selector of `ss()` is `"$"`, nested rules now require an explicit selector. Errors are thrown at the registering call site instead of at CSS stringification.
+
+## [0.0.24] - 2026-07-03
+
+### Added
+- `ss(declarations, opt?, ...children)`, exported from the package entry point. It builds a style rule node (`StyleRule`) from type-checked CSS declarations, an optional selector (default `"$"`, the self-class reference), and optional nested child rules.
+- `at(prelude, ...children)`, exported from the package entry point. It builds a block at-rule node (`AtBlockRule`) such as `@layer main` or `@media (min-width: 800px)`. At-rule nodes nest freely.
+- `atStatement(statement)`, exported from the package entry point. It builds a statement at-rule node (`AtStatementRule`) such as `@layer a, b`. Statement at-rules are only allowed at the top level of the registry and are emitted right after the fixed preamble, before all other rules.
+- `toStyle(node, opt?)`, exported from the package entry point. It hashes the rule node tree into a deterministic class name (default prefix `cirro`), replaces every `$` in the tree's selectors with that class, registers the tree, and returns the class name.
+- `CssFn`, `CssFnOpt`, `InjectFn`, `SsOpt`, and `ToStyleOpt` types, exported from the package entry point.
+- `RuleNode`, `StyleRule`, `AtBlockRule`, and `AtStatementRule` types, exported from the package entry point. They describe the CSS AST held by the registry. The `Declarations` type is exported from `cirrojs/registry`.
+- Style rules can hold nested child rules (the `children` of `ss()` and `CssFn`). Nested rules are emitted as native CSS nesting: `&` is not replaced at build time and is resolved by the browser with CSS Nesting semantics, so the emitted CSS requires a CSS Nesting capable browser (evergreen browsers since 2023).
+- Validation of selectors and at-rules at stringification time: at-rules must start with `@` followed by an identifier, selectors and at-rules must not contain `{`, `}`, `;`, or `/*` (block injection guard), and both are limited to 512 characters.
+
+### Changed
+- **Breaking**: `css(properties, opt?)` and the `CssOpt` type were removed from the package entry point. Styles are now built by composing rule nodes: `toStyle(ss(properties, { selector }))` replaces a plain `css()` call, and wrapping with `at()` (e.g. `toStyle(at("@layer base", ss(properties, { selector: "*" })))`) replaces the removed `atrules` option.
+- **Breaking**: `genCssFn` now takes an `InjectFn` (`(injected: () => RuleNode) => RuleNode`) that wraps the generated style node in at-rules, instead of an options object (`{ atRules?, layer? }`). For example, `genCssFn({ layer: "main" })` becomes `genCssFn((inject) => at("@layer main", inject()))`. The returned function's type is `CssFn`, which replaces the removed `CssFnT` and additionally accepts nested child rules as rest arguments.
+- **Breaking**: the self-reference token in selectors is now `$` instead of `&` (e.g. `selector: "$:hover"`, `selector: "$ > *"`). `$` may appear at any position (e.g. `.parent:has(> $)`) and is replaced mechanically everywhere, including inside quoted strings, so `$` cannot be written in attribute value strings for now. `&` is passed through to the output as the CSS Nesting parent reference.
+- **Breaking**: the `Registry` type changed from `Map<string, [string[], Partial<Properties>]>` to `Map<string, RuleNode[]>`, a small CSS AST. The `registerCss(designator, selectors, properties)` function of `cirrojs/registry` was replaced by `registerRules(key, nodes)`.
+- The `css` field of `LayoutTheme` is now typed as `CssFn` (previously `CssFnT`).
+- All generated class names change because the class name hash is now computed from the rule node tree.
+
 ## [0.0.23] - 2026-07-02
 
 ### Added
@@ -179,7 +204,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## 0.0.1 - 2026-06-15
 - initial release
 
-[Unreleased]: https://github.com/osawa-naotaka/cirro/compare/v0.0.23...HEAD
+[Unreleased]: https://github.com/osawa-naotaka/cirro/compare/v0.0.24...HEAD
+[0.0.24]: https://github.com/osawa-naotaka/cirro/compare/v0.0.23...v0.0.24
 [0.0.23]: https://github.com/osawa-naotaka/cirro/compare/v0.0.22...v0.0.23
 [0.0.22]: https://github.com/osawa-naotaka/cirro/compare/v0.0.21...v0.0.22
 [0.0.21]: https://github.com/osawa-naotaka/cirro/compare/v0.0.20...v0.0.21

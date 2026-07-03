@@ -19,7 +19,7 @@ export function PostMeta({ post, size = "small" }: { post: Post; size?: "small" 
                         href={`/authors/${author.id}`}
                         className={cx(
                             cssMain({ color: "inherit", text_decoration: "none" }),
-                            cssMain({ text_decoration: "underline" }, { selector: "&:hover" }),
+                            cssMain({ text_decoration: "underline" }, { selector: "$:hover" }),
                         )}
                     >
                         {author.name}

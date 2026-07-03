@@ -14,14 +14,14 @@ export function PostCard({ post }: { post: Post }) {
                     overflow: "hidden",
                     transition: "box-shadow .2s",
                 }),
-                cssMain({ box_shadow: shadow.md }, { selector: "&:hover" }),
+                cssMain({ box_shadow: shadow.md }, { selector: "$:hover" }),
             )}
         >
             <a
                 href={`/blog/${post.slug}`}
                 className={cx(
                     cssMain({ display: "block", padding: space(4), color: "inherit", text_decoration: "none" }),
-                    cssMain({ background_color: color.hover }, { selector: "&:hover" }),
+                    cssMain({ background_color: color.hover }, { selector: "$:hover" }),
                 )}
             >
                 <h2 className={cssMain({ font_size: fontSize.lg, font_weight: "700", margin_bottom: space(1) })}>{post.title}</h2>
