@@ -15,19 +15,72 @@ export function css(properties: Properties, opt?: CssOpt): string {
     const selector = opt?.selector ?? "$";
     const atrules = opt?.atrules ?? [];
 
-    validateTopSelector(selector);
-    for (const at of atrules) validateAtPrelude(at);
+    const node = atrules.reduceRight<RuleNode>((acc, cur) => at(cur, acc), ss(properties, { selector }));
 
-    const hash = hash_djb2_object({ selector, atrules, properties });
+    return toStyle(node, { name: opt?.name });
+}
+
+type CssFnT2Opt = {
+    name?: string;
+    selector?: string;
+}
+
+type CssFnT2 = (properties: Properties, opt?: CssFnT2Opt) => string;
+
+type CssFnT2Arg = (injected: () => RuleNode) => RuleNode;
+
+export function genCssFn2(arg: CssFnT2Arg): CssFnT2 {
+    return (properties: Properties, opt?: CssFnT2Opt, ...children: RuleNode[]) => {
+        const bottom = () => ss(properties, opt, ...children);
+        const node = arg(bottom);
+        return toStyle(node, { name: opt?.name });
+    };
+}
+
+export type SsOpt = {
+    selector?: string;
+};
+
+export function ss(declarations: Properties, opt?: SsOpt, ...children: RuleNode[]): RuleNode {
+    return {
+        type: "style",
+        selector: opt?.selector ?? "$",
+        declarations,
+        children,
+    }
+}
+
+export function at(prelude: string, ...children: RuleNode[]): RuleNode {
+    return {
+        type: "at-block",
+        prelude,
+        children,
+    }
+}
+
+export type ToStyleOpt = {
+    name?: string;
+}
+
+export function toStyle(node: RuleNode, opt?: ToStyleOpt): string {
+    const hash = hash_djb2_object(node);
     const designator = `${opt?.name ?? "cirro"}-${hash.toString(16)}`;
 
-    const rule: StyleRule = {
-        type: "style",
-        selector: resolveSelector(selector, `.${designator}`),
-        declarations: properties,
-    };
-    registerRules(designator, wrapInAtRules(atrules, [rule]));
+    const resolved = resolveSelectorsInNode(node, `.${designator}`);
+    registerRules(designator, [resolved]);
+    
     return designator;
+}
+
+function resolveSelectorsInNode(node: RuleNode, designator: string): RuleNode {
+    switch (node.type) {
+        case "style":
+            return { ...node, selector: resolveSelector(node.selector, designator), children: node.children?.map((child) => resolveSelectorsInNode(child, designator)) };
+        case "at-statement":
+            return node;
+        case "at-block":
+            return { ...node, children: node.children.map((child) => resolveSelectorsInNode(child, designator)) };
+    }
 }
 
 // ネスト可能なスタイル定義。キーの先頭文字で解釈が決まる。
