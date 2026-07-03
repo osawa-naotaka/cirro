@@ -100,8 +100,12 @@ const article = css({ margin_top: "2rem" }, { selector: "$ h2" });
 
 置換の細則:
 
-- 引用符内（属性セレクタの文字列値）の `$` は置換されない。
-- 属性セレクタの後方一致 `[attr$="..."]` の `$=` は置換されない（`'$[href$=".pdf"]'` のように書ける）。
+- `$` は先頭に限らず**任意の位置**に書ける。`.parent:has(> $)` のように「自分を子に持つ親要素」を
+  狙うセレクタも書ける。
+- `$` は**機械的に全置換**される。引用符内も対象になるため、属性値の文字列に `$` を含むセレクタは
+  当面書けない（将来セレクタパーサー導入時に緩和予定）。
+- 属性セレクタの後方一致 `[attr$="..."]` は現在サポートされない。`$=` を含むセレクタは
+  ビルド時エラーになる（機械的置換で無言のセレクタ破損になるのを防ぐため、明示的に拒否する）。
 - `&` は**ネストルール（11 章 `cssRules()`）の親参照専用**であり、トップレベルのセレクタに書くと
   ビルド時エラーになる（旧仕様からの移行漏れを無言のスタイル欠落にしないための検査）。
 
@@ -277,9 +281,10 @@ const css = stringifyCss(registry);
 4. そのルート専用の CSS ファイルとして書き出す（dev では `text/css` で配信）。
 
 レジストリは `Map<string, RuleNode[]>`（キーは designator や `@keyframes` 名）で、値は生成 CSS を
-表す小さな AST（`RuleNode` = `StyleRule` | `AtBlockRule` | `AtStatementRule`）。`css()` /
-`cssRules()` / `cssKeyframes()` が `registerRules()` を通じて現在のコンテキストのレジストリへ
-書き込み、`stringifyCss()` が再帰的に文字列化する。文アットルール（`AtStatementRule`）は
+表す小さな AST（`RuleNode` = `StyleRule` | `AtBlockRule` | `AtStatementRule`）。`StyleRule` は
+ネストルール（`cssRules()`）を `children` に保持し、ネイティブ CSS ネストとして出力される。
+`css()` / `cssRules()` / `cssKeyframes()` が `registerRules()` を通じて現在のコンテキストの
+レジストリへ書き込み、`stringifyCss()` が再帰的に文字列化する。文アットルール（`AtStatementRule`）は
 プリアンブル直後にまとめて出力される（現時点でこれを登録する公開 API はない。将来の拡張用）。
 `css()` が描画コンテキスト外（`runWithRegistry` の外）で呼ばれた場合は例外を投げる。
 
@@ -652,48 +657,72 @@ import { cx } from "cirrojs/layout";
 ```ts
 function cssRules(rules: NestedRules, opt?: CssOpt): string; // クラス名を返す
 
+type SelectorPrefix = "&" | ":" | "." | "#" | "[" | ">" | "+" | "~" | "*";
+
 type NestedRules = Properties & {
-    [key: `$${string}`]: NestedRules | undefined; // 自クラス基点のセレクタ
-    [key: `&${string}`]: NestedRules | undefined; // 親セレクタ基点（CSS ネストの & と同じ意味論）
-    [key: `@${string}`]: NestedRules | undefined; // ブロックアットルール
+    [K in `${SelectorPrefix}${string}` | `@${string}`]?: NestedRules;
 };
 ```
 
-キーの接頭辞で解釈が決まる。それ以外のキーは通常のプロパティとして型チェックされる。
+キーの**先頭文字**で解釈が決まる。それ以外のキーは通常のプロパティとして型チェックされる。
 
-- **`&...`** — 直近の**親セレクタ**に対するネスト。`&:hover` や `& a` のように書く。
-- **`$...`** — ネストの深さに関係なく、**この呼び出しが生成したクラス自身**を参照する。
-- **`@...`** — アットルール。現在のセレクタ文脈を引き継いだまま内側に入れ子になる（アットルール
-  同士のネストも可）。
+- **セレクタ記号（`&` `:` `.` `#` `[` `>` `+` `~` `*`）で始まるキー** — ネストされたセレクタ。
+- **`@` で始まるキー** — ブロックアットルール。現在のセレクタ文脈を引き継いだまま入れ子になる
+  （アットルール同士のネストも可）。
+
+### 11.1 出力はネイティブ CSS ネスト
+
+`cssRules()` はルールを**フラット化せず、CSS ネスト（CSS Nesting）構文のまま出力する**。
+`&` は生成時に置換されず、**ブラウザがそのまま解釈する**（意味論は CSS ネスト仕様そのもの:
+`:is()` ラップ、`&` を含まないキーへの暗黙の子孫結合、`.parent:has(> &)` のような親側参照など）。
+
+> **ブラウザ要件**: 生成 CSS は CSS Nesting 対応ブラウザ（Chrome 120+ / Safari 17.2+ /
+> Firefox 117+、2023 年以降のエバーグリーン）を前提とする。Cirro は生成 CSS を PostCSS 等で
+> 後処理しないため、ネスト構文がそのまま配信される。
 
 ```tsx
 const card = cssRules(
     {
         color: "#222",
-        "&:hover": { color: "#0a7" },                    // .cirro-x:hover
+        "&:hover": { color: "#0a7" },              // 自分の :hover
+        "&:focus, &:active": { color: "#a70" },    // カンマ区切りも可（ネイティブ仕様どおり）
         "& a": {
             text_decoration: "none",
-            "&:hover": { text_decoration: "underline" }, // .cirro-x a:hover（& は親 = .cirro-x a）
-            "$ code": { color: "red" },                  // .cirro-x code（$ は常にルートクラス）
+            "&:hover": { text_decoration: "underline" }, // & は直近の親（= & a）を指す
         },
+        ".parent:has(> &)": { border: "1px solid #ccc" }, // 自分を子に持つ親要素
+        "> li": { margin: "0" },                   // 結合子始まりの相対セレクタ
         "@media (min-width: 800px)": {
-            padding: "2rem",
-            "&:hover": { color: "#07a" },                // @media 内の .cirro-x:hover
+            padding: "2rem",                        // アットルール直下の宣言は & に適用される
+            "&:hover": { color: "#07a" },
         },
     },
     { atrules: ["@layer main"] },
 );
+// → @layer main { .cirro-x { color: #222; &:hover { ... } &:focus, &:active { ... }
+//      & a { ... &:hover { ... } } .parent:has(> &) { ... } > li { ... }
+//      @media (min-width: 800px) { & { padding: 2rem; } &:hover { ... } } } }
 ```
 
-出力はフラット化される（ネイティブ CSS ネストでは出力しない）。上の例は `@layer main { ... }` の
-中に `.cirro-x { ... } .cirro-x:hover { ... } .cirro-x a { ... } ...` と展開される。
+### 11.2 書き方のイディオム
 
-制約:
+型はキーが**セレクタ記号で始まる**ことを要求する（プロパティ名との識別のため）。記号で
+始められないセレクタには、ネイティブネスト上**意味が等価な書き換え**が必ず存在する。
+
+| 書きたいセレクタ | キーの書き方 | 根拠 |
+| --- | --- | --- |
+| `h2`（要素型の子孫） | `"& h2"` | ネスト仕様で裸の相対セレクタは `&` 子孫と同義 |
+| `div.card &`（要素型で始まる親側参照） | `":is(div.card) &"` | `:is()` ラップは同義 |
+| 自分を子に持つ親 | `".parent:has(> &)"` | `&` は任意の位置に書ける |
+
+### 11.3 制約
 
 - ハッシュは `rules` ツリー全体から決まる。**1 呼び出し = 1 クラス名**で、全ルールがそれを参照する。
-- ネストキーには**カンマを書けない**（ビルド時エラー）。`&` の解決は単純な文字列置換で行うため、
-  カンマ区切りの親は CSS ネスト本来の `:is()` 意味論と結果がズレるからである。`"& h2, & h3"` は
-  キーを 2 つに分けて書く。
+- **ネストキーに `$` は書けない**（ビルド時エラー）。`$` はトップレベルの `selector` オプション
+  専用のトークンである。ネスト内に `$` を許すと、`&` を含まないキーへの暗黙の子孫結合により
+  「ルート参照のつもりが相対セレクタ」という無言のズレが生じるため、明示的に拒否する。
+  ネストの深い位置からルートクラスを直接参照する手段は現状提供しない（構造を見直すか、
+  トップレベルの `selector` オプションで別ルールとして書く）。
 - セレクタ・アットルールの検証（4 章）はネストキーにも適用される。
 
 ---

@@ -15,7 +15,7 @@ export function css(properties: Properties, opt?: CssOpt): string {
     const selector = opt?.selector ?? "$";
     const atrules = opt?.atrules ?? [];
 
-    validateSelector(selector);
+    validateTopSelector(selector);
     for (const at of atrules) validateAtPrelude(at);
 
     const hash = hash_djb2_object({ selector, atrules, properties });
@@ -30,63 +30,80 @@ export function css(properties: Properties, opt?: CssOpt): string {
     return designator;
 }
 
-// ネスト可能なスタイル定義。プロパティ以外のキーは接頭辞で解釈が決まる。
-// - "$..." : 自クラス（この呼び出しが生成したクラス）を基点とするセレクタ
-// - "&..." : 直近の親セレクタを基点とするセレクタ（CSS ネストの & と同じ意味論）
-// - "@..." : ブロックアットルール。その内側に現在のセレクタ文脈が引き継がれる
+// ネスト可能なスタイル定義。キーの先頭文字で解釈が決まる。
+// - セレクタ記号（& : . # [ > + ~ *）で始まるキー: ネストされたセレクタ。ネイティブ CSS ネスト
+//   としてそのまま出力され、& の解決はブラウザが行う（生成側では置換しない）。
+//   要素型で始めたいセレクタは "& h2" / ":is(div.card) &" のように記号始まりへ書き換える。
+// - "@" で始まるキー: ブロックアットルール。現在のセレクタ文脈の内側に入れ子で出力される。
+// - それ以外のキー: CSS プロパティ（Properties として型チェックされる）。
+// $ はトップレベルの selector 専用トークンのため、ネストキーでは使えない（ビルド時エラー）。
+type SelectorPrefix = "&" | ":" | "." | "#" | "[" | ">" | "+" | "~" | "*";
+
 export type NestedRules = Properties & {
-    [key: `$${string}`]: NestedRules | undefined;
-    [key: `&${string}`]: NestedRules | undefined;
-    [key: `@${string}`]: NestedRules | undefined;
+    [K in `${SelectorPrefix}${string}` | `@${string}`]?: NestedRules;
 };
+
+const selector_key_prefixes = /* @__PURE__*/ new Set<string>(["&", "$", ":", ".", "#", "[", ">", "+", "~", "*"]);
 
 export function cssRules(rules: NestedRules, opt?: CssOpt): string {
     const selector = opt?.selector ?? "$";
     const atrules = opt?.atrules ?? [];
 
-    validateSelector(selector);
+    validateTopSelector(selector);
     for (const at of atrules) validateAtPrelude(at);
 
     const hash = hash_djb2_object({ selector, atrules, rules });
     const designator = `${opt?.name ?? "cirro"}-${hash.toString(16)}`;
 
-    const nodes = buildNestedRules(rules, resolveSelector(selector, `.${designator}`), `.${designator}`);
-    registerRules(designator, wrapInAtRules(atrules, nodes));
+    const { declarations, children } = buildNestedRules(rules);
+    const root: StyleRule = {
+        type: "style",
+        selector: resolveSelector(selector, `.${designator}`),
+        declarations,
+        children,
+    };
+    registerRules(designator, wrapInAtRules(atrules, [root]));
     return designator;
 }
 
-function buildNestedRules(rules: NestedRules, parentSelector: string, self: string): RuleNode[] {
+// rules オブジェクトを「現在のセレクタ文脈の宣言」と「ネストされた子ルール群」へ分解する。
+// セレクタの解決（& の適用・暗黙の子孫結合）はネイティブ CSS ネストとしてブラウザに委ねるため、
+// ここではキーをそのまま AST に写すだけでよい。
+function buildNestedRules(rules: NestedRules): { declarations: Declarations; children: RuleNode[] } {
     const declarations: Record<string, unknown> = {};
     const children: RuleNode[] = [];
 
     for (const [key, value] of Object.entries(rules)) {
         if (value === undefined) continue;
-        if (key.startsWith("&") || key.startsWith("$") || key.startsWith("@")) {
+        const isAt = key.startsWith("@");
+        const isSelector = selector_key_prefixes.has(key[0] ?? "");
+        if (isAt || isSelector) {
             if (typeof value !== "object" || Array.isArray(value)) {
                 throw new Error(`cirro: nested rules for "${key}" must be an object`);
             }
-        }
-        if (key.startsWith("&") || key.startsWith("$")) {
-            validateSelector(key);
-            // 単純な文字列置換で親を解決するため、カンマ区切りの親は :is() 相当の意味論と
-            // 結果がズレる。ネストキーではカンマを禁止して、そのズレを作らせない。
-            if (key.includes(",")) throw new Error(`cirro: nested selector "${key}" must not contain a comma`);
-            const resolved = resolveSelector(key, self, parentSelector);
-            children.push(...buildNestedRules(value as NestedRules, resolved, self));
-        } else if (key.startsWith("@")) {
-            validateAtPrelude(key);
-            children.push({ type: "at-block", prelude: key, children: buildNestedRules(value as NestedRules, parentSelector, self) });
+            const sub = buildNestedRules(value as NestedRules);
+            if (isAt) {
+                validateAtPrelude(key);
+                // ネストしたアットルール直下の宣言は "&"（現在のセレクタ）に適用される。
+                // 仕様上は裸の宣言と等価だが、AST を単純に保つため明示的に & { } で包む。
+                const inner: RuleNode[] = [];
+                if (Object.keys(sub.declarations).length > 0) {
+                    inner.push({ type: "style", selector: "&", declarations: sub.declarations });
+                }
+                inner.push(...sub.children);
+                children.push({ type: "at-block", prelude: key, children: inner });
+            } else {
+                validateNestedKey(key);
+                if (Object.keys(sub.declarations).length > 0 || sub.children.length > 0) {
+                    children.push({ type: "style", selector: key, declarations: sub.declarations, children: sub.children });
+                }
+            }
         } else {
             declarations[key] = value;
         }
     }
 
-    const nodes: RuleNode[] = [];
-    if (Object.keys(declarations).length > 0) {
-        nodes.push({ type: "style", selector: parentSelector, declarations: declarations as Declarations });
-    }
-    nodes.push(...children);
-    return nodes;
+    return { declarations: declarations as Declarations, children };
 }
 
 // @keyframes のフレーム。キーは from / to / パーセンテージのみ（カンマ区切りは不可。
@@ -159,10 +176,14 @@ function stringifyRuleNode(node: RuleNode): string {
     }
     if (node.type === "style") {
         validateSelector(node.selector);
+        const parts: string[] = [];
         const body = Object.entries(node.declarations)
             .map(([k, v]) => stringifyProperty(k, v))
             .join(" ");
-        return `${node.selector} { ${body} }`;
+        if (body.length > 0) parts.push(body);
+        // ネストルールはネイティブ CSS ネストとしてブロック内に出力する（& はブラウザが解釈する）。
+        if (node.children) parts.push(...node.children.map(stringifyRuleNode));
+        return `${node.selector} { ${parts.join(" ")} }`;
     }
     validateAtPrelude(node.prelude);
     return `${node.prelude} { ${node.children.map(stringifyRuleNode).join(" ")} }`;
@@ -172,35 +193,11 @@ function wrapInAtRules(atrules: string[], nodes: RuleNode[]): RuleNode[] {
     return atrules.reduceRight<RuleNode[]>((children, prelude): [AtBlockRule] => [{ type: "at-block", prelude, children }], nodes);
 }
 
-// セレクタ中の自己参照トークンを解決する。
-// - "$" は self（生成クラス）へ置換する。ただし属性セレクタの後方一致（$=）は対象外。
-// - "&" は parent（親セレクタ）へ置換する。親が存在しないトップレベルではエラー。
-// - 引用符内（属性セレクタの文字列値）はどちらも置換しない。
-function resolveSelector(selector: string, self: string, parent?: string): string {
-    let out = "";
-    let quote: '"' | "'" | null = null;
-    for (let i = 0; i < selector.length; i++) {
-        const c = selector[i];
-        if (quote) {
-            out += c;
-            if (c === quote && selector[i - 1] !== "\\") quote = null;
-            continue;
-        }
-        if (c === '"' || c === "'") {
-            quote = c;
-            out += c;
-        } else if (c === "$" && selector[i + 1] !== "=") {
-            out += self;
-        } else if (c === "&") {
-            if (parent === undefined) {
-                throw new Error(`cirro: "&" is not allowed in a top-level selector ("${selector}"). Use "$" to refer to the generated class itself.`);
-            }
-            out += parent;
-        } else {
-            out += c;
-        }
-    }
-    return out;
+// "$"（自クラス参照）を機械的に全置換する。引用符やエスケープの解釈は行わない。
+// $= の混入は validateTopSelector が事前に拒否する。引用文字列内に $ を書けない制約は
+// doc に明記済み（将来セレクタパーサー導入時に緩和予定）。
+function resolveSelector(selector: string, self: string): string {
+    return selector.replaceAll("$", self);
 }
 
 // セレクタ・アットルールの検証。値は開発者が書くものだが、補間された値の事故や
@@ -209,6 +206,36 @@ function validateSelector(selector: string): void {
     if (selector.length > 512) throw new Error(`cirro: selector "${selector}" is too long(max 512 characters)`);
     if (/[{};]/.test(selector) || selector.includes("/*")) {
         throw new Error(`cirro: selector "${selector}" contains a forbidden sequence ("{", "}", ";" or "/*")`);
+    }
+}
+
+// トップレベルセレクタ（css() / cssRules() の selector オプション）の検証。
+// $ はここでのみ使えるトークンで、位置は先頭に限らない（例 ".parent:has(> $)"）。
+function validateTopSelector(selector: string): void {
+    validateSelector(selector);
+    if (selector.includes("&")) {
+        throw new Error(
+            `cirro: "&" is not allowed in a top-level selector ("${selector}"). ` +
+                `"&" is reserved for parent references inside cssRules() nesting. Use "$" to refer to the generated class itself.`,
+        );
+    }
+    if (selector.includes("$=")) {
+        throw new Error(
+            `cirro: the attribute suffix matcher ("$=") is not supported in "${selector}" because every "$" is replaced with the generated class name`,
+        );
+    }
+}
+
+// ネストキー（cssRules() のセレクタキー）の検証。& はブラウザの CSS ネストに委ねるため
+// そのまま許可する。$ はトップレベル専用トークンであり、ここで使うと暗黙の子孫結合により
+// 意図と異なるセレクタが黙って生成されるため、エラーで拒否する。
+function validateNestedKey(key: string): void {
+    validateSelector(key);
+    if (key.includes("$")) {
+        throw new Error(
+            `cirro: "$" is not allowed in a nested selector key ("${key}"). ` +
+                `"$" is a top-level-only token; use "&" to refer to the parent selector inside cssRules() nesting.`,
+        );
     }
 }
 

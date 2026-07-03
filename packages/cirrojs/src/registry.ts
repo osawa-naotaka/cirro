@@ -8,6 +8,8 @@ export type Declarations = Partial<Properties>;
 // 生成 CSS を表す小さな AST。css() / cssRules() / cssKeyframes() が登録時に構築し、
 // stringifyCss() が再帰的に文字列化する。
 // - StyleRule: セレクタ 1 個と宣言ブロック。selector は登録時点で $（自クラス参照）解決済み。
+//   children はネストルール（cssRules）で、ネイティブ CSS ネストとしてブロック内に出力される
+//   （& はブラウザがそのまま解釈する。生成側では置換しない）。
 // - AtBlockRule: @layer / @media / @keyframes など任意のブロックアットルール。入れ子可。
 // - AtStatementRule: "@layer a, b" のようなブロックを持たない文アットルール。
 //   トップレベル専用で、出力時はプリアンブル直後に登録順で並ぶ（末尾の ; は出力時に付与）。
@@ -15,6 +17,7 @@ export type StyleRule = {
     type: "style";
     selector: string;
     declarations: Declarations;
+    children?: RuleNode[];
 };
 
 export type AtBlockRule = {

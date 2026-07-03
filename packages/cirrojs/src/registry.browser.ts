@@ -12,6 +12,7 @@ export type StyleRule = {
     type: "style";
     selector: string;
     declarations: Declarations;
+    children?: RuleNode[];
 };
 
 export type AtBlockRule = {
