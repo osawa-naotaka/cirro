@@ -49,7 +49,7 @@ function css(properties: Properties, opt?: CssOpt): string;
 type CssOpt = {
     name?: string;      // クラス名の接頭辞（既定 "cirro"）
     atrules?: string[];   // @layer / @media などのアットルール（外側から内側の順）
-    selector?: string;  // セレクタ（既定 "&"）
+    selector?: string;  // セレクタ（既定 "$"）
 };
 ```
 
@@ -85,20 +85,27 @@ css({ "--brand": "#0a7", color: "var(--brand)" });
 
 ## 3. セレクタ — `selector`
 
-`selector` を省略すると既定値 `"&"` が使われる。`&` は**このスタイルが生成するクラス自身**に置き換わる。
+`selector` を省略すると既定値 `"$"` が使われる。`$` は**このスタイルが生成するクラス自身**に置き換わる。
 つまり `css({ ... })` は `.cirro-<hash> { ... }` を生成する。
 
-`&` を使って、生成クラスを基点にした子孫セレクタや擬似クラスを書ける。
+`$` を使って、生成クラスを基点にした子孫セレクタや擬似クラスを書ける。
 
 ```tsx
 // .cirro-xxx:hover { ... }
-const link = css({ color: "blue" }, { selector: "&:hover" });
+const link = css({ color: "blue" }, { selector: "$:hover" });
 
 // .cirro-xxx h2 { ... }（Markdown 本文など、自分が要素を持たない箇所へ子孫指定する用途）
-const article = css({ margin_top: "2rem" }, { selector: "& h2" });
+const article = css({ margin_top: "2rem" }, { selector: "$ h2" });
 ```
 
-`&` を含まないセレクタを渡すと、クラスに紐付かない**任意セレクタ**として出力される。リセット CSS の
+置換の細則:
+
+- 引用符内（属性セレクタの文字列値）の `$` は置換されない。
+- 属性セレクタの後方一致 `[attr$="..."]` の `$=` は置換されない（`'$[href$=".pdf"]'` のように書ける）。
+- `&` は**ネストルール（11 章 `cssRules()`）の親参照専用**であり、トップレベルのセレクタに書くと
+  ビルド時エラーになる（旧仕様からの移行漏れを無言のスタイル欠落にしないための検査）。
+
+`$` を含まないセレクタを渡すと、クラスに紐付かない**任意セレクタ**として出力される。リセット CSS の
 ように要素そのものへ当てたい場合に使う（この場合、戻り値のクラス名は使わない）。
 
 ```tsx
@@ -122,6 +129,10 @@ css({ padding: "1rem" }, { atrules: ["@layer main", "@media (min-width: 800px)"]
 ```
 
 `atrules` → `selector` → プロパティの順で内側に入れ子になる、と覚えればよい。
+
+アットルール名は `@layer` / `@media` に限らず、`@supports` / `@container` など**任意のブロック
+アットルール**を書ける。ただし登録時に検証があり、`@` + 識別子で始まらないもの、512 文字を超える
+もの、`{` `}` `;` `/*` を含むもの（ブロック注入）はビルド時エラーになる（セレクタも同じ検証を受ける）。
 
 ---
 
@@ -182,7 +193,7 @@ export const hideOnPhone = (): string => cssPh({ display: "none" }); // = PC 専
   per-route のため誤差であり、可読性を優先する。
 
 **(2) `cssPc` / `cssPh`（= responsive）は「表示中の 1 要素の値がブレークポイントで変わる」場合だけに限定する。**
-例: PC だけ `position: sticky`、`&::before { content }` がクリック/タップで変わる、など。複数ブレークポイントの値分岐は
+例: PC だけ `position: sticky`、`$::before { content }` がクリック/タップで変わる、など。複数ブレークポイントの値分岐は
 `responsive()` で 1 ブロックに畳むと、同じ要素の宣言が 1 箇所に集まって読みやすい。
 
 ```ts
@@ -265,9 +276,12 @@ const css = stringifyCss(registry);
 3. `runWithRegistry()` が返した `registry` を `stringifyCss()` で CSS 文字列にする。
 4. そのルート専用の CSS ファイルとして書き出す（dev では `text/css` で配信）。
 
-レジストリは `Map<designator, [selectors, properties]>` で、`css()` が `registerCss()` を通じて
-現在のコンテキストのレジストリへ書き込む。`css()` が描画コンテキスト外（`runWithRegistry` の外）で
-呼ばれた場合は例外を投げる。
+レジストリは `Map<string, RuleNode[]>`（キーは designator や `@keyframes` 名）で、値は生成 CSS を
+表す小さな AST（`RuleNode` = `StyleRule` | `AtBlockRule` | `AtStatementRule`）。`css()` /
+`cssRules()` / `cssKeyframes()` が `registerRules()` を通じて現在のコンテキストのレジストリへ
+書き込み、`stringifyCss()` が再帰的に文字列化する。文アットルール（`AtStatementRule`）は
+プリアンブル直後にまとめて出力される（現時点でこれを登録する公開 API はない。将来の拡張用）。
+`css()` が描画コンテキスト外（`runWithRegistry` の外）で呼ばれた場合は例外を投げる。
 
 CSS の URL は `expandRoutes()`（`router.ts`）が決める。
 
@@ -484,7 +498,7 @@ import { createLayout } from "cirrojs/layout";
   利用者がデフォルトを差し替えられる。
 - **出力先は既定で `@layer low`**。component レシピ（`button` 等＝`@layer main`）より下に置くことで、
   component 側が常にレイアウトを上書きできる正しいカスケードになる。`theme.css` を渡せば変更できる。
-- 配置の軸は**要素非依存**（`& > *` 系セレクタ）に保ち、各プロパティの所有者を一意にする
+- 配置の軸は**要素非依存**（`$ > *` 系セレクタ）に保ち、各プロパティの所有者を一意にする
   （single-owner-per-property。`06_STYLING_DIRECTION.md` 7.2）。
 
 ### 10.2 `createLayout(theme?)`
@@ -630,6 +644,87 @@ import { cx } from "cirrojs/layout";
 
 ---
 
+## 11. ネストルール — `cssRules()`
+
+`css()` は「1 セレクタ + 1 宣言ブロック」だが、`cssRules()` は**ネストしたセレクタとアットルールを
+1 つのクラス名の下にまとめて**登録できる。base / hover / 子孫 / メディアクエリを 1 箇所に書ける。
+
+```ts
+function cssRules(rules: NestedRules, opt?: CssOpt): string; // クラス名を返す
+
+type NestedRules = Properties & {
+    [key: `$${string}`]: NestedRules | undefined; // 自クラス基点のセレクタ
+    [key: `&${string}`]: NestedRules | undefined; // 親セレクタ基点（CSS ネストの & と同じ意味論）
+    [key: `@${string}`]: NestedRules | undefined; // ブロックアットルール
+};
+```
+
+キーの接頭辞で解釈が決まる。それ以外のキーは通常のプロパティとして型チェックされる。
+
+- **`&...`** — 直近の**親セレクタ**に対するネスト。`&:hover` や `& a` のように書く。
+- **`$...`** — ネストの深さに関係なく、**この呼び出しが生成したクラス自身**を参照する。
+- **`@...`** — アットルール。現在のセレクタ文脈を引き継いだまま内側に入れ子になる（アットルール
+  同士のネストも可）。
+
+```tsx
+const card = cssRules(
+    {
+        color: "#222",
+        "&:hover": { color: "#0a7" },                    // .cirro-x:hover
+        "& a": {
+            text_decoration: "none",
+            "&:hover": { text_decoration: "underline" }, // .cirro-x a:hover（& は親 = .cirro-x a）
+            "$ code": { color: "red" },                  // .cirro-x code（$ は常にルートクラス）
+        },
+        "@media (min-width: 800px)": {
+            padding: "2rem",
+            "&:hover": { color: "#07a" },                // @media 内の .cirro-x:hover
+        },
+    },
+    { atrules: ["@layer main"] },
+);
+```
+
+出力はフラット化される（ネイティブ CSS ネストでは出力しない）。上の例は `@layer main { ... }` の
+中に `.cirro-x { ... } .cirro-x:hover { ... } .cirro-x a { ... } ...` と展開される。
+
+制約:
+
+- ハッシュは `rules` ツリー全体から決まる。**1 呼び出し = 1 クラス名**で、全ルールがそれを参照する。
+- ネストキーには**カンマを書けない**（ビルド時エラー）。`&` の解決は単純な文字列置換で行うため、
+  カンマ区切りの親は CSS ネスト本来の `:is()` 意味論と結果がズレるからである。`"& h2, & h3"` は
+  キーを 2 つに分けて書く。
+- セレクタ・アットルールの検証（4 章）はネストキーにも適用される。
+
+---
+
+## 12. キーフレーム — `cssKeyframes()`
+
+`@keyframes` を登録し、**アニメーション名**（`animation` / `animation-name` に渡す文字列）を返す。
+戻り値はクラス名ではない点に注意。名前はフレーム内容から決まる決定的ハッシュ（既定接頭辞
+`cirro-kf`）で、同じフレーム定義なら常に同じ名前になる。
+
+```ts
+type KeyframeFrames = Partial<Record<"from" | "to" | `${number}%`, Properties>>;
+
+function cssKeyframes(frames: KeyframeFrames, opt?: { name?: string; atrules?: string[] }): string;
+```
+
+```tsx
+const spin = cssKeyframes({
+    from: { transform: "rotate(0deg)" },
+    to: { transform: "rotate(360deg)" },
+});
+const loader = css({ animation: `${spin} 1s linear infinite` });
+```
+
+- フレームキーは `from` / `to` / `<数値>%` のみ。カンマ区切り（`"0%, 100%"`）は書けないので、
+  同じ宣言を複数フレームに当てたい場合はキーを分けて書く。
+- `atrules` で `@layer` や `@media` の内側に置ける（例: `{ atrules: ["@layer main"] }`）。
+- フレームは 1 つの `@keyframes 名前 { ... }` ブロックにまとめて出力される。
+
+---
+
 ## 付録
 
 ### 公開 API（`cirrojs`）
@@ -637,12 +732,17 @@ import { cx } from "cirrojs/layout";
 | 名前 | 役割 |
 | --- | --- |
 | `css(properties, opt?)` | スタイルを登録しクラス名を返す |
+| `cssRules(rules, opt?)` | ネストしたセレクタ・アットルールを 1 クラスにまとめて登録しクラス名を返す（11 章） |
+| `cssKeyframes(frames, opt?)` | `@keyframes` を登録しアニメーション名を返す（12 章） |
 | `genCssFn(opt)` | アットルール（`{ atRules?, layer? }`）を固定した `css` 関数を生成する |
 | `styleSample(element)` | サンプル要素を登録する。本描画の完了後に描画され、遅延マウントされる部分の `css()` も収集される（7.3。クライアントでは no-op） |
 | `runWithRegistry(fn)` | `fn` を専用レジストリのコンテキストで実行し、戻り値とレジストリを返す（ランタイムが呼ぶ／`routes.ts` で再 export） |
 | `Properties` 型 | 指定可能なプロパティ名と値の型 |
-| `Registry` 型 | レジストリ（`Map<designator, [selectors, properties]>`）の型 |
-| `CssOpt` 型 | `css()` の第 2 引数の型 |
+| `Registry` 型 | レジストリ（`Map<string, RuleNode[]>`）の型 |
+| `RuleNode` / `StyleRule` / `AtBlockRule` / `AtStatementRule` / `Declarations` 型 | レジストリが保持する CSS AST の型（7.1） |
+| `CssOpt` 型 | `css()` / `cssRules()` の第 2 引数の型 |
+| `NestedRules` 型 | `cssRules()` の第 1 引数の型（11 章） |
+| `KeyframeFrames` / `CssKeyframesOpt` 型 | `cssKeyframes()` の引数の型（12 章） |
 
 ### 公開 API（`cirrojs/layout`）
 

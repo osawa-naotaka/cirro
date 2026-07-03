@@ -5,10 +5,32 @@ import type { Properties } from "./properties";
 // クライアントでは css() の戻り値（designator = クラス名）だけが必要で、CSS 本体はビルド時に
 // 静的生成済みのため登録は不要。node:async_hooks を一切 import しないことで、クライアント
 // バンドルへの async_hooks 混入とブラウザ実行時エラーを構造的に排除する。
-export type Registry = Map<string, [string[], Partial<Properties>]>;
+// 型定義は registry.ts と同一に保つこと。
+export type Declarations = Partial<Properties>;
+
+export type StyleRule = {
+    type: "style";
+    selector: string;
+    declarations: Declarations;
+};
+
+export type AtBlockRule = {
+    type: "at-block";
+    prelude: string;
+    children: RuleNode[];
+};
+
+export type AtStatementRule = {
+    type: "at-statement";
+    statement: string;
+};
+
+export type RuleNode = StyleRule | AtBlockRule | AtStatementRule;
+
+export type Registry = Map<string, RuleNode[]>;
 
 // クライアントでは no-op。SSR 側（registry.ts）と同一シグネチャを保つこと。
-export function registerCss(_designator: string, _selectors: string[], _properties: Partial<Properties>): void {}
+export function registerRules(_key: string, _nodes: RuleNode[]): void {}
 
 // クライアントでは no-op。CSS は初期 SSR 描画で収集・生成済みのため、サンプルの描画は不要。
 export function registerStyleSample(_element: ReactNode): void {}

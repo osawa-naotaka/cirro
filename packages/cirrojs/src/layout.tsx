@@ -247,18 +247,18 @@ export function createLayout(theme: LayoutTheme = {}): Layout {
         const limit = opts?.limit ?? d.switcherLimit;
         return cx(
             css({ display: "flex", flex_wrap: "wrap", gap: opts?.gap ?? d.switcherGap ?? d.gap }, { name: "switcher" }),
-            css({ flex_grow: "1", flex_basis: `calc((${threshold} - 100%) * 999)` }, { selector: "& > *", name: "switcher-item" }),
+            css({ flex_grow: "1", flex_basis: `calc((${threshold} - 100%) * 999)` }, { selector: "$ > *", name: "switcher-item" }),
             css(
                 { flex_basis: "100%" },
                 {
-                    selector: `& > :nth-last-child(n+${limit + 1})`,
+                    selector: `$ > :nth-last-child(n+${limit + 1})`,
                     name: "switcher-item-last",
                 },
             ),
             css(
                 { flex_basis: "100%" },
                 {
-                    selector: `& > :nth-last-child(n+${limit + 1}) ~ *`,
+                    selector: `$ > :nth-last-child(n+${limit + 1}) ~ *`,
                     name: "switcher-item-last-child",
                 },
             ),
@@ -300,9 +300,9 @@ export function createLayout(theme: LayoutTheme = {}): Layout {
                     { name: "cover" },
                 ),
                 // centered 以外の子に縦の余白を入れる（centered には触れない）。
-                css({ margin_block: gap }, { selector: `& > :not(.${centered})`, name: "cover-gap" }),
-                css({ margin_block_start: "0" }, { selector: `& > :first-child:not(.${centered})`, name: "cover-gap-first" }),
-                css({ margin_block_end: "0" }, { selector: `& > :last-child:not(.${centered})`, name: "cover-gap-last" }),
+                css({ margin_block: gap }, { selector: `$ > :not(.${centered})`, name: "cover-gap" }),
+                css({ margin_block_start: "0" }, { selector: `$ > :first-child:not(.${centered})`, name: "cover-gap-first" }),
+                css({ margin_block_end: "0" }, { selector: `$ > :last-child:not(.${centered})`, name: "cover-gap-last" }),
             ),
             centered,
         };
@@ -321,7 +321,7 @@ export function createLayout(theme: LayoutTheme = {}): Layout {
                 },
                 { name: "frame" },
             ),
-            css({ inline_size: "100%", block_size: "100%", object_fit: "cover" }, { selector: "& > img, & > video", name: "frame-img" }),
+            css({ inline_size: "100%", block_size: "100%", object_fit: "cover" }, { selector: "$ > img, $ > video", name: "frame-img" }),
         );
     }
 
@@ -338,8 +338,8 @@ export function createLayout(theme: LayoutTheme = {}): Layout {
                 },
                 { name: "reel" },
             ),
-            css({ flex: `0 0 ${opts?.itemWidth ?? "auto"}` }, { selector: "& > *", name: "reel-child" }),
-            css({ block_size: "100%", flex_basis: "auto", inline_size: "auto" }, { selector: "& > img", name: "reel-img" }),
+            css({ flex: `0 0 ${opts?.itemWidth ?? "auto"}` }, { selector: "$ > *", name: "reel-child" }),
+            css({ block_size: "100%", flex_basis: "auto", inline_size: "auto" }, { selector: "$ > img", name: "reel-img" }),
         );
     }
 

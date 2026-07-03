@@ -21,7 +21,7 @@ export function TableOfContents({ toc }: { toc: ToC[] }) {
     const heading = cssMain({ font_size: fontSize.xs, font_weight: "700", color: color.fgMuted, text_transform: "uppercase", letter_spacing: "0.05em", margin_bottom: space(2) });
     const link = cx(
         cssMain({ color: color.fgMuted, text_decoration: "none" }),
-        cssMain({ color: color.primary, text_decoration: "underline" }, { selector: "&:hover" }),
+        cssMain({ color: color.primary, text_decoration: "underline" }, { selector: "$:hover" }),
     );
     const indent = [cssMain({ padding_left: space(0) }), cssMain({ padding_left: space(3) }), cssMain({ padding_left: space(6) }), cssMain({ padding_left: space(9) })];
 

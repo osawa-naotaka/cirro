@@ -133,7 +133,7 @@ Cirro は "Every Layout" を参考にしたレイアウトプリミティブ（`
 <div className={cx(childrenRoot, props.isOpen && "is-open")}>{content}</div>
 ```
 
-のように **`{content}` を isOpen に関係なく常にレンダリング**し、開閉は `height:0` ↔ `&.is-open { height: calc-size(...) }`
+のように **`{content}` を isOpen に関係なく常にレンダリング**し、開閉は `height:0` ↔ `$.is-open { height: calc-size(...) }`
 という **CSS クラスの差し替え**で行う。よって閉じていても `TocCard` 内部の `css()` は SSR で走り、**各コピーが
 自己完結**する（PC コピーへの依存はない）。これは §7.3 の推奨パターン（条件付きマウントを避け CSS で表示/非表示）を
 正しく実践した形であり、`TocCard` / `Accordion` の内部は綺麗で手を入れる必要はない。
@@ -161,8 +161,8 @@ Cirro は "Every Layout" を参考にしたレイアウトプリミティブ（`
 `Accordion.tsx` の `exprain`:
 
 ```tsx
-cssPc({ content: "'クリック'" }, { selector: "&::before" }),
-cssPh({ content: "'タップ'" }, { selector: "&::before" }),
+cssPc({ content: "'クリック'" }, { selector: "$::before" }),
+cssPh({ content: "'タップ'" }, { selector: "$::before" }),
 ```
 
 これは**表示されている 1 要素の値（文言）がブレークポイントで変わる**ケースで、`cssPc`/`cssPh`（= responsive）の

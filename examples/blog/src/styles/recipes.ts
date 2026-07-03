@@ -41,25 +41,25 @@ function buttonVariant(variant: ButtonVariant): string {
         case "solid":
             return cx(
                 cssMain({ background_color: color.primary, color: color.white }),
-                cssMain({ background_color: color.primaryDark }, { selector: "&:hover" }),
+                cssMain({ background_color: color.primaryDark }, { selector: "$:hover" }),
             );
         // 枠線のみ。色は継承（ヒーロー上の白文字などに使う）。
         case "outline":
             return cx(
                 cssMain({ border_color: "currentcolor", color: "inherit" }),
-                cssMain({ background_color: color.whiteAlpha150 }, { selector: "&:hover" }),
+                cssMain({ background_color: color.whiteAlpha150 }, { selector: "$:hover" }),
             );
         // 濃い背景の上に置く反転ボタン（白地・プライマリ文字）。
         case "contrast":
             return cx(
                 cssMain({ background_color: color.white, color: color.primary }),
-                cssMain({ opacity: "0.85" }, { selector: "&:hover" }),
+                cssMain({ opacity: "0.85" }, { selector: "$:hover" }),
             );
         // テキストのみ（ナビゲーション等）。色は継承。
         default:
             return cx(
                 cssMain({ color: "inherit" }),
-                cssMain({ background_color: color.blackAlpha100 }, { selector: "&:hover" }),
+                cssMain({ background_color: color.blackAlpha100 }, { selector: "$:hover" }),
             );
     }
 }
@@ -85,7 +85,7 @@ export function chip(opts?: { size?: ChipSize }): string {
         text_decoration: "none",
         transition: "background-color .2s",
     });
-    const hover = cssMain({ background_color: color.hover }, { selector: "&:hover" });
+    const hover = cssMain({ background_color: color.hover }, { selector: "$:hover" });
     const sizeClass = size === "md" ? cssMain({ font_size: fontSize.sm, padding: `${space(1.5)} ${space(3)}` }) : "";
 
     return cx(base, hover, sizeClass);

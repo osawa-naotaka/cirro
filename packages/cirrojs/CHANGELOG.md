@@ -13,6 +13,18 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- `cssRules(rules, opt?)`, exported from the package entry point. It registers nested style rules under a single deterministic class name and returns that class name. Keys prefixed with `&` nest relative to the parent selector (same semantics as the CSS nesting `&`), keys prefixed with `$` refer to the generated class itself regardless of nesting depth, and keys prefixed with `@` wrap the inner rules in a block at-rule while keeping the current selector context. At-rules can be nested arbitrarily. Output is flattened; native CSS nesting is not emitted. Nested selector keys must not contain commas.
+- `cssKeyframes(frames, opt?)`, exported from the package entry point. It registers a `@keyframes` block and returns the animation name (a deterministic hash with the default prefix `cirro-kf`). Frame keys are `from`, `to`, or `<number>%`; comma-separated frame keys are not allowed. The optional `atrules` places the block inside other at-rules such as `@layer` or `@media`.
+- `NestedRules`, `KeyframeFrames`, and `CssKeyframesOpt` types, exported from the package entry point.
+- `RuleNode`, `StyleRule`, `AtBlockRule`, `AtStatementRule`, and `Declarations` types, exported from the package entry point. They describe the CSS AST held by the registry.
+- Validation of selectors and at-rules at registration and stringification time: at-rules must start with `@` followed by an identifier, and selectors and at-rules must not contain `{`, `}`, `;`, or `/*` (block injection guard). Both are limited to 512 characters.
+
+### Changed
+- **Breaking**: the self-reference token in selectors is now `$` instead of `&` (e.g. `selector: "$:hover"`, `selector: "$ h2"`). `&` is reserved for parent references inside `cssRules()` nesting and throws an error when used in a top-level selector. `$` is not replaced inside quoted strings or when immediately followed by `=` (the attribute suffix matcher `[attr$="..."]`). All generated class names change because the default selector (`"$"`) is part of the hash input; the emitted CSS is otherwise equivalent.
+- **Breaking**: the `Registry` type changed from `Map<string, [string[], Partial<Properties>]>` to `Map<string, RuleNode[]>`, a small CSS AST. The `registerCss(designator, selectors, properties)` function of `cirrojs/registry` was replaced by `registerRules(key, nodes)`.
+- Statement at-rules (e.g. `@layer a, b;`) are now representable in the registry (`AtStatementRule`) and are emitted right after the fixed preamble. No public API registers them yet.
+
 ## [0.0.23] - 2026-07-02
 
 ### Added
