@@ -1,5 +1,5 @@
 import type { ComponentPropsWithoutRef, ReactNode } from "react";
-import { at, type CssFnT, genCssFn2 } from "./css.ts";
+import { at, type CssFn, genCssFn } from "./css.ts";
 import type { Properties } from "./properties.ts";
 
 // Every Layout（every-layout.dev）のレイアウトプリミティブを「意図で名付けた型付き関数」として提供する。
@@ -66,7 +66,7 @@ const DEFAULTS: LayoutDefaults = {
 
 export interface LayoutTheme {
     // 出力先 css 関数。省略時は @layer low。ユーザーがレイヤーを制御したい場合に差し替える。
-    css?: CssFnT;
+    css?: CssFn;
     // 既定値の部分上書き。
     defaults?: Partial<LayoutDefaults>;
 }
@@ -192,7 +192,7 @@ export function cx(...classes: (string | false | null | undefined)[]): string {
 
 export function createLayout(theme: LayoutTheme = {}): Layout {
     // const css = theme.css ?? genCssFn({ layer: "low" });
-    const css = theme.css ?? genCssFn2((fn) => at("@layer low", fn()));
+    const css = theme.css ?? genCssFn((fn) => at("@layer low", fn()));
     const d = { ...DEFAULTS, ...theme.defaults };
 
     // Stack — 縦積み。flex column + gap で隣接間に等間隔の余白を入れる。

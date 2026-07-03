@@ -1,4 +1,4 @@
-import { css, genCssFn, type CssOpt, type Properties } from "cirrojs";
+import { at, genCssFn, ss, toStyle } from "cirrojs";
 
 // Cirro 自前スタイリングシステム（旧 panda.config.ts のテーマを TypeScript の定数へ移植）。
 // 値はすべて型付きの定数・関数として表現し、文字列トークンや特殊記法は使わない。
@@ -84,12 +84,15 @@ export function space(n: number): string {
 // 素の css() は「レイヤー無し」として出力され、@layer 付きのどのスタイルより優先されてしまう。
 // レスポンシブ上書き（@layer main + @media）と正しくカスケードさせるため、
 // 通常スタイルも必ず main レイヤーに入れる。
-export const cssMain = genCssFn({ layer: "main" });
+// export const cssMain = genCssFn({ layer: "main" });
+export const cssMain = genCssFn((inject) => at("@layer main", inject()));
 
 // レスポンシブ用 css（旧 panda の breakpoint 既定値）。@layer main + @media で出力する。
 // 基準スタイルを cssMain で先に登録してから cx() で結合すると、min-width 一致時に上書きされる。
-export const cssSm = genCssFn({ atRules: ["@media (min-width: 640px)"], layer: "main" }); // sm
-export const cssMd = genCssFn({ atRules: ["@media (min-width: 768px)"], layer: "main" }); // md
+// export const cssSm = genCssFn({ atRules: ["@media (min-width: 640px)"], layer: "main" }); // sm
+// export const cssMd = genCssFn({ atRules: ["@media (min-width: 768px)"], layer: "main" }); // md
+export const cssSm = genCssFn((inject) => at("@layer main", at("@media (min-width: 640px)", inject()))); // sm
+export const cssMd = genCssFn((inject) => at("@layer main", at("@media (min-width: 768px)", inject()))); // md
 
 // クラス名を結合する（falsy は除外）。
 export function cx(...classes: (string | false | null | undefined)[]): string {
@@ -105,10 +108,7 @@ export function cx(...classes: (string | false | null | undefined)[]): string {
 // 全ページが通る Layout の先頭で毎回呼び出す。
 export function applyGlobalStyles(): void {
     // リセット（MUI の CssBaseline 相当）。
-    css({ margin: "0", padding: "0", box_sizing: "border-box" }, { selector: "*", atrules: ["@layer base"] });
-    css(
-        { background_color: color.bg, color: color.fg, font_family: font.body, line_height: "1.6" },
-        { selector: "html, body", atrules: ["@layer base"] },
-    );
-    css({ color: "inherit" }, { selector: "a", atrules: ["@layer base"] });
+    toStyle(at("@layer base", ss({ margin: "0", padding: "0", box_sizing: "border-box" }, { selector: "*" })));
+    toStyle(at("@layer base", ss({ background_color: color.bg, color: color.fg, font_family: font.body, line_height: "1.6" }, { selector: "html, body" })));
+    toStyle(at("@layer base", ss({ color: "inherit" }, { selector: "a" })));
 }

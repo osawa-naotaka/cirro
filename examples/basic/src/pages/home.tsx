@@ -1,12 +1,12 @@
-import { css, genCssFn } from "cirrojs";
+import { at, genCssFn, ss, toStyle } from "cirrojs";
 import { Island } from "../islands/Island";
 
 // ホームページ（本文は静的 HTML、Counter だけが島）。
 export function HomePage() {
     // reset css
-    css({ margin: "0", padding: "0" }, { selector: "*", atrules: ["@layer base"] });
+    toStyle(at("@layer base", ss({ margin: "0", padding: "0" }, { selector: "*" })));
 
-    const cssPC = genCssFn({ atRules: ["@media (min-width: 800px)"] });
+    const cssPC = genCssFn((fn) => at("@media (min-width: 800px)", fn()));
 
     const pageTitle = cssPC({ padding: "1rem", font_size: "2rem" });
 
