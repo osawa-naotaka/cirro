@@ -130,10 +130,11 @@ const article = toStyle(ss({ margin_top: "2rem" }, { selector: "$ h2" }));
   狙うセレクタも書ける。
 - `$` は `toStyle()` での登録時に**機械的に全置換**される。引用符内も対象になるため、属性値の文字列に
   `$` を含むセレクタは当面書けない（将来セレクタパーサー導入時に緩和予定）。
-- 属性セレクタの後方一致 `[attr$="..."]` は使えない。`$` が機械置換されてセレクタが壊れる。
-  **現在この誤用を検出する検証はない**ので注意すること。
+- 属性セレクタの後方一致 `[attr$="..."]` は使えない（`$` が機械置換されるとセレクタが壊れるため、
+  `$=` を含むセレクタは `toStyle()` の登録時にエラーになる）。
 - `&` は置換されない。`&` は**ネストルール（11 章）の親参照**としてブラウザに解釈させるトークンであり、
-  自クラス参照（`$`）とは別物である。
+  自クラス参照（`$`）とは別物である。入れ子でない（ネストルール以外の）セレクタに `&` を書くと
+  登録時エラーになる（トップレベルの `&` は `:scope` 扱いになり意図とズレるため）。
 
 `$` を含まないセレクタを渡すと、クラスに紐付かない**任意セレクタ**として出力される。リセット CSS の
 ように要素そのものへ当てたい場合に使う（この場合、戻り値のクラス名は使わない）。
@@ -738,31 +739,53 @@ const card = cssMain(
 
 - ハッシュはルールノードのツリー全体から決まる。**1 呼び出し = 1 クラス名**で、全ネストルールがそれを
   参照する。
-- **ネスト内では `selector` を明示し、`&` 基点で書く**。`ss()` の既定セレクタは `"$"` であり、ネスト内の
-  `$` も機械置換の対象になるが、置換結果（`.cirro-x`）は `&` を含まないため**暗黙の子孫結合**が働き、
-  「ルート参照のつもりが `& .cirro-x`（子孫セレクタ）」という無言のズレになる。ネスト内の自己参照は
-  必ず `&` で書くこと。
+- **ネスト内のセレクタに `$` は書けない（登録時エラー）**。仮に `$` を置換すると、置換結果
+  （`.cirro-x`）は `&` を含まないため**暗黙の子孫結合**が働き、「ルート参照のつもりが
+  `& .cirro-x`（子孫セレクタ）」という無言のズレになる。これを防ぐため `toStyle()` が拒否する。
+  `ss()` の既定セレクタは `"$"` なので、**ネストルールでは `selector` の明示が必須**になる。
+  ネスト内の自己参照・親参照は `&` で書く。
 - セレクタ・アットルールの検証（4 章）はネスト内にも適用される。文アットルール（`atStatement`）は
   ネストの内側に置けない。
 
 ---
 
-## 12. キーフレーム
+## 12. キーフレーム — `toKeyframes()`
 
-`@keyframes` 専用の API は現在ない。`at()` とフレームキーをセレクタにした `ss()` で書ける。
+`toKeyframes()` はフレーム群（`ss()` で作ったスタイルルール）から `@keyframes` を登録し、
+**アニメーション名**（`animation` / `animation-name` に渡す文字列）を返す。戻り値はクラス名ではない。
 
-```tsx
-toStyle(at("@keyframes spin",
-    ss({ transform: "rotate(0deg)" }, { selector: "from" }),
-    ss({ transform: "rotate(360deg)" }, { selector: "to" }),
-));
-const loader = cssMain({ animation: "spin 1s linear infinite" });
+```ts
+function toKeyframes(frames: RuleNode[], opt?: ToKeyframesOpt): string; // アニメーション名を返す
+
+type ToKeyframesOpt = {
+    name?: string;    // 名前の接頭辞（既定 "cirro-kf"）
+    wrap?: InjectFn;  // @layer 等の外側アットルールで包む（genCssFn と同じ形式）
+};
 ```
 
-- アニメーション名（上例の `spin`）は**手動命名**。決定的ハッシュによる自動命名はないため、名前の
-  衝突管理は利用側の責任になる。
-- この使い方では `toStyle()` の戻り値（クラス名）は使わない（3 章の任意セレクタと同じ扱い）。
-- `@layer` 内に置くなら `at("@layer main", at("@keyframes spin", ...))` のように外側へ重ねる。
+```tsx
+const spin = toKeyframes([
+    ss({ transform: "rotate(0deg)" }, { selector: "from" }),
+    ss({ transform: "rotate(360deg)" }, { selector: "to" }),
+]);
+const loader = cssMain({ animation: `${spin} 1s linear infinite` });
+
+// @layer main の中に置く場合
+const pulse = toKeyframes(
+    [ss({ opacity: "0.4" }, { selector: "0%, 100%" }), ss({ opacity: "1" }, { selector: "50%" })],
+    { wrap: (fn) => at("@layer main", fn()) },
+);
+```
+
+- 名前は**フレーム内容から決まる決定的ハッシュ**（既定接頭辞 `cirro-kf`）。同じフレーム定義なら常に
+  同じ名前になり、レジストリ上で自然に重複排除される（手動命名と違い、名前の衝突管理が不要）。
+- フレームのセレクタは `from` / `to` / `<数値>%`、およびそれらの**カンマ区切りリスト**（`"0%, 100%"`）。
+  それ以外（`ss()` の既定セレクタ `"$"` を含む）は登録時エラーになるため、**フレームでは `selector` の
+  明示が必須**。フレームにネストルールは書けない。
+- `wrap` はハッシュに含まれない。同一フレーム内容を異なる `wrap` で複数回登録した場合、名前が同じに
+  なるため最後の 1 件だけが出力される点に注意。
+- `at("@keyframes 名前", ...)` を `toStyle()` に渡す手動命名も引き続き可能（名前の衝突管理は利用側の
+  責任になる）。
 
 ---
 
@@ -776,6 +799,7 @@ const loader = cssMain({ animation: "spin 1s linear infinite" });
 | `at(prelude, ...children)` | ブロックアットルールノードを作る（4 章） |
 | `atStatement(statement)` | 文アットルールノードを作る（4 章） |
 | `toStyle(node, opt?)` | ルールノードを登録しクラス名を返す（1 章） |
+| `toKeyframes(frames, opt?)` | `@keyframes` を登録しアニメーション名を返す（12 章） |
 | `genCssFn(inject)` | アットルールを固定した css 関数を生成する（5 章） |
 | `styleSample(element)` | サンプル要素を登録する。本描画の完了後に描画され、遅延マウントされる部分のスタイルも収集される（7.3。クライアントでは no-op） |
 | `runWithRegistry(fn)` | `fn` を専用レジストリのコンテキストで実行し、戻り値とレジストリを返す（ランタイムが呼ぶ／`routes.ts` で再 export） |
@@ -784,7 +808,7 @@ const loader = cssMain({ animation: "spin 1s linear infinite" });
 | `RuleNode` / `StyleRule` / `AtBlockRule` / `AtStatementRule` 型 | レジストリが保持する CSS AST の型（1 章・7.1）。`Declarations` 型は `cirrojs/registry` から公開 |
 | `CssFn` / `CssFnOpt` 型 | css 関数の型と、その第 2 引数の型（5 章） |
 | `InjectFn` 型 | `genCssFn()` の引数（スタイルノードの配置を決めるラッパー関数）の型（5 章） |
-| `SsOpt` / `ToStyleOpt` 型 | `ss()` / `toStyle()` の第 2 引数の型（1 章） |
+| `SsOpt` / `ToStyleOpt` / `ToKeyframesOpt` 型 | `ss()` / `toStyle()` / `toKeyframes()` の第 2 引数の型（1 章・12 章） |
 
 ### 公開 API（`cirrojs/layout`）
 

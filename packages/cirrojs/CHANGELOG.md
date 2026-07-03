@@ -13,6 +13,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- `toKeyframes(frames, opt?)`, exported from the package entry point. It registers a `@keyframes` block built from style rule nodes and returns the animation name, a deterministic hash of the frame contents with the default prefix `cirro-kf`, so identical frame definitions share one name and are deduplicated in the registry. Frame selectors must be `from`, `to`, `<number>%`, or a comma-separated list of them, and frames must not contain nested rules; both are validated at registration time. The optional `wrap` (an `InjectFn`) places the block inside outer at-rules such as `@layer`. `wrap` is not part of the hash, so registering identical frames with different wrappers emits only the last registration.
+- `ToKeyframesOpt` type, exported from the package entry point.
+- Registration-time validation in `toStyle()`. Selectors containing `$=` (the attribute suffix matcher) are rejected because every `$` is replaced with the generated class name. Non-nested selectors containing `&` are rejected because a top-level `&` behaves as `:scope` rather than a class reference. Selectors nested inside a style rule containing `$` are rejected because the replaced class name would be subject to the implicit descendant combinator of CSS Nesting; since the default selector of `ss()` is `"$"`, nested rules now require an explicit selector. Errors are thrown at the registering call site instead of at CSS stringification.
+
 ## [0.0.24] - 2026-07-03
 
 ### Added

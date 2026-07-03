@@ -57,10 +57,43 @@ export function toStyle(node: RuleNode, opt?: ToStyleOpt): string {
     const hash = hash_djb2_object(node);
     const designator = `${opt?.name ?? "cirro"}-${hash.toString(16)}`;
 
-    const resolved = resolveSelectorsInNode(node, `.${designator}`);
+    const resolved = resolveSelectorsInNode(node, `.${designator}`, false);
     registerRules(designator, [resolved]);
 
     return designator;
+}
+
+export type ToKeyframesOpt = {
+    name?: string;
+    wrap?: InjectFn;
+};
+
+const keyframe_selector_re = /^(from|to|\d+(\.\d+)?%)(\s*,\s*(from|to|\d+(\.\d+)?%))*$/;
+
+// @keyframes を登録し、アニメーション名（animation / animation-name に渡す文字列）を返す。
+// 名前はフレーム内容から決まる決定的ハッシュ（既定接頭辞 "cirro-kf"）で、クラス名ではない。
+// wrap（genCssFn と同じ InjectFn 形式）で @layer などの外側アットルールに包める。
+// 同一フレーム内容は同一名になり、レジストリ上で自然に重複排除される。wrap はハッシュに
+// 含まれないため、同一内容を異なる wrap で複数回登録した場合は最後の 1 件だけが出力される。
+export function toKeyframes(frames: RuleNode[], opt?: ToKeyframesOpt): string {
+    for (const frame of frames) {
+        if (frame.type !== "style") {
+            throw new Error(`cirro: @keyframes accepts only style rules (got "${frame.type}")`);
+        }
+        if (!keyframe_selector_re.test(frame.selector)) {
+            throw new Error(`cirro: keyframe selector "${frame.selector}" must be "from", "to", "<number>%" or a comma-separated list of them`);
+        }
+        if (frame.children && frame.children.length > 0) {
+            throw new Error(`cirro: keyframe "${frame.selector}" must not contain nested rules`);
+        }
+    }
+
+    const hash = hash_djb2_object({ frames });
+    const name = `${opt?.name ?? "cirro-kf"}-${hash.toString(16)}`;
+
+    const block = at(`@keyframes ${name}`, ...frames);
+    registerRules(name, [opt?.wrap ? opt.wrap(() => block) : block]);
+    return name;
 }
 
 export function stringifyCss(registry: Registry): string {
@@ -100,24 +133,52 @@ function stringifyRuleNode(node: RuleNode): string {
 }
 
 // "$"（自クラス参照）を機械的に全置換する。引用符やエスケープの解釈は行わない。
-// $= の混入は validateTopSelector が事前に拒否する。引用文字列内に $ を書けない制約は
-// doc に明記済み（将来セレクタパーサー導入時に緩和予定）。
+// $= の混入や不正な位置の $ / & は resolveSelectorsInNode が登録時に拒否する。
+// 引用文字列内に $ を書けない制約は doc に明記済み（将来セレクタパーサー導入時に緩和予定）。
 function resolveSelector(selector: string, self: string): string {
     return selector.replaceAll("$", self);
 }
 
-function resolveSelectorsInNode(node: RuleNode, designator: string): RuleNode {
+// $ と & は使える位置が異なるため、スタイルルールへの入れ子か否か（insideStyle）で検証を分ける。
+// - 入れ子でないセレクタ: $ を置換する。& は親が存在せず :scope 扱いになり意図とズレるためエラー。
+//   $= は機械置換で属性後方一致が壊れるためエラー。
+// - 入れ子のセレクタ: & はブラウザの CSS ネストに委ねてそのまま通す。$ は置換結果が & を含まず
+//   暗黙の子孫結合が働き「ルート参照のつもりが子孫セレクタ」という無言のズレになるためエラー。
+// 検証を stringify 時でなく登録時に行うことで、エラーの stack が登録元（コンポーネント）を指す。
+function resolveSelectorsInNode(node: RuleNode, designator: string, insideStyle: boolean): RuleNode {
     switch (node.type) {
-        case "style":
+        case "style": {
+            if (insideStyle) {
+                if (node.selector.includes("$")) {
+                    throw new Error(
+                        `cirro: "$" is not allowed in a nested selector ("${node.selector}"). ` +
+                            `Specify the selector explicitly and use "&" to refer to the parent inside nested rules.`,
+                    );
+                }
+            } else {
+                if (node.selector.includes("&")) {
+                    throw new Error(
+                        `cirro: "&" is not allowed in a non-nested selector ("${node.selector}"). ` +
+                            `"&" is the CSS Nesting parent reference; use "$" to refer to the generated class itself.`,
+                    );
+                }
+                if (node.selector.includes("$=")) {
+                    throw new Error(
+                        `cirro: the attribute suffix matcher ("$=") is not supported in "${node.selector}" ` +
+                            `because every "$" is replaced with the generated class name`,
+                    );
+                }
+            }
             return {
                 ...node,
-                selector: resolveSelector(node.selector, designator),
-                children: node.children?.map((child) => resolveSelectorsInNode(child, designator)),
+                selector: insideStyle ? node.selector : resolveSelector(node.selector, designator),
+                children: node.children?.map((child) => resolveSelectorsInNode(child, designator, true)),
             };
+        }
         case "at-statement":
             return node;
         case "at-block":
-            return { ...node, children: node.children.map((child) => resolveSelectorsInNode(child, designator)) };
+            return { ...node, children: node.children.map((child) => resolveSelectorsInNode(child, designator, insideStyle)) };
     }
 }
 
