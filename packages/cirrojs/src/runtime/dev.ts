@@ -104,7 +104,7 @@ export async function runDev(port = 5173) {
                 switch (page.type) {
                     case "html": {
                         const { result: html } = objs.runWithRegistry(() => {
-                            const tree = appendClientScriptAndCss(page.render(), CLIENT_DEV_URL, page.cssPath);
+                            const tree = appendClientScriptAndCss(page.render(), CLIENT_DEV_URL, `${page.path}.css`);
                             return `<!DOCTYPE html>${renderToStaticMarkup(tree)}`;
                         });
                         const transformed = await vite.transformIndexHtml(rawUrl, html);

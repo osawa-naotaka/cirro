@@ -50,7 +50,7 @@ export async function runBuild() {
                 }
                 case "html": {
                     const { result: html } = obj.runWithRegistry(() => {
-                        const tree = appendClientScriptAndCss(page.render(), scriptSrc, page.cssPath);
+                        const tree = appendClientScriptAndCss(page.render(), scriptSrc, `${page.path}.css`);
                         return `<!DOCTYPE html>${renderToStaticMarkup(tree)}`;
                     });
                     const filePath = join(outDir, page.path);
