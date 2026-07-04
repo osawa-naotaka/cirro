@@ -121,7 +121,7 @@ Cirro は `@vitejs/plugin-react` を**内包しない**（RSC 系プラグイン
 | オプション | 必須 | 既定値 | 意味 |
 | --- | --- | --- | --- |
 | `routes` | ✓ | — | ルート定義ファイル（`routes` を export する `.ts`）への相対パス |
-| `islands` | ✓ | — | 島レジストリ（`islands` を export する `.ts`）への相対パス |
+| `islands` |　— | — | 島レジストリ（`islands` を export する `.ts`）への相対パス |
 | `watchDir` | — | `./src` | dev サーバーが full-reload の対象として監視するディレクトリ |
 
 ### 3.3 プラグインが裏で行うこと
@@ -281,18 +281,18 @@ export function Layout({ title, description, children, island = true }: LayoutPr
 島を使う 3 ステップ:
 
 1. **島コンポーネントを書く**（`src/islands/Counter.tsx`）— ふつうの React コンポーネント。
-2. **レジストリに登録**（`src/islands/registry.ts`）— 純データの対応表を export する。 必ず `export const islands = ...` とすること。cirroは　`islands` という名前のexportを探すため。
+2. **レジストリに登録**（`src/islands/registry.ts`）— 純データの対応表を default export する。 必ず `export default ...` とすること。cirroはdefault exportを探すため。
 
    ```ts
    import { Counter } from "./Counter";
-   export const islands = { counter: Counter } as const;
+   export default { counter: Counter } as const;
    ```
 
-3. **型付き `<Island>` を生成**（`src/islands/Island.ts`）— 定型の 5 行。
+3. **型付き `<Island>` を生成**（`src/islands/Island.ts`）— 定型の 3 行。
 
    ```ts
    import { createIsland } from "cirro";
-   import { islands } from "./registry";
+   import islands from "./registry";
    export const Island = createIsland(islands);
    ```
 
