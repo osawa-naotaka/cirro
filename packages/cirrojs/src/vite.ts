@@ -3,7 +3,7 @@ import type { Plugin } from "vite";
 
 export type CirroOptions = {
     routes: string;
-    islands: string;
+    islands?: string;
     // dev サーバーが full-reload の対象として監視するディレクトリ（root からの相対パス）。
     // 既定は "./src"。このディレクトリ配下（islands を除く）の変更で full-reload する。
     watchDir?: string;
@@ -19,7 +19,7 @@ const RESOLVED_CLIENT = `\0${VIRTUAL_CLIENT}`;
 // React プラグイン（@vitejs/plugin-react）は内包しない。利用者が plugins に react() を
 // 明示的に追加する（RSC 系プラグインと同じ作法）。未追加の場合は configResolved で検出して案内する。
 export function cirro(options: CirroOptions): Plugin {
-    let islandsPath = options.islands;
+    let islandsPath: string | undefined;
     return {
         name: "cirro",
         // CLI (cirro dev / build) が解決済み config から routes/islands を取得するために公開する。
@@ -41,13 +41,15 @@ export function cirro(options: CirroOptions): Plugin {
             };
         },
         configResolved(resolved) {
-            islandsPath = resolve(resolved.root, options.islands);
-            // @vitejs/plugin-react は内部で vite:react-* というプラグインを登録する。未追加なら案内する。
-            const hasReact = resolved.plugins.some((p) => p.name?.startsWith("vite:react"));
-            if (!hasReact) {
-                throw new Error(
-                    "cirro: React プラグインが見つかりません。vite.config の plugins に react()（@vitejs/plugin-react）を cirro() より前に追加してください。",
-                );
+            if (options.islands !== undefined) {
+                islandsPath = resolve(resolved.root, options.islands);
+                // @vitejs/plugin-react は内部で vite:react-* というプラグインを登録する。未追加なら案内する。
+                const hasReact = resolved.plugins.some((p) => p.name?.startsWith("vite:react"));
+                if (!hasReact) {
+                    throw new Error(
+                        "cirro: React プラグインが見つかりません。vite.config の plugins に react()（@vitejs/plugin-react）を cirro() より前に追加してください。",
+                    );
+                }
             }
         },
         resolveId(id) {
@@ -55,11 +57,12 @@ export function cirro(options: CirroOptions): Plugin {
         },
         load(id) {
             if (id === RESOLVED_CLIENT) {
+                if (islandsPath === undefined) return "";
                 // 島マウンタ: data-island を走査し、純データ registry から島を解決して hydrate する。
                 return [
                     `import { createElement } from "react";`,
                     `import { hydrateRoot } from "react-dom/client";`,
-                    `import { islands } from ${JSON.stringify(islandsPath)};`,
+                    `import islands from ${JSON.stringify(islandsPath)};`,
                     ``,
                     `for (const el of document.querySelectorAll("[data-island]")) {`,
                     `    const name = el.dataset.island;`,

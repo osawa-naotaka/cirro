@@ -1,4 +1,4 @@
-import { at, genCssFn, ss, toStyle } from "cirrojs";
+import { at, atStatement, genCssFn, ss, toStyle } from "cirrojs";
 
 // Cirro 自前スタイリングシステム（旧 panda.config.ts のテーマを TypeScript の定数へ移植）。
 // 値はすべて型付きの定数・関数として表現し、文字列トークンや特殊記法は使わない。
@@ -107,6 +107,9 @@ export function cx(...classes: (string | false | null | undefined)[]): string {
 // css() は描画時に呼ばれた分だけがそのルートの CSS に出力されるため、
 // 全ページが通る Layout の先頭で毎回呼び出す。
 export function applyGlobalStyles(): void {
+    // カスケードレイヤー定義
+    toStyle(atStatement("@layer base, font, low, main, high"));
+
     // リセット（MUI の CssBaseline 相当）。
     toStyle(at("@layer base", ss({ margin: "0", padding: "0", box_sizing: "border-box" }, { selector: "*" })));
     toStyle(at("@layer base", ss({ background_color: color.bg, color: color.fg, font_family: font.body, line_height: "1.6" }, { selector: "html, body" })));

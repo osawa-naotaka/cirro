@@ -265,10 +265,23 @@ const stickyBox = responsive({
 
 ## 6. レイヤー順序とリセット CSS
 
-生成 CSS の先頭には常に以下が出力され、カスケードレイヤーの**優先順位**が固定される。
+生成 CSS の先頭には常に以下が出力される。
 
 ```css
 @charset "utf-8";
+```
+
+cirroでは、明示的なカスケードレイヤーの指定を推奨する。`defineCascadeLayer()`により、カスケードレイヤーの**優先順位**が固定される。
+
+```tsx
+export function defineCascadeLayer(layers: string = "base, font, low, main, high"): void {
+    toStyle(atStatement(`@layer ${layers}`));
+}
+```
+
+引数なしで`defineCascadeLayer()`を呼び出すと、デフォルトのカスケードレイヤーが設定される。
+
+```css
 @layer base, font, low, main, high;
 ```
 
@@ -287,6 +300,36 @@ const stickyBox = responsive({
 ```tsx
 // reset css（base レイヤーへ）
 toStyle(at("@layer base", ss({ margin: "0", padding: "0" }, { selector: "*" })));
+```
+
+cirroでは、標準のリセットCSS　`resetCss()`を提供している。この関数を呼ぶことで、以下のスタイルを生成する。
+
+```css
+@layer base {
+    *, *:before, *:after {
+        margin: 0;
+        padding: 0;
+        border: 0;
+        box-sizing: border-box;
+        font: inherit;
+        color: inherit;
+    }
+
+    a {
+        color: inherit;
+        text-decoration: inherit;
+    }
+
+    img, video, canvas, svg {
+        display: block;
+        max-width: 100%;
+        height: auto;
+    }
+
+    button {
+        cursor: pointer;
+    }
+}
 ```
 
 ---
@@ -328,10 +371,8 @@ const css = stringifyCss(registry);
 自然に排除される。文アットルール（`AtStatementRule`）はプリアンブル直後にまとめて出力される（4 章）。
 `toStyle()` が描画コンテキスト外（`runWithRegistry` の外）で呼ばれた場合は例外を投げる。
 
-CSS の URL は `expandRoutes()`（`router.ts`）が決める。
-
-- 静的ルート `"/about"` → `/about/index.css`
-- 動的ルートは `cssPath` で明示する。`examples/basic` では `/posts/[slug]` 系で `/posts/index.css` を
+CSS の URL は `StaticRoute.cssPath`や`DynamicRoute.cssPath`で明示的に指定する。
+`examples/basic` では `/posts/[slug]` 系で `/posts/index.css` を
   共有している（動的ルートの全インスタンスで 1 CSS を共有）。
 
 ### 7.2 【必須】`routes.ts` で `runWithRegistry` を再 export する
@@ -343,22 +384,22 @@ CSS の URL は `expandRoutes()`（`router.ts`）が決める。
 
 ```ts
 // src/routes.ts
-import { type AnyRoute } from "cirrojs";
+import { defineRoutes } from "cirrojs";
 
 // ↓ これを書かないと CSS が生成されない
 export { runWithRegistry } from "cirrojs";
 
-export const routes: AnyRoute[] = [
-    { type: "static", path: "/", component: HomePage },
-    { type: "static", path: "/about", component: AboutPage },
+export default defineRoutes(
+    { type: "static", path: "/index.html", cssPath: "/index.css", component: HomePage },
+    { type: "static", path: "/about.html", cssPath: "/about.css", component: AboutPage },
     {
         type: "dynamic",
-        path: ({ slug }) => `/posts/${slug}`,
+        path: ({ slug }) => `/posts/${slug}.html`,
         cssPath: "/posts/index.css",
         getStaticPaths: () => [{ slug: "hello" }, { slug: "world" }],
         component: PostPage,
     },
-];
+);
 ```
 
 ### 7.3 【重要】島（ハイドレーション）でのスタイル収集の制約
@@ -725,17 +766,7 @@ const card = cssMain(
 //      @media (min-width: 800px) { & { padding: 2rem; } &:hover { ... } } } }
 ```
 
-### 11.2 書き方のイディオム
-
-記号で始められないセレクタにも、ネイティブネスト上**意味が等価な書き換え**が必ず存在する。
-
-| 書きたいセレクタ | セレクタの書き方 | 根拠 |
-| --- | --- | --- |
-| `h2`（要素型の子孫） | `"& h2"` | ネスト仕様で裸の相対セレクタは `&` 子孫と同義 |
-| `div.card &`（要素型で始まる親側参照） | `":is(div.card) &"` | `:is()` ラップは同義 |
-| 自分を子に持つ親 | `".parent:has(> &)"` | `&` は任意の位置に書ける |
-
-### 11.3 制約
+### 11.2 制約
 
 - ハッシュはルールノードのツリー全体から決まる。**1 呼び出し = 1 クラス名**で、全ネストルールがそれを
   参照する。
@@ -814,6 +845,8 @@ const pulse = toKeyframes(
 
 | 名前 | 役割 |
 | --- | --- |
+| `defineCascadeLayer(layerName?)` | `layerName` でカスケードレイヤーを定義する（11 章）デフォルトは `"base, font, low, main, high"` |
+| `resetCss()` | デフォルトのリセット CSS を適用する |
 | `createLayout(theme?)` | Every Layout プリミティブ（関数: stack / cluster / center / grid / switcher / sidebar / cover / frame / reel / imposter / box、コンポーネント: Stack / Cluster / Center / Grid / Switcher / Frame / Reel / Imposter / Box）を既定値で束縛して返す（10 章） |
 | `cx(...classes)` | falsy を除外してクラス名を空白結合する |
 | `LayoutTheme` 型 | `createLayout` の引数（`{ css?, defaults? }`） |

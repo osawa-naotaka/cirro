@@ -1,5 +1,5 @@
 import type { ComponentPropsWithoutRef, ReactNode } from "react";
-import { at, type CssFn, genCssFn } from "./css.ts";
+import { at, atStatement, type CssFn, genCssFn, ss, toStyle } from "./css.ts";
 import type { Properties } from "./properties.ts";
 
 // Every Layout（every-layout.dev）のレイアウトプリミティブを「意図で名付けた型付き関数」として提供する。
@@ -16,6 +16,22 @@ import type { Properties } from "./properties.ts";
 // ============================================================
 // テーマ / デフォルト
 // ============================================================
+
+export function defineCascadeLayer(layers: string = "base, font, low, main, high"): void {
+    toStyle(atStatement(`@layer ${layers}`));
+}
+
+export function resetCss(): void {
+    toStyle(
+        at(
+            "@layer base",
+            ss({ margin: "0", padding: "0", border: "0", box_sizing: "border-box", font: "inherit", color: "inherit" }, { selector: "*, *:before, *:after" }),
+        ),
+    );
+    toStyle(at("@layer base", ss({ color: "inherit", text_decoration: "inherit" }, { selector: "a" })));
+    toStyle(at("@layer base", ss({ display: "block", max_width: "100%", height: "auto" }, { selector: "img, video, canvas, svg" })));
+    toStyle(at("@layer base", ss({ cursor: "pointer" }, { selector: "button" })));
+}
 
 export interface LayoutDefaults {
     // 大本の gap。各プリミティブ個別の gap が未設定ならこれにフォールバックする。

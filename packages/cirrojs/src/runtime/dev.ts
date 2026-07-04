@@ -46,7 +46,7 @@ export async function runDev(port = 5173) {
     const options = getCirroOptions(vite.config);
     const root = vite.config.root;
     const routesPath = resolve(root, options.routes);
-    const islandsDir = dirname(resolve(root, options.islands)).replaceAll("\\", "/");
+    const islandsDir = options.islands && dirname(resolve(root, options.islands)).replaceAll("\\", "/");
 
     const httpServer = createHttpServer((req, res) => {
         function successResp(ext: string, body: string): void {
@@ -104,7 +104,7 @@ export async function runDev(port = 5173) {
                 switch (page.type) {
                     case "html": {
                         const { result: html } = objs.runWithRegistry(() => {
-                            const tree = appendClientScriptAndCss(page.render(), CLIENT_DEV_URL, page.cssPath);
+                            const tree = appendClientScriptAndCss(page.render(), CLIENT_DEV_URL, `${page.path}.css`);
                             return `<!DOCTYPE html>${renderToStaticMarkup(tree)}`;
                         });
                         const transformed = await vite.transformIndexHtml(rawUrl, html);
@@ -151,7 +151,7 @@ export async function runDev(port = 5173) {
         .replace(/\/+$/, "")}/`;
     vite.watcher.on("change", (file) => {
         const f = file.replaceAll("\\", "/");
-        if (f.startsWith(islandsDir)) return; // 島は Fast Refresh に任せる
+        if (islandsDir && f.startsWith(islandsDir)) return; // 島は Fast Refresh に任せる
         if (!f.startsWith(watchDir)) return; // 監視ディレクトリ外は無視
         invalidateModuleAndImporters(vite, file);
         vite.ws.send({ type: "full-reload" });

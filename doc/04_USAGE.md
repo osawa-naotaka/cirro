@@ -121,7 +121,7 @@ Cirro は `@vitejs/plugin-react` を**内包しない**（RSC 系プラグイン
 | オプション | 必須 | 既定値 | 意味 |
 | --- | --- | --- | --- |
 | `routes` | ✓ | — | ルート定義ファイル（`routes` を export する `.ts`）への相対パス |
-| `islands` | ✓ | — | 島レジストリ（`islands` を export する `.ts`）への相対パス |
+| `islands` |　— | — | 島レジストリ（`islands` を export する `.ts`）への相対パス |
 | `watchDir` | — | `./src` | dev サーバーが full-reload の対象として監視するディレクトリ |
 
 ### 3.3 プラグインが裏で行うこと
@@ -181,8 +181,8 @@ export { runWithRegistry } from "cirrojs";
 
 export const routes: AnyRoute[] = [
     // 静的ルート: path は固定文字列
-    { type: "static", path: "/", component: HomePage },
-    { type: "static", path: "/about", component: AboutPage },
+    { type: "static", path: "/index.html", cssPath: "/index.css", component: HomePage },
+    { type: "static", path: "/about.html", cssPath: "/about.css", component: AboutPage },
 
     // 動的ルート: path は params から URL を生成する関数
     {
@@ -202,20 +202,14 @@ export const routes: AnyRoute[] = [
 ];
 ```
 
-- **静的ルート** `{ type: "static", path, component }` … `path` は固定文字列。`component` は React 要素を返す。
+- **静的ルート** `{ type: "static", path, cssPath, component }` … `path`, `cssPath` は固定文字列。`component` は React 要素を返す。
 - **動的ルート** `{ type: "dynamic", path, cssPath, getStaticPaths, component }` … `getStaticPaths()` が返す
   各 params を `path()` 関数に通して URL を生成する。`cssPath` には全インスタンスで共有する CSS ファイルの
   URL を明示する（`05_STYLING.md` 7.1 参照）。`component` は React 要素を返す。
-  params の型を `path` と `component` で揃えたい場合は `route()` ヘルパーで包むと型が伝わる
-  （`import { route } from "cirrojs"`）。
 - **ファイルルート** `{ type: "file", path, component }` … 任意のテキストファイルを生成出力する機能。
   `component` は **React 要素ではなく文字列を返す**関数で、その文字列が `path`（拡張子まで含む固定パス）
   へそのまま書き出される。`examples/blog` では検索インデックス（`/search-index.json`）の生成に使っている
   （`src/pages/search-index.ts`）。
-
-ビルド時、静的・動的ルートの各 URL はクリーン URL として静的ファイルに展開される（`/` → `index.html`、
-`/about` → `about/index.html`、`/posts/hello` → `posts/hello/index.html`）。ファイルルートは `path` を
-そのままの出力パスとして書き出す（`/search-index.json` → `search-index.json`）。
 
 ### 5.2 ページコンポーネント
 
@@ -287,27 +281,25 @@ export function Layout({ title, description, children, island = true }: LayoutPr
 島を使う 3 ステップ:
 
 1. **島コンポーネントを書く**（`src/islands/Counter.tsx`）— ふつうの React コンポーネント。
-2. **レジストリに登録**（`src/islands/registry.ts`）— 純データの対応表を export する。
+2. **レジストリに登録**（`src/islands/registry.ts`）— 純データの対応表を default export する。 必ず `export default ...` とすること。cirroはdefault exportを探すため。
 
    ```ts
    import { Counter } from "./Counter";
-   export const islands = { counter: Counter } as const;
+   export default { counter: Counter } as const;
    ```
 
-3. **型付き `<Island>` を生成**（`src/islands/Island.ts`）— 定型の 5 行。
+3. **型付き `<Island>` を生成**（`src/islands/Island.ts`）— 定型の 3 行。
 
    ```ts
    import { createIsland } from "cirro";
-   import { islands } from "./registry";
+   import islands from "./registry";
    export const Island = createIsland(islands);
    ```
 
 ページでは `<Island name="counter" props={{ initial: 3 }} />` のように使う。`name` と `props` は
 レジストリに対して型チェックされる。
 
-**島ゼロのページは JS ゼロにできる**のが Cirro の狙い。`Layout` の `island?: boolean` のように、
-島を出さないページでは `<Island>` を一切描画しないことで、そのページに島マウンタが不要であることを
-表現する（配信最適化の現状は `02_CLIENT_SCRIPT_BUNDLING.md` を参照）。
+現時点では、全てのページにおいて同一のJSを読み込む。例え島が使われていないページにおいてもJSが読み込まれ、tree-shaking されることはない。
 
 ---
 
@@ -416,105 +408,15 @@ return (
 
 ### 8.3 成果物
 
-- 各ルートの `index.html`（本文は純粋な静的 HTML、マーカーなし）。
+- 各ルートの `.html`（本文は純粋な静的 HTML、マーカーなし）。
 - 島用の外部 JS チャンク（`<script src>` で読まれる。インラインスクリプトなし）。
 - 静的アセット（`public/` の内容、CSS など）。
 
 ---
 
-## 9. Panda CSS によるデザイン（選択肢・非組み込み）
+## 9. CSP（まとめ）
 
-> **推奨スタイリングは Cirro 自前の CSS in JS（`css()`）に変わった**。設計・書き方・内部の仕組みは
-> `05_STYLING.md` に集約している。Panda CSS は引き続き「非組み込みの選択肢」として利用できるが、
-> 現在の標準は `05_STYLING.md` の自前 CSS である。本章は Panda CSS を使う場合の参考として残す。
-
-Cirro は CSS フレームワークを**組み込んでいない**。Panda CSS もそのまま利用でき、`examples` の一部が実例
-だった（現在の `examples/basic` / `examples/blog` は自前 CSS へ移行済み）。
-
-### 9.1 なぜ相性が良いのか
-
-Panda CSS は**ランタイム CSS-in-JS ではなく、ビルド時にソースを静的解析して外部 CSS を生成する**。
-`css()` は事前計算済みのクラス名を返すだけで、実行時に `<style>` を注入しない。したがって生成物に
-インライン `<style>` も `style=""` 属性も現れず、**`style-src 'self'` まで満たす厳格 CSP**を達成できる。
-Cirro の「インラインを一切出さない」原則と方向性が一致する。
-
-### 9.2 導入
-
-```sh
-bun add -d @pandacss/dev
-bun panda init   # panda.config.ts を生成
-```
-
-`panda.config.ts` で、走査対象・トークン・レシピを定義する（`examples/blog` 抜粋）。
-
-```ts
-import { defineConfig } from "@pandacss/dev";
-
-export default defineConfig({
-    preflight: true,                       // リセット CSS
-    include: ["./src/**/*.{ts,tsx}"],      // 島も含め全ソースを走査して使用クラスのみ抽出
-    outdir: "styled-system",               // 生成コードの出力先（Git 管理外でよい）
-    jsxFramework: undefined,               // className に文字列を渡す方式
-    theme: { extend: { tokens: { /* colors, radii, fonts ... */ }, recipes: { /* button, chip */ } } },
-    globalCss: { "html, body": { /* ... */ } },
-});
-```
-
-> フォントはシステムフォントスタックを使い、外部フォントへのリクエストを避ける
-> （`style-src 'self'` / `font-src 'self'` を維持）。
-
-### 9.3 dev / build スクリプトの組み方
-
-Panda の CSS 生成（`cssgen`）を Cirro と並行させる。生成した CSS は `public/styles.css` に出力し、
-レイアウトの `<head>` から `<link rel="stylesheet" href="/styles.css">` で読み込む。
-
-```jsonc
-{
-    "scripts": {
-        "prepare": "panda codegen",
-        "dev": "concurrently -k -n css,cirro \"panda cssgen --watch -o public/styles.css\" \"cirro dev\"",
-        "build": "panda cssgen --minify -o public/styles.css && tsc && cirro build",
-        "preview": "vite preview"
-    }
-}
-```
-
-- `prepare` … 初回インストール後に `panda codegen` で `styled-system/` を生成。
-- `dev` … `concurrently` で `panda cssgen --watch`（CSS 再生成）と `cirro dev` を同時起動。`.tsx` を
-  保存すると Cirro が full-reload し、最新の `styles.css` が読み込まれる。
-- `build` … CSS 生成 → 型チェック → 静的サイト生成。
-
-`styled-system/` と `public/styles.css` は生成物なので `.gitignore` 対象にする。
-
-### 9.4 スタイルの書き方
-
-`css()`（任意スタイル）と `defineRecipe`（再利用するコンポーネントスタイル）を使う。
-
-```tsx
-import { css } from "../../styled-system/css";
-import { button } from "../../styled-system/recipes";
-
-<a className={button({ variant: "text" })}>Blog</a>
-<footer className={css({ borderTop: "1px solid token(colors.border)", py: "6" })}>...</footer>
-```
-
-Markdown 本文のように、自分では要素を持たず HTML を流し込む箇所は、コンテナのクラスに**子孫セレクタ**で
-スタイルを当てる（Prism のトークン配色もクラスベースで指定し、インライン style を出さない）。
-
-```ts
-const article = css({
-    "& h2": { mt: "10", fontSize: "1.6rem", fontWeight: 700 },
-    "& pre": { bg: "#0f172a", color: "#e2e8f0", p: "5", borderRadius: "card" },
-    "& .token.keyword": { color: "#c084fc" }, // rehype-prism のトークンクラス
-});
-```
-
----
-
-## 10. CSP（まとめ）
-
-Cirro の生成物は、上記の仕組みにより **インラインスクリプトもインラインスタイルも含まない**
-（Panda CSS を上記の通り使った場合）。そのため `unsafe-inline` なしの厳格な CSP で配信できる。
+Cirro の生成物は、上記の仕組みにより **インラインスクリプトもインラインスタイルも含まない** 。そのため `unsafe-inline` なしの厳格な CSP で配信できる。
 
 推奨ヘッダ例:
 
@@ -528,7 +430,7 @@ Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'
 | `style-src 'self'` | 自前 CSS（`05_STYLING.md`）／Panda CSS（9 章）がビルド時に外部 CSS を生成。`<style>` も `style=""` も出さない |
 | `font-src 'self'` | システムフォントスタックを使い外部フォントを読まない（9 章） |
 
-### 10.1 CSP の meta 要素は利用者の任意（dev / build で出し分けできる）
+### 9.1 CSP の meta 要素は利用者の任意（dev / build で出し分けできる）
 
 CSP は HTTP レスポンスヘッダで与えるのが本来の形だが、配信先（Cloudflare 等）でヘッダを付けられない
 場合などに備え、`<head>` へ `<meta http-equiv="Content-Security-Policy">` を出力する選択肢を**利用者の任意**

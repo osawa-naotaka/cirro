@@ -19,29 +19,28 @@ export function expandRoutes(routes: AnyRoute[]): ResolvedPath[] {
                 pages.push({
                     type: "html",
                     path: r.path,
-                    cssPath: r.cssPath,
                     render: () => r.component({ params: {} }),
                 });
                 pages.push({
                     type: "css",
-                    path: r.cssPath,
+                    path: `${r.path}.css`,
                     render: () => r.component({ params: {} }),
                 });
                 break;
             case "dynamic":
                 for (const params of r.getStaticPaths()) {
+                    const path = r.path(params);
                     pages.push({
                         type: "html",
-                        path: r.path(params),
-                        cssPath: r.cssPath,
+                        path,
+                        render: () => r.component({ params }),
+                    });
+                    pages.push({
+                        type: "css",
+                        path: `${path}.css`,
                         render: () => r.component({ params }),
                     });
                 }
-                pages.push({
-                    type: "css",
-                    path: r.cssPath,
-                    render: () => r.component({ params: r.getStaticPaths()[0] }),
-                });
                 break;
             case "file":
                 pages.push({

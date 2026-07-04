@@ -6,7 +6,6 @@ export type Params = Record<string, unknown>;
 export type StaticRoute = {
     type: "static";
     path: string;
-    cssPath: string;
     component: (props: { params: Record<string, never> }) => ReactElement;
 };
 
@@ -14,7 +13,6 @@ export type StaticRoute = {
 export type DynamicRoute<P extends Params = Params> = {
     type: "dynamic";
     path: (params: P) => string;
-    cssPath: string;
     getStaticPaths: () => P[];
     component: (props: { params: P }) => ReactElement;
 };
@@ -33,7 +31,6 @@ export type ResolvedPath =
     | {
           type: "html";
           path: string;
-          cssPath: string;
           render: () => ReactElement;
       }
     | {

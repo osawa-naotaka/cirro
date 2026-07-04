@@ -1,7 +1,7 @@
 import { defineCascadeLayer, resetCss } from "cirrojs/layout";
 
-// About ページ（静的・島なし → このページはクライアント JS の島が存在しない）。
-export function AboutPage() {
+// 動的ルート /posts/[slug] のページ。params.slug を受け取る。
+export function PostPage({ params }: { params: { slug: string } }) {
     defineCascadeLayer();
     resetCss();
     return (
@@ -9,11 +9,11 @@ export function AboutPage() {
             <head>
                 <meta charSet="utf-8" />
                 <meta name="viewport" content="width=device-width, initial-scale=1" />
-                <title>About - cirro</title>
+                <title>{`post: ${params.slug}`}</title>
             </head>
             <body>
-                <h1>About</h1>
-                <p>cirro プロトタイプの About ページです。島を含まない純粋な静的ページです。</p>
+                <h1>{`Post: ${params.slug}`}</h1>
+                <p>これは動的ルート /posts/[slug] のページです。</p>
                 <p>
                     <a href="/">← home</a>
                 </p>

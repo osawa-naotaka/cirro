@@ -1,7 +1,7 @@
 // registerRules はランタイム値なので自己参照 import 経由で解決する。
 // これにより exports の browser 条件が効き、クライアントでは async_hooks 非依存の
 // no-op 実装（registry.browser.ts）に差し替わる。型は erase される import type で real から取得する。
-import { registerRules } from "cirrojs/registry";
+import { registerGlobalRuleSet, registerRules } from "cirrojs/registry";
 import { type Properties, property_names } from "./properties.ts";
 import type { Registry, RuleNode } from "./registry.ts";
 
@@ -57,10 +57,57 @@ export function toStyle(node: RuleNode, opt?: ToStyleOpt): string {
     const hash = hash_djb2_object(node);
     const designator = `${opt?.name ?? "cirro"}-${hash.toString(16)}`;
 
+    if (hasGlobalRule(node)) {
+        registerGlobalRuleSet(designator);
+    }
+
     const resolved = resolveSelectorsInNode(node, `.${designator}`, false);
     registerRules(designator, [resolved]);
 
     return designator;
+}
+
+// dev と build で CSS が食い違いうる「グローバル規則」かどうかを判定する。
+// - 文アットルール（@layer の順序宣言など）はページ全体へ効くため常にグローバル。
+// - スタイルルールは、セレクタリストをトップレベルのカンマで分割し、$（自クラス参照）を
+//   含まないセレクタが 1 つでもあればグローバル。
+// - スタイルルールの children（ネストルール）は親セレクタにスコープされるため見ない。
+function hasGlobalRule(node: RuleNode): boolean {
+    switch (node.type) {
+        case "at-statement":
+            return true;
+        case "at-block":
+            return node.children.some(hasGlobalRule);
+        case "style":
+            return splitSelectorList(node.selector).some((s) => !s.includes("$"));
+    }
+}
+
+// セレクタリストをトップレベルのカンマで分割する。:is(h1, h2) のような関数記法・
+// 属性セレクタ・引用文字列の内側のカンマでは分割しない（括弧の深さと引用符を追跡する）。
+function splitSelectorList(selector: string): string[] {
+    const parts: string[] = [];
+    let current = "";
+    let depth = 0;
+    let quote: '"' | "'" | null = null;
+    for (const ch of selector) {
+        if (quote) {
+            if (ch === quote) quote = null;
+        } else if (ch === '"' || ch === "'") {
+            quote = ch;
+        } else if (ch === "(" || ch === "[") {
+            depth++;
+        } else if (ch === ")" || ch === "]") {
+            depth--;
+        } else if (ch === "," && depth === 0) {
+            parts.push(current);
+            current = "";
+            continue;
+        }
+        current += ch;
+    }
+    parts.push(current);
+    return parts;
 }
 
 export type ToKeyframesOpt = {
@@ -110,7 +157,7 @@ export function stringifyCss(registry: Registry): string {
             }
         }
     }
-    return `@charset "utf-8";\n@layer base, font, low, main, high;\n${statements}${rules}`;
+    return `@charset "utf-8";\n${statements}${rules}`;
 }
 
 function stringifyRuleNode(node: RuleNode): string {

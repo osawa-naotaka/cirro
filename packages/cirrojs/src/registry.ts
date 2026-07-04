@@ -41,6 +41,7 @@ export type Registry = Map<string, RuleNode[]>;
 // サンプル要素のキュー（samples）を持つ。
 type Store = {
     registry: Registry;
+    globalRuleSet: Set<string>;
     samples: ReactNode[];
 };
 
@@ -55,6 +56,12 @@ export function registerRules(key: string, nodes: RuleNode[]) {
     const store = als.getStore();
     if (!store) throw new Error("cirro: css() was called outside of a render context");
     store.registry.set(key, nodes);
+}
+
+export function registerGlobalRuleSet(key: string) {
+    const store = als.getStore();
+    if (!store) throw new Error("cirro: css() was called outside of a render context");
+    store.globalRuleSet.add(key);
 }
 
 // styleSample() のサンプル要素をキューへ積む。ここでは描画しない。
@@ -76,8 +83,8 @@ const MAX_STYLE_SAMPLES = 1000;
 // fn の完了後、styleSample() が積んだサンプル要素を同じコンテキストで順に描画する。
 // 出力 HTML は捨て、描画過程で実行された css() の登録だけを収集へ反映する。
 // サンプルの描画がさらに styleSample() を呼んだ場合も、同じキューへ積まれて続けて処理される。
-export function runWithRegistry<T>(fn: () => T): { result: T; registry: Registry } {
-    const store: Store = { registry: new Map(), samples: [] };
+export function runWithRegistry<T>(fn: () => T, init?: Registry): { result: T; registry: Registry; globalRuleSet: Set<string> } {
+    const store: Store = { registry: init ?? new Map(), globalRuleSet: new Set(), samples: [] };
     const result = als.run(store, fn);
     als.run(store, () => {
         let processed = 0;
@@ -91,7 +98,7 @@ export function runWithRegistry<T>(fn: () => T): { result: T; registry: Registry
             renderToStaticMarkup(store.samples.shift());
         }
     });
-    return { result, registry: store.registry };
+    return { result, registry: store.registry, globalRuleSet: store.globalRuleSet };
 }
 
-export type RunWithRegistry<T> = (fn: () => T) => { result: T; registry: Registry };
+export type RunWithRegistry<T> = (fn: () => T) => { result: T; registry: Registry; globalRuleSet: Set<string> };
