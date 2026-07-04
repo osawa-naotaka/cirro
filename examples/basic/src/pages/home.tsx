@@ -1,9 +1,10 @@
-import { at, genCssFn, ss, toStyle } from "cirrojs";
+import { at, genCssFn, ss, toStyle, atStatement } from "cirrojs";
 import { Island } from "../islands/Island";
 
 // ホームページ（本文は静的 HTML、Counter だけが島）。
 export function HomePage() {
     // reset css
+    toStyle(atStatement("@layer base, font, low, main, high"));
     toStyle(at("@layer base", ss({ margin: "0", padding: "0" }, { selector: "*" })));
 
     const cssPC = genCssFn((fn) => at("@media (min-width: 800px)", fn()));

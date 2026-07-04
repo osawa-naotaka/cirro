@@ -110,7 +110,7 @@ export function stringifyCss(registry: Registry): string {
             }
         }
     }
-    return `@charset "utf-8";\n@layer base, font, low, main, high;\n${statements}${rules}`;
+    return `@charset "utf-8";\n${statements}${rules}`;
 }
 
 function stringifyRuleNode(node: RuleNode): string {
