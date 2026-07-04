@@ -13,10 +13,22 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [0.0.25] - 2026-07-04
+
 ### Added
 - `toKeyframes(frames, opt?)`, exported from the package entry point. It registers a `@keyframes` block built from style rule nodes and returns the animation name, a deterministic hash of the frame contents with the default prefix `cirro-kf`, so identical frame definitions share one name and are deduplicated in the registry. Frame selectors must be `from`, `to`, `<number>%`, or a comma-separated list of them, and frames must not contain nested rules; both are validated at registration time. The optional `wrap` (an `InjectFn`) places the block inside outer at-rules such as `@layer`. `wrap` is not part of the hash, so registering identical frames with different wrappers emits only the last registration.
 - `ToKeyframesOpt` type, exported from the package entry point.
 - Registration-time validation in `toStyle()`. Selectors containing `$=` (the attribute suffix matcher) are rejected because every `$` is replaced with the generated class name. Non-nested selectors containing `&` are rejected because a top-level `&` behaves as `:scope` rather than a class reference. Selectors nested inside a style rule containing `$` are rejected because the replaced class name would be subject to the implicit descendant combinator of CSS Nesting; since the default selector of `ss()` is `"$"`, nested rules now require an explicit selector. Errors are thrown at the registering call site instead of at CSS stringification.
+- `defineCascadeLayer(layers?)`, exported from `cirrojs/layout`. It registers the `@layer` statement at-rule that fixes the cascade layer order. Called without arguments it declares the default order `base, font, low, main, high`.
+- `resetCss()`, exported from `cirrojs/layout`. It registers a standard reset stylesheet into `@layer base`: zeroed margin, padding, and border with `box-sizing: border-box` and inherited font and color on all elements, inherited color and text-decoration on anchors, block display with `max-width: 100%` and `height: auto` on `img`, `video`, `canvas`, and `svg`, and a pointer cursor on buttons.
+- A build-time consistency check for global rules. `toStyle()` records a rule as global when it contains a statement at-rule, or when its selector list (split on top-level commas, ignoring commas inside parentheses, brackets, and quoted strings) contains a selector without `$`. `cirro build` warns when a global rule is not registered on every page, naming the rule and the pages that registered it or lack it, because a page missing the rule renders differently in dev (which serves only that page's CSS) and in build (which serves the merged stylesheet).
+
+### Changed
+- **Breaking**: `cirro build` now writes a single stylesheet, `/assets/styles.css`, merged from the styles of all routes, instead of one CSS file per route. The `cssPath` field was removed from `StaticRoute` and `DynamicRoute`. The dev server serves each page's own CSS at `<page path>.css` (for example `/index.html.css`).
+- **Breaking**: the generated CSS no longer starts with the fixed `@layer base, font, low, main, high;` statement. Declare the cascade layer order explicitly, for example with `defineCascadeLayer()` from `cirrojs/layout` or `toStyle(atStatement("@layer ..."))`.
+- **Breaking**: the islands module named by `CirroOptions.islands` must export its island map as the default export. The generated client mounter previously imported a named `islands` export.
+- `CirroOptions.islands` is now optional. When it is omitted, the client script is generated empty and the React plugin check is skipped.
+- `runWithRegistry` now accepts an optional second argument, `init?: Registry`, used as the registry to collect into instead of a new empty one, and its result gains a `globalRuleSet: Set<string>` holding the designators of the global rules registered during the render. The `RunWithRegistry` type includes the new result field.
 
 ## [0.0.24] - 2026-07-03
 
@@ -204,7 +216,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## 0.0.1 - 2026-06-15
 - initial release
 
-[Unreleased]: https://github.com/osawa-naotaka/cirro/compare/v0.0.24...HEAD
+[Unreleased]: https://github.com/osawa-naotaka/cirro/compare/v0.0.25...HEAD
+[0.0.25]: https://github.com/osawa-naotaka/cirro/compare/v0.0.24...v0.0.25
 [0.0.24]: https://github.com/osawa-naotaka/cirro/compare/v0.0.23...v0.0.24
 [0.0.23]: https://github.com/osawa-naotaka/cirro/compare/v0.0.22...v0.0.23
 [0.0.22]: https://github.com/osawa-naotaka/cirro/compare/v0.0.21...v0.0.22

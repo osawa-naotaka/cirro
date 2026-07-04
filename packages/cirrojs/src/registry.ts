@@ -101,4 +101,4 @@ export function runWithRegistry<T>(fn: () => T, init?: Registry): { result: T; r
     return { result, registry: store.registry, globalRuleSet: store.globalRuleSet };
 }
 
-export type RunWithRegistry<T> = (fn: () => T) => { result: T; registry: Registry };
+export type RunWithRegistry<T> = (fn: () => T) => { result: T; registry: Registry; globalRuleSet: Set<string> };
