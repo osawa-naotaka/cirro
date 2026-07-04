@@ -57,14 +57,8 @@ export function toStyle(node: RuleNode, opt?: ToStyleOpt): string {
     const hash = hash_djb2_object(node);
     const designator = `${opt?.name ?? "cirro"}-${hash.toString(16)}`;
 
-    const rootStyle = getRootStyles(node);
-
-    for (const s of rootStyle) {
-        if (s && s.type === "style") {
-            if (!s.selector.includes("$")) {
-                registerGlobalRuleSet(designator);
-            }
-        }
+    if (hasGlobalRule(node)) {
+        registerGlobalRuleSet(designator);
     }
 
     const resolved = resolveSelectorsInNode(node, `.${designator}`, false);
@@ -73,14 +67,47 @@ export function toStyle(node: RuleNode, opt?: ToStyleOpt): string {
     return designator;
 }
 
-function getRootStyles(node: RuleNode): (RuleNode | null)[] {
-    if (node.type === "style") {
-        return [node];
+// dev と build で CSS が食い違いうる「グローバル規則」かどうかを判定する。
+// - 文アットルール（@layer の順序宣言など）はページ全体へ効くため常にグローバル。
+// - スタイルルールは、セレクタリストをトップレベルのカンマで分割し、$（自クラス参照）を
+//   含まないセレクタが 1 つでもあればグローバル。
+// - スタイルルールの children（ネストルール）は親セレクタにスコープされるため見ない。
+function hasGlobalRule(node: RuleNode): boolean {
+    switch (node.type) {
+        case "at-statement":
+            return true;
+        case "at-block":
+            return node.children.some(hasGlobalRule);
+        case "style":
+            return splitSelectorList(node.selector).some((s) => !s.includes("$"));
     }
-    if (node.type === "at-block") {
-        return node.children.flatMap((c) => getRootStyles(c));
+}
+
+// セレクタリストをトップレベルのカンマで分割する。:is(h1, h2) のような関数記法・
+// 属性セレクタ・引用文字列の内側のカンマでは分割しない（括弧の深さと引用符を追跡する）。
+function splitSelectorList(selector: string): string[] {
+    const parts: string[] = [];
+    let current = "";
+    let depth = 0;
+    let quote: '"' | "'" | null = null;
+    for (const ch of selector) {
+        if (quote) {
+            if (ch === quote) quote = null;
+        } else if (ch === '"' || ch === "'") {
+            quote = ch;
+        } else if (ch === "(" || ch === "[") {
+            depth++;
+        } else if (ch === ")" || ch === "]") {
+            depth--;
+        } else if (ch === "," && depth === 0) {
+            parts.push(current);
+            current = "";
+            continue;
+        }
+        current += ch;
     }
-    return [];
+    parts.push(current);
+    return parts;
 }
 
 export type ToKeyframesOpt = {
