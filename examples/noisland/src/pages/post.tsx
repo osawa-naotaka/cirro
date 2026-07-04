@@ -1,6 +1,9 @@
+import { defineCascadeLayer, resetCss } from "cirrojs/layout";
 
 // 動的ルート /posts/[slug] のページ。params.slug を受け取る。
 export function PostPage({ params }: { params: { slug: string } }) {
+    defineCascadeLayer();
+    resetCss();
     return (
         <html lang="ja">
             <head>

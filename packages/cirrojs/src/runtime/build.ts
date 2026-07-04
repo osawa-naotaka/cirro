@@ -27,6 +27,7 @@ export async function runBuild() {
         const root = config.root;
         const outDir = resolve(root, config.build.outDir);
         const routesPath = resolve(root, options.routes);
+        const cssUrl = "/assets/styles.css";
 
         const manifest = JSON.parse(await readFile(join(outDir, ".vite/manifest.json"), "utf-8"));
         const entry = manifest["virtual:cirro/client"];
@@ -36,23 +37,28 @@ export async function runBuild() {
         const obj = await runner.import(routesPath);
         if (typeof obj.runWithRegistry !== "function") throw new Error("cirro: you must export runWithRegistry.");
         if (typeof obj.default !== "object") throw new Error("cirro: you must export routes.");
+        const runWithRegistry = obj.runWithRegistry as (
+            fn: () => string,
+            init?: Registry,
+        ) => { result: string; registry: Registry; globalRuleSet: Set<string> };
+
+        const rootRegistry = new Map();
+        let globalRuleSet = new Set<string>();
+        const pageRuleSets: [string, Set<string>][] = [];
 
         for (const page of expandRoutes(obj.default)) {
             switch (page.type) {
                 case "css": {
-                    const { registry } = obj.runWithRegistry(() => renderToStaticMarkup(page.render())) as { registry: Registry };
-                    const css = stringifyCss(registry);
-                    const filePath = join(outDir, page.path);
-                    await mkdir(dirname(filePath), { recursive: true });
-                    await writeFile(filePath, css);
-                    console.log(`wrote ${filePath} (url: ${page.path})`);
                     break;
                 }
                 case "html": {
-                    const { result: html } = obj.runWithRegistry(() => {
-                        const tree = appendClientScriptAndCss(page.render(), scriptSrc, `${page.path}.css`);
+                    const { result: html, globalRuleSet: ruleSet } = runWithRegistry(() => {
+                        const tree = appendClientScriptAndCss(page.render(), scriptSrc, cssUrl);
                         return `<!DOCTYPE html>${renderToStaticMarkup(tree)}`;
-                    });
+                    }, rootRegistry);
+                    pageRuleSets.push([page.path, ruleSet]);
+                    globalRuleSet = globalRuleSet.union(ruleSet);
+
                     const filePath = join(outDir, page.path);
                     await mkdir(dirname(filePath), { recursive: true });
                     await writeFile(filePath, html);
@@ -67,8 +73,26 @@ export async function runBuild() {
                     console.log(`wrote ${filePath} (url: ${page.path})`);
                     break;
                 }
+                default: {
+                    throw new Error(`unknown page object: ${page}`);
+                }
             }
         }
+
+        const css = stringifyCss(rootRegistry);
+        const filePath = join(outDir, cssUrl);
+        await mkdir(dirname(filePath), { recursive: true });
+        await writeFile(filePath, css);
+        console.log(`wrote ${filePath} (url: ${cssUrl})`);
+
+        console.log(`global rule set: ${globalRuleSet.size} rules`);
+
+        pageRuleSets.forEach(([path, ruleSet]) => {
+            if (globalRuleSet.difference(ruleSet).size > 0) {
+                console.log(`Warning: page ${path} has different rule set from global rule set, causes style mismatch.`);
+            }
+        });
+
         console.log(`build completed in ${Date.now() - startTime}ms`);
     } finally {
         await server.close();

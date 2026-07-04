@@ -1,5 +1,9 @@
+import { defineCascadeLayer, resetCss } from "cirrojs/layout";
+
 // About ページ（静的・島なし → このページはクライアント JS の島が存在しない）。
 export function AboutPage() {
+    defineCascadeLayer();
+    resetCss();
     return (
         <html lang="ja">
             <head>

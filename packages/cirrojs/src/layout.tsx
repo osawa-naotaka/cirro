@@ -1,5 +1,5 @@
 import type { ComponentPropsWithoutRef, ReactNode } from "react";
-import { at, type CssFn, genCssFn, toStyle, atStatement, ss } from "./css.ts";
+import { at, atStatement, type CssFn, genCssFn, ss, toStyle } from "./css.ts";
 import type { Properties } from "./properties.ts";
 
 // Every Layout（every-layout.dev）のレイアウトプリミティブを「意図で名付けた型付き関数」として提供する。

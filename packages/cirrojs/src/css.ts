@@ -1,7 +1,7 @@
 // registerRules はランタイム値なので自己参照 import 経由で解決する。
 // これにより exports の browser 条件が効き、クライアントでは async_hooks 非依存の
 // no-op 実装（registry.browser.ts）に差し替わる。型は erase される import type で real から取得する。
-import { registerRules } from "cirrojs/registry";
+import { registerGlobalRuleSet, registerRules } from "cirrojs/registry";
 import { type Properties, property_names } from "./properties.ts";
 import type { Registry, RuleNode } from "./registry.ts";
 
@@ -57,10 +57,30 @@ export function toStyle(node: RuleNode, opt?: ToStyleOpt): string {
     const hash = hash_djb2_object(node);
     const designator = `${opt?.name ?? "cirro"}-${hash.toString(16)}`;
 
+    const rootStyle = getRootStyles(node);
+
+    for (const s of rootStyle) {
+        if (s && s.type === "style") {
+            if (!s.selector.includes("$")) {
+                registerGlobalRuleSet(designator);
+            }
+        }
+    }
+
     const resolved = resolveSelectorsInNode(node, `.${designator}`, false);
     registerRules(designator, [resolved]);
 
     return designator;
+}
+
+function getRootStyles(node: RuleNode): (RuleNode | null)[] {
+    if (node.type === "style") {
+        return [node];
+    }
+    if (node.type === "at-block") {
+        return node.children.flatMap((c) => getRootStyles(c));
+    }
+    return [];
 }
 
 export type ToKeyframesOpt = {

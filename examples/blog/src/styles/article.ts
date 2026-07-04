@@ -8,20 +8,21 @@ import { color, cssMain, font, radii, space } from "./system";
 //
 // css() は描画時に登録する必要があるため、ページ描画のたびに呼び出してコンテナクラスを返す。
 export function articleClass(): string {
+    const classNames: string[] = [];
     const root = cssMain({
         color: color.fg,
         font_size: "1.05rem",
         line_height: "1.9",
         word_break: "break-word",
     });
+    classNames.push(root);
 
     // "h2" や "ul, ol" のような（カンマ区切りを含む）子孫セレクタを ".root xxx" へ展開する。
     const d = (selector: string, properties: Properties): void => {
-        const full = selector
-            .split(",")
-            .map((s) => `.${root} ${s.trim()}`)
-            .join(", ");
-        cssMain(properties, { selector: full });
+        const sep = selector.split(",").map((s) => s.trim());
+        for (const s of sep) {
+            classNames.push(cssMain(properties, { selector: `\$ ${s}` }));
+        }
     };
 
     d("h2", {
@@ -86,5 +87,5 @@ export function articleClass(): string {
     d("img", { max_width: "100%", height: "auto", border_radius: radii.card });
     d("hr", { border: "0", border_top: `1px solid ${color.border}`, margin_top: space(8), margin_bottom: space(8) });
 
-    return root;
+    return classNames.join(" ");
 }

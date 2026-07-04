@@ -1,11 +1,12 @@
-import { at, genCssFn, ss, toStyle, atStatement } from "cirrojs";
+import { at, genCssFn } from "cirrojs";
+import { defineCascadeLayer, resetCss } from "cirrojs/layout";
 
 // ホームページ（本文は静的 HTML、Counter だけが島）。
 export function HomePage() {
     // reset css
-    toStyle(atStatement("@layer base, font, low, main, high"));
-    toStyle(at("@layer base", ss({ margin: "0", padding: "0" }, { selector: "*" })));
-
+    defineCascadeLayer();
+    resetCss();
+    
     const cssPC = genCssFn((fn) => at("@media (min-width: 800px)", fn()));
 
     const pageTitle = cssPC({ padding: "1rem", font_size: "2rem" });
