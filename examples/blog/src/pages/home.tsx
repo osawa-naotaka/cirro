@@ -1,16 +1,18 @@
 import { Layout } from "../components/Layout";
 import { PostList } from "../components/PostList";
 import { Island } from "../islands/Island";
-import { allTags, posts } from "../lib/content";
+import { allTags } from "../lib/content";
 import { Cluster } from "../styles/layout";
 import { button, chip } from "../styles/recipes";
 import { color, cssMain, cssMd, cx, fontSize, radii, space } from "../styles/system";
+import type { content } from "../content";
+import type { PageProps } from "cirrojs";
 
 // ホームページ: ヒーロー + 最新記事 + 人気タグ。
-export function HomePage() {
-    const recent = posts.slice(0, 3);
-    const tags = allTags().slice(0, 8);
-
+export function HomePage(props: PageProps<typeof content>) {
+    const recent = props.content.posts.slice(0, 3);
+    const tags = allTags(props.content.posts).slice(0, 8);
+    
     return (
         <Layout
             title="Cirro Blog — セキュリティ第一の軽量 SSG"

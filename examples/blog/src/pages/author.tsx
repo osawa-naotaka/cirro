@@ -1,13 +1,15 @@
+import type { PageProps } from "cirrojs";
 import { Layout } from "../components/Layout";
 import { PostList } from "../components/PostList";
 import { getAuthor } from "../lib/authors";
 import { postsByAuthor } from "../lib/content";
 import { color, cssMain, cssMd, cssSm, cx, fontSize, radii, space } from "../styles/system";
+import type { content } from "../content";
 
 // 著者ページ（/authors/[id]）: プロフィール + 執筆記事。
-export function AuthorPage({ params }: { params: { id: string } }) {
-    const author = getAuthor(params.id);
-    const written = postsByAuthor(author.id);
+export function AuthorPage(props: PageProps<typeof content, { id: string }>) {
+    const author = getAuthor(props.params.id);
+    const written = postsByAuthor(author.id, props.content.posts);
 
     return (
         <Layout title={`${author.name} — Cirro Blog`} description={author.bio}>

@@ -1,10 +1,11 @@
 
 import { createIndex, indexToObject, LinearIndex, StaticSeekError } from "staticseek";
 import { markdownToText } from "cirrojs/server";
-import { posts } from "../lib/content";
+import type { PageProps } from "cirrojs";
+import type { content } from "../content";
 
-export function genearteSearchIndex(): string {
-    const target = posts.map((md) => {
+export function generateSearchIndex(props: PageProps<typeof content>): string {
+    const target = props.content.posts.map((md) => {
         const content = markdownToText(md.content);
         return {
             ...md,

@@ -37,6 +37,9 @@ export async function runBuild() {
         const obj = await runner.import(routesPath);
         if (typeof obj.runWithRegistry !== "function") throw new Error("cirro: you must export runWithRegistry.");
         if (typeof obj.default !== "object") throw new Error("cirro: you must export routes.");
+        if (!Array.isArray(obj.default.routes)) throw new Error("cirro: you must define routes and export it as `default`");
+        if (obj.default.content && typeof obj.default.content.loader !== "function") throw new Error("you must define a valid content loader function");
+
         const runWithRegistry = obj.runWithRegistry as (
             fn: () => string,
             init?: Registry,
@@ -46,7 +49,12 @@ export async function runBuild() {
         const htmlPagePaths: string[] = [];
         const globalRulePages = new Map<string, string[]>();
 
-        for (const page of expandRoutes(obj.default)) {
+        let content: unknown;
+        if (obj.default.content) {
+            content = await obj.default.content.loader();
+        }
+        const pages = expandRoutes(obj.default.routes, content);
+        for (const page of pages) {
             switch (page.type) {
                 case "css": {
                     break;

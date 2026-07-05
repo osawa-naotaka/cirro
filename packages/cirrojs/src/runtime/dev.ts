@@ -47,6 +47,7 @@ export async function runDev(port = 5173) {
     const root = vite.config.root;
     const routesPath = resolve(root, options.routes);
     const islandsDir = options.islands && dirname(resolve(root, options.islands)).replaceAll("\\", "/");
+    let contentPromise: Promise<unknown> | null = null;
 
     const httpServer = createHttpServer((req, res) => {
         function successResp(ext: string, body: string): void {
@@ -90,11 +91,19 @@ export async function runDev(port = 5173) {
                     errorResp(".html", "you must export a `runWithRegistry` function");
                     return;
                 }
-                if (!Array.isArray(objs.default)) {
+                if (!Array.isArray(objs.default.routes)) {
                     errorResp(".html", "you must define routes and export it as `default`");
                     return;
                 }
-                const pages = expandRoutes(objs.default);
+                if (objs.default.content && typeof objs.default.content.loader !== "function") {
+                    errorResp(".html", "you must define a valid content loader function");
+                    return;
+                }
+
+                contentPromise ??= objs.default.content?.loader();
+                const content = await contentPromise;
+                const pages = expandRoutes(objs.default.routes, content);
+
                 const page = pages.find((p) => candidate.has(p.path));
                 if (page === undefined) {
                     errorResp(".html", `no route found for the requested path: ${pathname}`);
@@ -154,6 +163,7 @@ export async function runDev(port = 5173) {
         if (islandsDir && f.startsWith(islandsDir)) return; // 島は Fast Refresh に任せる
         if (!f.startsWith(watchDir)) return; // 監視ディレクトリ外は無視
         invalidateModuleAndImporters(vite, file);
+        contentPromise = null; // キャッシュを無効化
         vite.ws.send({ type: "full-reload" });
     });
 

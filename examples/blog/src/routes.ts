@@ -1,6 +1,6 @@
-import { defineRoutes, staticRoute, dynamicRoute, fileRoute } from "cirrojs";
+import { createRoute } from "cirrojs";
 import { authors } from "./lib/authors";
-import { allTags, posts } from "./lib/content";
+import { allTags } from "./lib/content";
 import { AboutPage } from "./pages/about";
 import { AuthorPage } from "./pages/author";
 import { BlogIndexPage } from "./pages/blog-index";
@@ -8,12 +8,15 @@ import { HomePage } from "./pages/home";
 import { PostPage } from "./pages/post";
 import { TagIndexPage } from "./pages/tag-index";
 import { TagPage } from "./pages/tag";
-import { genearteSearchIndex } from "./pages/search-index";
+import { generateSearchIndex } from "./pages/search-index";
+import { content } from "./content";
 
 // 自前スタイリングシステムのレジストリ関数を再 export する（必須）。
 // ランタイムはこのモジュール経由で runWithRegistry を呼び、同一モジュールインスタンスの
 // レジストリでレンダリングを包むことで、ルート単位の CSS を生成する。
 export { runWithRegistry } from "cirrojs";
+
+const { defineRoutes, staticRoute, dynamicRoute, fileRoute } = createRoute(content);
 
 // サイトのルート定義（Config Base Routing）。
 // 動的ルートは getStaticPaths でビルド対象の URL を列挙する。
@@ -26,12 +29,12 @@ export default defineRoutes(
     staticRoute({ path: "/tags/index.html", component: TagIndexPage }),
     dynamicRoute({
         path: ({ slug }) => `/blog/${slug}.html`,
-        getStaticPaths: () => posts.map(({ slug }) => ({ slug })),
+        getStaticPaths: (content) => content.posts.map(({ slug }) => ({ slug })),
         component: PostPage,
     }),
     dynamicRoute({
         path: ({ tag }) => `/tags/${tag}.html`,
-        getStaticPaths: () => allTags().map(({ tag }) => ({ tag })),
+        getStaticPaths: (content) => allTags(content.posts).map(({ tag }) => ({ tag })),
         component: TagPage,
     }),
     dynamicRoute({
@@ -41,6 +44,6 @@ export default defineRoutes(
     }),
     fileRoute({
         path: "/search-index.json",
-        component: genearteSearchIndex,
+        component: generateSearchIndex,
     }),
 );

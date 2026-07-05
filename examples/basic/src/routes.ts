@@ -1,9 +1,11 @@
 import { AboutPage } from "./pages/about";
 import { HomePage } from "./pages/home";
 import { PostPage } from "./pages/post";
-import { defineRoutes, staticRoute, dynamicRoute } from "cirrojs";
+import { createRoute } from "cirrojs";
 
 export { runWithRegistry } from "cirrojs";
+
+const { defineRoutes, staticRoute, dynamicRoute } = createRoute();
 
 // サイトのルート定義（Config Base Routing）。
 export default defineRoutes(

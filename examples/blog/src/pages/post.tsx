@@ -1,3 +1,4 @@
+import type { PageProps } from "cirrojs";
 import { Layout } from "../components/Layout";
 import { PostMeta } from "../components/PostMeta";
 import { TableOfContents } from "../components/TableOfContents";
@@ -6,10 +7,11 @@ import { getPost } from "../lib/content";
 import { renderMarkdown } from "../lib/markdown";
 import { articleClass } from "../styles/article";
 import { color, cssMain, cssMd, cx, fontSize, radii, space } from "../styles/system";
+import type { content } from "../content";
 
 // ブログ個別記事ページ（/blog/[slug]）。
-export function PostPage({ params }: { params: { slug: string } }) {
-    const post = getPost(params.slug);
+export function PostPage(props: PageProps<typeof content, { slug: string }>) {
+    const post = getPost(props.params.slug, props.content.posts);
 
     if (!post) {
         return (

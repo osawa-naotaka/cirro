@@ -1,12 +1,14 @@
+import type { PageProps } from "cirrojs";
 import { Layout } from "../components/Layout";
 import { PostList } from "../components/PostList";
 import { postsByTag } from "../lib/content";
 import { color, cssMain, cx, fontSize, space } from "../styles/system";
+import type { content } from "../content";
 
 // タグ別の記事一覧（/tags/[tag]）。
-export function TagPage({ params }: { params: { tag: string } }) {
-    const { tag } = params;
-    const tagged = postsByTag(tag);
+export function TagPage(props: PageProps<typeof content, { tag: string }>) {
+    const { tag } = props.params;
+    const tagged = postsByTag(tag, props.content.posts);
 
     return (
         <Layout title={`#${tag} の記事 — Cirro Blog`} description={`タグ「${tag}」が付いた記事一覧。`}>
