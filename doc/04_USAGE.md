@@ -1,14 +1,14 @@
 # Cirro 利用ガイド
 
 本ドキュメントは Cirro の **使い方を一通り通す実践ガイド**である。Vite プラグインとしての導入から、
-CLI、サイトのコードの書き方、dev サーバー / build、島システム、Markdown、そして推奨スタイリング
-（Panda CSS）までを扱う。
+CLI、サイトのコードの書き方、dev サーバー / build、島システム、コンテンツ層、Markdown までを扱う。
+スタイリング（自前 CSS 生成）は `05_STYLING.md` を参照。
 
 - **なぜ**この設計なのか（背景・目的）は `01_CHARTER.md` を参照。
 - クライアントスクリプトの配信・バンドルの内部は `02_CLIENT_SCRIPT_BUNDLING.md` を参照。
 - 島（islands）の内部の仕組みは `03_ISLAND_SYSTEM.md` を参照（本書 6 章は使い方の要約に留める）。
 
-題材は `examples/basic`（最小構成）と `examples/blog`（Markdown + Panda CSS の実運用例）の実コードに即す。
+題材は `examples/basic`（最小構成）と `examples/blog`（Markdown + 自前 CSS の実運用例）の実コードに即す。
 
 ---
 
@@ -99,7 +99,7 @@ Cirro の本体は 1 つの Vite プラグイン `cirro()` として提供され
 ```ts
 // vite.config.ts
 import react from "@vitejs/plugin-react";
-import { cirro } from "cirro/vite";
+import { cirro } from "cirrojs/vite";
 import { defineConfig } from "vite";
 
 export default defineConfig({
@@ -139,7 +139,7 @@ Cirro は `@vitejs/plugin-react` を**内包しない**（RSC 系プラグイン
 
 ## 4. CLI の使い方
 
-Cirro の CLI は `cirro <dev|build>` の 2 コマンドのみ（`packages/cirro/src/cli.ts`）。`bin` ランチャー
+Cirro の CLI は `cirro <dev|build>` の 2 コマンドのみ（`packages/cirrojs/src/cli.ts`）。`bin` ランチャー
 （`cli.sh`）が `main()` を呼ぶ。
 
 | コマンド | 役割 |
@@ -164,12 +164,14 @@ bun run preview  # 生成物の確認
 ファイルベースルーティングは採用せず、`routes.ts` に **型付きの JavaScript オブジェクト**として
 ルートを宣言する。正規表現や独自の文字列記法は使わない（型と関数で表現する方針）。
 
-ルートは `defineRoute()` で宣言する。`staticRoute()`、`dynamicRoute()`、`fileRoute()` を使って
-**静的ルート（`"static"`）・動的ルート（`"dynamic"`）・ファイルルート（`"file"`）**を切り替えて宣言する。
+ルートビルダーは `createRoute()` ファクトリから取得する。`staticRoute()`、`dynamicRoute()`、`fileRoute()` で
+**静的ルート（`"static"`）・動的ルート（`"dynamic"`）・ファイルルート（`"file"`）**を宣言し、
+`defineRoutes()` で束ねて default export する。コンテンツ層（5.5）を使う場合は `createRoute(content)` と
+ハンドルを渡す。これにより `getStaticPaths` と各ページコンポーネントへ型付きの `content` が配られる。
 
 ```ts
 // src/routes.ts
-import { defineRoute, staticRoute, dynamicRoute, fileRoute } from "cirrojs";
+import { createRoute } from "cirrojs";
 import { AboutPage } from "./pages/about";
 import { HomePage } from "./pages/home";
 import { PostPage } from "./pages/post";
@@ -178,40 +180,46 @@ import { generateSearchIndex } from "./pages/search-index";
 // 自前 CSS のレジストリ関数を再 export する（必須・05_STYLING.md 7.2 参照）
 export { runWithRegistry } from "cirrojs";
 
-export default defineRoute(
+// コンテンツ層を使う場合は createRoute(content) と渡す（5.5 参照）
+const { defineRoutes, staticRoute, dynamicRoute, fileRoute } = createRoute();
+
+export default defineRoutes(
     // 静的ルート: path は固定文字列
-    staticRoute({ path: "/index.html", cssPath: "/index.css", component: HomePage }),
-    staticRoute({ path: "/about.html", cssPath: "/about.css", component: AboutPage }),
+    staticRoute({ path: "/index.html", component: HomePage }),
+    staticRoute({ path: "/about.html", component: AboutPage }),
 
     // 動的ルート: path は params から URL を生成する関数
     dynamicRoute({
-        path: ({ slug }) => `/posts/${slug}`,             // params から URL を生成
-        cssPath: "/posts/index.css",                      // 全インスタンスで共有する CSS の URL
+        path: ({ slug }) => `/posts/${slug}.html`,        // params から URL を生成
         getStaticPaths: () => [{ slug: "hello" }, { slug: "world" }], // 生成する全 params
         component: PostPage,
     }),
 
     // ファイルルート: 任意のテキストファイルを生成出力する
     fileRoute({
-        type: "file",
         path: "/search-index.json", // 拡張子まで含む出力パス
         component: generateSearchIndex,
-    },
+    }),
 );
 ```
 
-- **静的ルート** `{ path, cssPath, component }` … `path`, `cssPath` は固定文字列。`component` は React 要素を返す。
-- **動的ルート** `{ path, cssPath, getStaticPaths, component }` … `getStaticPaths()` が返す
-  各 params を `path()` 関数に通して URL を生成する。`cssPath` には全インスタンスで共有する CSS ファイルの
-  URL を明示する（`05_STYLING.md` 7.1 参照）。`component` は React 要素を返す。
+- **静的ルート** `{ path, component }` … `path` は固定文字列。`component` は React 要素を返す。
+- **動的ルート** `{ path, getStaticPaths, component }` … `getStaticPaths()` が返す
+  各 params を `path()` 関数に通して URL を生成する。コンテンツ層を使う場合、`getStaticPaths` は
+  引数に `content` を受け取る（5.5 参照）。`component` は React 要素を返す。
 - **ファイルルート** `{ path, component }` … 任意のテキストファイルを生成出力する機能。
   `component` は **React 要素ではなく文字列を返す**関数で、その文字列が `path`（拡張子まで含む固定パス）
   へそのまま書き出される。`examples/blog` では検索インデックス（`/search-index.json`）の生成に使っている
   （`src/pages/search-index.ts`）。
+- CSS の URL をルート定義に書く必要はない。ルート単位の CSS はレンダリング結果から自動生成され、
+  `<link>` もランタイムが自動挿入する（5.4 と `05_STYLING.md` 7.1 参照）。
+- `defineRoutes()` はルート配列とコンテンツハンドルを束ねたオブジェクトを返す。ランタイム（dev / build）は
+  この default export からルートと content の loader を取得する。
 
 ### 5.2 ページコンポーネント
 
-ページは `<html>` 全体を返す React コンポーネント。`<head>` は手書きする。動的ルートは `params` を受け取る。
+ページは `<html>` 全体を返す React コンポーネント。`<head>` は手書きする。props は `{ params, content }`
+（動的ルートの `params` と、コンテンツ層の `content`。5.5 参照）。使わない prop は受け取らなくてよい。
 
 ```tsx
 // src/pages/post.tsx
@@ -250,7 +258,7 @@ export function Layout({ title, description, children, island = true }: LayoutPr
                 <meta charSet="utf-8" />
                 <title>{title}</title>
                 {description ? <meta name="description" content={description} /> : null}
-                <link rel="stylesheet" href="/styles.css" />
+                {/* CSS の <link> はランタイムが自動挿入する（5.4）。手書きしない */}
             </head>
             <body>
                 <main>{children}</main>
@@ -261,13 +269,77 @@ export function Layout({ title, description, children, island = true }: LayoutPr
 }
 ```
 
-### 5.4 クライアントスクリプトの自動挿入
+### 5.4 クライアントスクリプトと CSS の自動挿入
 
-**利用者は `<script>` を一切書かない**。Cirro が島マウンタ（`virtual:cirro/client`）への
-`<script async type="module">` を、レンダリングしたツリーに併置して挿入する（`runtime/head.ts` の
-`appendClientScript`）。React 19 のメタデータ巻き上げ（hoisting）により、`<script async>` は
-ツリーのどこに置かれても `<head>` へ自動で巻き上げられる。文字列置換を行わず、インラインスクリプトも
-生成しないため、`script-src 'self'` を維持する。
+**利用者は `<script>` も CSS の `<link>` も書かない**。Cirro が島マウンタ（`virtual:cirro/client`）への
+`<script async type="module">` と、ルート CSS への `<link rel="stylesheet">` を、レンダリングしたツリーに
+併置して挿入する（`runtime/head.ts` の `appendClientScriptAndCss`）。React 19 のメタデータ巻き上げ
+（hoisting）により、これらはツリーのどこに置かれても `<head>` へ自動で巻き上げられる。文字列置換を行わず、
+インラインスクリプトも生成しないため、`script-src 'self'` を維持する。
+
+### 5.5 コンテンツ層（defineContent）
+
+ページの描画は `renderToStaticMarkup` による同期処理のため、コンポーネント内で `await` はできない。
+DB・CMS・ファイルシステムなどからの非同期なコンテンツ取得は、レンダリングより前に済ませる必要がある。
+この「取得（非同期）と描画（同期）の分離」を担うのがコンテンツ層である。
+
+`defineContent()` に async な `loader` を渡してハンドルを作り、`createRoute(content)` に渡す。
+
+```ts
+// src/content.ts
+import { defineContent } from "cirrojs";
+
+export const content = defineContent({
+    loader: async () => {
+        const posts = await fetchPosts(); // 任意の非同期取得
+        return { posts };
+    },
+});
+```
+
+```ts
+// src/routes.ts
+import { createRoute } from "cirrojs";
+import { content } from "./content";
+
+const { defineRoutes, staticRoute, dynamicRoute, fileRoute } = createRoute(content);
+
+export default defineRoutes(
+    dynamicRoute({
+        path: ({ slug }) => `/blog/${slug}.html`,
+        getStaticPaths: (content) => content.posts.map(({ slug }) => ({ slug })),
+        component: PostPage,
+    }),
+    // ...
+);
+```
+
+ランタイムはレンダリング前に `loader()` を一度だけ await し、結果を `getStaticPaths` の引数と
+全ルートコンポーネント（ファイルルート含む）の `content` prop へ配る。`loader` の戻り値の型は
+`createRoute(content)` を通じて `getStaticPaths` と `component` の型チェックに伝播する。
+
+ページ側は `PageProps` で型付けする。第 2 型引数は動的ルートの params。
+
+```tsx
+// src/pages/post.tsx
+import type { PageProps } from "cirrojs";
+import type { content } from "../content";
+
+export function PostPage(props: PageProps<typeof content, { slug: string }>) {
+    const post = props.content.posts.find((p) => p.slug === props.params.slug);
+    // ...
+}
+```
+
+補足:
+
+- **実行タイミング**: build では生成開始前に 1 回。dev では初回リクエストで実行して結果をキャッシュし、
+  `watchDir` 配下のファイル変更でキャッシュを破棄して次のリクエストで再実行する。
+- **出自は問わない**: loader が返すものがコンテンツである。glob で読んだ Markdown（7.3 参照）、
+  ネットワーク越しのフェッチ結果、手書きの JavaScript オブジェクトを 1 つのストアに合成してよい。
+- **コンテンツはビルド時専用**: `content` はサーバー側（SSR）にのみ存在し、島（クライアント）からは
+  参照できない。島に渡したいデータは `<Island>` の props として明示的に渡す。
+- コンテンツ層を使わないサイトは `createRoute()` を引数なしで呼ぶ（`examples/basic`）。
 
 ---
 
@@ -289,7 +361,7 @@ export function Layout({ title, description, children, island = true }: LayoutPr
 3. **型付き `<Island>` を生成**（`src/islands/Island.ts`）— 定型の 3 行。
 
    ```ts
-   import { createIsland } from "cirro";
+   import { createIsland } from "cirrojs/server";
    import islands from "./registry";
    export const Island = createIsland(islands);
    ```
@@ -303,7 +375,7 @@ export function Layout({ title, description, children, island = true }: LayoutPr
 
 ## 7. Markdown コンテンツ
 
-Cirro は `createMarkdownProcessor()` ファクトリで Markdown 描画 API を提供する（`packages/cirro/src/markdown.tsx`）。
+Cirro は `createMarkdownProcessor()` ファクトリで Markdown 描画 API を提供する（`packages/cirrojs/src/markdown.tsx`）。
 変換はビルド時（SSR）に同期実行され、結果は静的 HTML として埋め込まれる。**unified 一式の JS は
 クライアントへ送られない**（サーバー専用）。
 
@@ -312,7 +384,7 @@ Cirro は `createMarkdownProcessor()` ファクトリで Markdown 描画 API を
 サイト側で一度だけ設定済みの描画関数を作る（`examples/blog` の `src/lib/markdown.ts`）。
 
 ```ts
-import { createMarkdownProcessor } from "cirro";
+import { createMarkdownProcessor } from "cirrojs/server";
 import remarkGfm from "remark-gfm";
 
 export const { render: renderMarkdown } = createMarkdownProcessor({
@@ -343,19 +415,26 @@ export const { render: renderMarkdown } = createMarkdownProcessor({
 
 ### 7.3 frontmatter とコンテンツの読み込み
 
-記事メタデータは frontmatter で持ち、`gray-matter` 等でパースする。Markdown ファイルは Vite の
-`import.meta.glob`（`?raw` + `eager`）でビルド時に文字列として読み込む（`examples/blog` の `src/lib/content.ts`）。
+記事メタデータは frontmatter で持ち、`gray-matter` 等でパースする。読み込みとパースはコンテンツ層
+（5.5 参照）の loader 内で行う。Markdown ファイルは Vite の `import.meta.glob`（`?raw` + `eager`）で
+ビルド時に文字列として読み込む（`examples/blog` の `src/content.ts`）。
 
 ```ts
+import { defineContent } from "cirrojs";
 import matter from "gray-matter";
 
-const files = import.meta.glob("../content/posts/*.md", {
-    query: "?raw", import: "default", eager: true,
-}) as Record<string, string>;
+export const content = defineContent({
+    loader: async () => {
+        const files = import.meta.glob("./content/posts/*.md", {
+            query: "?raw", import: "default", eager: true,
+        }) as Record<string, string>;
 
-export const posts = Object.entries(files).map(([path, raw]) => {
-    const { data, content } = matter(raw); // data = frontmatter, content = 本文 Markdown
-    return { /* slug, title, date, tags, ... */ content };
+        const posts = Object.entries(files).map(([path, raw]) => {
+            const { data, content } = matter(raw); // data = frontmatter, content = 本文 Markdown
+            return { /* slug, title, date, tags, ... */ content };
+        });
+        return { posts };
+    },
 });
 ```
 
@@ -375,7 +454,7 @@ return (
 ```
 
 `className` に渡したクラスで本文コンテナを装飾できる（見出し・コードブロック・Prism トークン配色などは
-子孫セレクタでスタイルする。9 章参照）。
+子孫セレクタでスタイルする。`05_STYLING.md` 参照）。
 
 ---
 
@@ -386,23 +465,25 @@ return (
 `runtime/dev.ts` が、Vite を **middleware モード**で起動し、リクエストごとに SSR + ルーティングを行う。
 
 1. リクエストの URL に一致するルートを `routes`（Module Runner で常に最新を評価）から解決する。
-2. ページをレンダリングし、島マウンタの `<script>` を併置して `renderToStaticMarkup` で HTML 化する。
-3. `vite.transformIndexHtml` を通して返す（HMR クライアントの注入等）。
+2. コンテンツ層があれば `loader()` の結果を用意する（初回リクエストで実行し、以降はキャッシュ。5.5 参照）。
+3. ページをレンダリングし、島マウンタの `<script>` を併置して `renderToStaticMarkup` で HTML 化する。
+4. `vite.transformIndexHtml` を通して返す（HMR クライアントの注入等）。
 
 ファイル監視は次の方針:
 
 - **島ディレクトリ配下** … React Fast Refresh に委ねる（full-reload しない）。
 - **`watchDir`（既定 `./src`）配下のその他** … ページ・ルート定義・Markdown など、クライアント HMR の
-  境界を持たないものを含むため、変更時は SSR モジュールキャッシュを無効化してから **full-reload** する。
+  境界を持たないものを含むため、変更時は SSR モジュールキャッシュとコンテンツキャッシュ（5.5）を
+  無効化してから **full-reload** する。
 
 ### 8.2 build（`cirro build`）
 
 `runtime/build.ts` が 2 段で静的サイトを生成する。
 
 1. **`vite build`** … 島マウンタのクライアントバンドルと `manifest.json` を生成（CSP 厳格設定はプラグインが注入済み）。
-2. **各ルートを静的 HTML 化** … 一時的な SSR サーバで `routes` を評価し、`expandRoutes` が展開した
-   全 URL について、島用 JS への `<script>` を併置して `renderToStaticMarkup` し、`dist/` に
-   クリーン URL のパスで書き出す。
+2. **各ルートを静的 HTML 化** … 一時的な SSR サーバで `routes` を評価し、コンテンツ層があれば
+   `loader()` を await したうえで、`expandRoutes` が展開した全 URL について、島用 JS への `<script>` を
+   併置して `renderToStaticMarkup` し、`dist/` にクリーン URL のパスで書き出す。
 
 ### 8.3 成果物
 
@@ -425,8 +506,8 @@ Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'
 | CSP 条項 | 満たす仕組み |
 | --- | --- |
 | `script-src 'self'` | 島マウンタ・島コードはすべて外部 JS（`<script src>`）。props は `data-*` 属性で渡す（3 章・6 章） |
-| `style-src 'self'` | 自前 CSS（`05_STYLING.md`）／Panda CSS（9 章）がビルド時に外部 CSS を生成。`<style>` も `style=""` も出さない |
-| `font-src 'self'` | システムフォントスタックを使い外部フォントを読まない（9 章） |
+| `style-src 'self'` | 自前 CSS（`05_STYLING.md`）がビルド時に外部 CSS を生成。`<style>` も `style=""` も出さない |
+| `font-src 'self'` | システムフォントスタックを使い外部フォントを読まない |
 
 ### 9.1 CSP の meta 要素は利用者の任意（dev / build で出し分けできる）
 
@@ -469,6 +550,7 @@ const CSP = "default-src 'self'; script-src 'self'; style-src 'self'; font-src '
 - `01_CHARTER.md` — プロジェクト憲章（背景・目的・スコープ）
 - `02_CLIENT_SCRIPT_BUNDLING.md` — クライアントスクリプトの配信・バンドルの現状調査
 - `03_ISLAND_SYSTEM.md` — 島システムの使い方と内部の仕組み
+- `05_STYLING.md` — スタイリングガイド（自前 CSS 生成）
 
 ### 用語
 

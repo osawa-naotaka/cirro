@@ -1,6 +1,6 @@
 # Cirro スタイリングガイド（自前 CSS 生成）
 
-Cirro はこれまでスタイリングを Panda CSS（`04_USAGE.md` 9 章）に頼っていたが、挙動の不安定さを理由に、
+Cirro はこれまでスタイリングを Panda CSS に頼っていたが、挙動の不安定さを理由に、
 **CSS の生成を自前実装に切り替えた**。本書はその自前 CSS の書き方と内部の仕組みを説明する。
 
 設計の要点は次の 2 つ。
@@ -12,7 +12,7 @@ Cirro はこれまでスタイリングを Panda CSS（`04_USAGE.md` 9 章）に
 - **CSS はルート単位に 1 個生成する**。ページを SSR で描画する過程で登録されたスタイルを集め、
   そのルート専用の CSS ファイルとして書き出す。
 
-> Panda CSS は引き続き「非組み込みの選択肢」として利用できるが（`04_USAGE.md` 9 章）、本書で説明する
+> Panda CSS は引き続き「非組み込みの選択肢」として利用できるが、本書で説明する
 > 自前 CSS が現在の標準である。
 
 関連実装: `packages/cirrojs/src/css.ts` / `registry.ts` / `properties.ts` / `runtime/build.ts` /
@@ -371,9 +371,10 @@ const css = stringifyCss(registry);
 自然に排除される。文アットルール（`AtStatementRule`）はプリアンブル直後にまとめて出力される（4 章）。
 `toStyle()` が描画コンテキスト外（`runWithRegistry` の外）で呼ばれた場合は例外を投げる。
 
-CSS の URL は `StaticRoute.cssPath`や`DynamicRoute.cssPath`で明示的に指定する。
-`examples/basic` では `/posts/[slug]` 系で `/posts/index.css` を
-  共有している（動的ルートの全インスタンスで 1 CSS を共有）。
+CSS の URL をルート定義で指定する必要はない。dev ではルートの HTML パスに `.css` を付けた URL で
+そのルート分の CSS が配信され、build では全ルート分をマージした 1 つの CSS（`/assets/styles.css`）が
+書き出されて全ページから参照される。どちらの場合も `<link rel="stylesheet">` はランタイムが自動挿入する
+（`04_USAGE.md` 5.4 参照）。
 
 ### 7.2 【必須】`routes.ts` で `runWithRegistry` を再 export する
 
@@ -384,21 +385,21 @@ CSS の URL は `StaticRoute.cssPath`や`DynamicRoute.cssPath`で明示的に指
 
 ```ts
 // src/routes.ts
-import { defineRoutes } from "cirrojs";
+import { createRoute } from "cirrojs";
 
 // ↓ これを書かないと CSS が生成されない
 export { runWithRegistry } from "cirrojs";
 
+const { defineRoutes, staticRoute, dynamicRoute } = createRoute();
+
 export default defineRoutes(
-    { type: "static", path: "/index.html", cssPath: "/index.css", component: HomePage },
-    { type: "static", path: "/about.html", cssPath: "/about.css", component: AboutPage },
-    {
-        type: "dynamic",
+    staticRoute({ path: "/index.html", component: HomePage }),
+    staticRoute({ path: "/about.html", component: AboutPage }),
+    dynamicRoute({
         path: ({ slug }) => `/posts/${slug}.html`,
-        cssPath: "/posts/index.css",
         getStaticPaths: () => [{ slug: "hello" }, { slug: "world" }],
         component: PostPage,
-    },
+    }),
 );
 ```
 
@@ -860,4 +861,4 @@ const pulse = toKeyframes(
 
 - `01_CHARTER.md` — プロジェクト憲章（背景・目的・スコープ）
 - `03_ISLAND_SYSTEM.md` — 島システムの使い方と内部の仕組み
-- `04_USAGE.md` — 利用ガイド（ルーティング・CSP・Panda CSS）
+- `04_USAGE.md` — 利用ガイド（ルーティング・コンテンツ層・Markdown・CSP）
