@@ -50,11 +50,9 @@ export function Counter({ initial = 0 }: { initial?: number }) {
 // src/islands/registry.ts
 import { Counter } from "./Counter";
 
-export const islands = {
+export default {
     counter: Counter,
 } as const;
-
-export type Islands = typeof islands;
 ```
 
 > `as const` を付けるのは、`name` の型を `"counter"` のようなリテラル union に絞り、
@@ -68,7 +66,7 @@ export type Islands = typeof islands;
 ```ts
 // src/islands/Island.ts
 import { createIsland } from "cirro";
-import { islands } from "./registry";
+import islands from "./registry";
 
 export const Island = createIsland(islands);
 ```

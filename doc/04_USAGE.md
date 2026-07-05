@@ -164,13 +164,12 @@ bun run preview  # 生成物の確認
 ファイルベースルーティングは採用せず、`routes.ts` に **型付きの JavaScript オブジェクト**として
 ルートを宣言する。正規表現や独自の文字列記法は使わない（型と関数で表現する方針）。
 
-`routes` は `AnyRoute[]` 型で、各要素は **`type` フィールドが必須**である。`type` の値によって
-**静的ルート（`"static"`）・動的ルート（`"dynamic"`）・ファイルルート（`"file"`）**を切り替えて宣言する
-（`packages/cirrojs/src/route.ts`）。
+ルートは `defineRoute()` で宣言する。`staticRoute()`、`dynamicRoute()`、`fileRoute()` を使って
+**静的ルート（`"static"`）・動的ルート（`"dynamic"`）・ファイルルート（`"file"`）**を切り替えて宣言する。
 
 ```ts
 // src/routes.ts
-import { type AnyRoute } from "cirrojs";
+import { defineRoute, staticRoute, dynamicRoute, fileRoute } from "cirrojs";
 import { AboutPage } from "./pages/about";
 import { HomePage } from "./pages/home";
 import { PostPage } from "./pages/post";
@@ -179,34 +178,33 @@ import { generateSearchIndex } from "./pages/search-index";
 // 自前 CSS のレジストリ関数を再 export する（必須・05_STYLING.md 7.2 参照）
 export { runWithRegistry } from "cirrojs";
 
-export const routes: AnyRoute[] = [
+export default defineRoute(
     // 静的ルート: path は固定文字列
-    { type: "static", path: "/index.html", cssPath: "/index.css", component: HomePage },
-    { type: "static", path: "/about.html", cssPath: "/about.css", component: AboutPage },
+    staticRoute({ path: "/index.html", cssPath: "/index.css", component: HomePage }),
+    staticRoute({ path: "/about.html", cssPath: "/about.css", component: AboutPage }),
 
     // 動的ルート: path は params から URL を生成する関数
-    {
-        type: "dynamic",
+    dynamicRoute({
         path: ({ slug }) => `/posts/${slug}`,             // params から URL を生成
         cssPath: "/posts/index.css",                      // 全インスタンスで共有する CSS の URL
         getStaticPaths: () => [{ slug: "hello" }, { slug: "world" }], // 生成する全 params
         component: PostPage,
-    },
+    }),
 
     // ファイルルート: 任意のテキストファイルを生成出力する
-    {
+    fileRoute({
         type: "file",
         path: "/search-index.json", // 拡張子まで含む出力パス
         component: generateSearchIndex,
     },
-];
+);
 ```
 
-- **静的ルート** `{ type: "static", path, cssPath, component }` … `path`, `cssPath` は固定文字列。`component` は React 要素を返す。
-- **動的ルート** `{ type: "dynamic", path, cssPath, getStaticPaths, component }` … `getStaticPaths()` が返す
+- **静的ルート** `{ path, cssPath, component }` … `path`, `cssPath` は固定文字列。`component` は React 要素を返す。
+- **動的ルート** `{ path, cssPath, getStaticPaths, component }` … `getStaticPaths()` が返す
   各 params を `path()` 関数に通して URL を生成する。`cssPath` には全インスタンスで共有する CSS ファイルの
   URL を明示する（`05_STYLING.md` 7.1 参照）。`component` は React 要素を返す。
-- **ファイルルート** `{ type: "file", path, component }` … 任意のテキストファイルを生成出力する機能。
+- **ファイルルート** `{ path, component }` … 任意のテキストファイルを生成出力する機能。
   `component` は **React 要素ではなく文字列を返す**関数で、その文字列が `path`（拡張子まで含む固定パス）
   へそのまま書き出される。`examples/blog` では検索インデックス（`/search-index.json`）の生成に使っている
   （`src/pages/search-index.ts`）。
