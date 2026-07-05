@@ -1,4 +1,4 @@
-import { defineRoutes, type AnyRoute } from "cirrojs";
+import { defineRoutes, staticRoute, dynamicRoute, fileRoute } from "cirrojs";
 import { authors } from "./lib/authors";
 import { allTags, posts } from "./lib/content";
 import { AboutPage } from "./pages/about";
@@ -20,31 +20,27 @@ export { runWithRegistry } from "cirrojs";
 // cssPath は CSS ファイルの URL（.css 終端）。動的ルートの全インスタンスで 1 つの CSS を共有し、
 // 同一プレフィックスの静的ルート（/blog, /tags が生成する index.css）とは衝突しない名前にする。
 export default defineRoutes(
-    { type: "static", path: "/index.html", component: HomePage },
-    { type: "static", path: "/about.html", component: AboutPage },
-    { type: "static", path: "/blog/index.html", component: BlogIndexPage },
-    { type: "static", path: "/tags/index.html", component: TagIndexPage },
-    {
-        type: "dynamic",
+    staticRoute({ path: "/index.html", component: HomePage }),
+    staticRoute({ path: "/about.html", component: AboutPage }),
+    staticRoute({ path: "/blog/index.html", component: BlogIndexPage }),
+    staticRoute({ path: "/tags/index.html", component: TagIndexPage }),
+    dynamicRoute({
         path: ({ slug }) => `/blog/${slug}.html`,
         getStaticPaths: () => posts.map(({ slug }) => ({ slug })),
         component: PostPage,
-    },
-    {
-        type: "dynamic",
+    }),
+    dynamicRoute({
         path: ({ tag }) => `/tags/${tag}.html`,
         getStaticPaths: () => allTags().map(({ tag }) => ({ tag })),
         component: TagPage,
-    },
-    {
-        type: "dynamic",
+    }),
+    dynamicRoute({
         path: ({ id }) => `/authors/${id}.html`,
         getStaticPaths: () => authors.map(({ id }) => ({ id })),
         component: AuthorPage,
-    },
-    {
-        type: "file",
+    }),
+    fileRoute({
         path: "/search-index.json",
         component: genearteSearchIndex,
-    }
+    }),
 );

@@ -48,3 +48,15 @@ export type ResolvedPath =
 export function defineRoutes(...routes: AnyRoute[]): AnyRoute[] {
     return routes;
 }
+
+export function staticRoute(opt: Omit<StaticRoute, "type">): StaticRoute {
+    return { type: "static", path: opt.path, component: opt.component };
+}
+
+export function dynamicRoute<P extends Params>(opt: Omit<DynamicRoute<P>, "type">): DynamicRoute<P> {
+    return { type: "dynamic", path: opt.path, getStaticPaths: opt.getStaticPaths, component: opt.component };
+}
+
+export function fileRoute(opt: Omit<FileRoute, "type">): FileRoute {
+    return { type: "file", path: opt.path, component: opt.component };
+}
