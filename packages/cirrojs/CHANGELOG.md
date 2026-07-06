@@ -13,6 +13,19 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [0.0.26] - 2026-07-06
+
+### Added
+- `defineContent({ loader })`, exported from the package entry point. It wraps an async `loader` function into a content handle. The runtime awaits the loader once before rendering and distributes the result to `getStaticPaths` and to every route component as the `content` prop. `cirro build` runs the loader once before static generation. The dev server runs it on the first request and caches the resulting promise; a change, addition, or deletion of a file under `watchDir` discards the cache, so the next request reloads the content.
+- `createRouteFn(content?)`, exported from the package entry point. It returns `defineRoutes` and `route` helpers bound to the content handle's data type, so `getStaticPaths` and the component of every route are type-checked against the loader's return type. `route` is an identity helper that preserves the params type `P` of dynamic routes. When `createRouteFn` is called without a handle, the content type is `undefined`.
+- `ContentType<H>` type, exported from the package entry point. It extracts the loaded data type from a content handle (`typeof content`).
+- `PageProps<H, P>` type, exported from the package entry point. It is the props contract of a page component: `{ params: P; content: ContentType<H> }`, with `P` defaulting to `Record<string, never>`.
+- The dev server now reacts to file additions and deletions (`add` / `unlink`) with the same module invalidation, content-cache discard, and full-reload as file changes, so contents read with `import.meta.glob` reflect added and removed files without a restart.
+
+### Changed
+- **Breaking**: `defineRoutes` is no longer exported from the package entry point; it is obtained from `createRouteFn()`. Its return value changed from an `AnyRoute[]` array to an object `{ content?, routes }`, so the shape of the routes module's default export changes accordingly. The dev server and `cirro build` read both the routes and the content loader from this object.
+- **Breaking**: the `StaticRoute`, `DynamicRoute`, `FileRoute`, and `AnyRoute` types now take the content data type as a type parameter (`StaticRoute<T>`, `DynamicRoute<T, P>`, `FileRoute<T>`, `AnyRoute<T>`). Route components receive a `content` prop alongside `params`, and `DynamicRoute.getStaticPaths` receives the loaded content as its argument. Components and `getStaticPaths` callbacks that do not use content can keep their previous signatures.
+
 ## [0.0.25] - 2026-07-04
 
 ### Added
@@ -216,7 +229,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## 0.0.1 - 2026-06-15
 - initial release
 
-[Unreleased]: https://github.com/osawa-naotaka/cirro/compare/v0.0.25...HEAD
+[Unreleased]: https://github.com/osawa-naotaka/cirro/compare/v0.0.26...HEAD
+[0.0.26]: https://github.com/osawa-naotaka/cirro/compare/v0.0.25...v0.0.26
 [0.0.25]: https://github.com/osawa-naotaka/cirro/compare/v0.0.24...v0.0.25
 [0.0.24]: https://github.com/osawa-naotaka/cirro/compare/v0.0.23...v0.0.24
 [0.0.23]: https://github.com/osawa-naotaka/cirro/compare/v0.0.22...v0.0.23

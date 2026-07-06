@@ -18,12 +18,24 @@ export function TableOfContents({ toc }: { toc: ToC[] }) {
         margin_top: space(6),
         margin_bottom: space(6),
     });
-    const heading = cssMain({ font_size: fontSize.xs, font_weight: "700", color: color.fgMuted, text_transform: "uppercase", letter_spacing: "0.05em", margin_bottom: space(2) });
+    const heading = cssMain({
+        font_size: fontSize.xs,
+        font_weight: "700",
+        color: color.fgMuted,
+        text_transform: "uppercase",
+        letter_spacing: "0.05em",
+        margin_bottom: space(2),
+    });
     const link = cx(
         cssMain({ color: color.fgMuted, text_decoration: "none" }),
         cssMain({ color: color.primary, text_decoration: "underline" }, { selector: "$:hover" }),
     );
-    const indent = [cssMain({ padding_left: space(0) }), cssMain({ padding_left: space(3) }), cssMain({ padding_left: space(6) }), cssMain({ padding_left: space(9) })];
+    const indent = [
+        cssMain({ padding_left: space(0) }),
+        cssMain({ padding_left: space(3) }),
+        cssMain({ padding_left: space(6) }),
+        cssMain({ padding_left: space(9) }),
+    ];
 
     return (
         <nav className={nav} aria-label="目次">

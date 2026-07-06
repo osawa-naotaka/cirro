@@ -1,13 +1,15 @@
+import type { PageProps } from "cirrojs";
 import { Layout } from "../components/Layout";
 import { PostList } from "../components/PostList";
+import type { content } from "../content";
 import { getAuthor } from "../lib/authors";
 import { postsByAuthor } from "../lib/content";
 import { color, cssMain, cssMd, cssSm, cx, fontSize, radii, space } from "../styles/system";
 
 // 著者ページ（/authors/[id]）: プロフィール + 執筆記事。
-export function AuthorPage({ params }: { params: { id: string } }) {
-    const author = getAuthor(params.id);
-    const written = postsByAuthor(author.id);
+export function AuthorPage(props: PageProps<typeof content, { id: string }>) {
+    const author = getAuthor(props.params.id);
+    const written = postsByAuthor(author.id, props.content.posts);
 
     return (
         <Layout title={`${author.name} — Cirro Blog`} description={author.bio}>
@@ -17,7 +19,12 @@ export function AuthorPage({ params }: { params: { id: string } }) {
                     cssMd({ padding: space(8) }),
                 )}
             >
-                <div className={cx(cssMain({ display: "flex", flex_direction: "column", gap: space(6) }), cssSm({ flex_direction: "row", align_items: "center" }))}>
+                <div
+                    className={cx(
+                        cssMain({ display: "flex", flex_direction: "column", gap: space(6) }),
+                        cssSm({ flex_direction: "row", align_items: "center" }),
+                    )}
+                >
                     <div
                         className={cssMain({
                             flex_shrink: "0",

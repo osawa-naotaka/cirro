@@ -1,50 +1,45 @@
 import type { ReactElement } from "react";
+import type { ContentHandler } from "./content";
 
 export type Params = Record<string, unknown>;
 
 // 静的ルート: path は固定文字列
-export type StaticRoute = {
+export type StaticRoute<T> = {
     type: "static";
     path: string;
-    component: (props: { params: Record<string, never> }) => ReactElement;
+    component: (props: { params: Record<string, never>; content: T }) => ReactElement;
 };
 
 // 動的ルート: path は params から URL を生成する関数（正規表現・特殊記法は使わない）
-export type DynamicRoute<P extends Params = Params> = {
+export type DynamicRoute<T, P extends Params = Params> = {
     type: "dynamic";
     path: (params: P) => string;
-    getStaticPaths: () => P[];
-    component: (props: { params: P }) => ReactElement;
+    getStaticPaths: (content: T) => P[];
+    component: (props: { params: P; content: T }) => ReactElement;
 };
 
 // テキストファイルルート: path は固定文字列
-export type FileRoute = {
+export type FileRoute<T> = {
     type: "file";
     path: string;
-    component: (props: { params: Record<string, never> }) => string;
+    component: (props: { params: Record<string, never>; content: T }) => string;
 };
 
 // biome-ignore lint/suspicious/noExplicitAny: ルート集合では各動的ルートの params 型を消す必要がある
-export type AnyRoute = StaticRoute | DynamicRoute<any> | FileRoute;
+export type AnyRoute<T> = StaticRoute<T> | DynamicRoute<T, any> | FileRoute<T>;
 
-export type ResolvedPath =
-    | {
-          type: "html";
-          path: string;
-          render: () => ReactElement;
-      }
-    | {
-          type: "css";
-          path: string;
-          render: () => ReactElement;
-      }
-    | {
-          type: "file";
-          path: string;
-          ext: string;
-          render: () => string;
-      };
+export function createRouteFn<T = undefined>(content?: ContentHandler<T>) {
+    function defineRoutes(...routes: AnyRoute<T>[]): { content?: ContentHandler<T>; routes: AnyRoute<T>[] } {
+        return { content, routes };
+    }
 
-export function defineRoutes(...routes: AnyRoute[]): AnyRoute[] {
-    return routes;
+    // 動的ルートの型パラメータ P を保持するための型推論ヘルパー。
+    function route<P extends Params>(def: DynamicRoute<T, P>): DynamicRoute<T, P>;
+    function route(def: StaticRoute<T>): StaticRoute<T>;
+    function route(def: FileRoute<T>): FileRoute<T>;
+    function route(def: AnyRoute<T>): AnyRoute<T> {
+        return def;
+    }
+
+    return { defineRoutes, route };
 }

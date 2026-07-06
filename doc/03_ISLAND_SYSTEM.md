@@ -50,11 +50,9 @@ export function Counter({ initial = 0 }: { initial?: number }) {
 // src/islands/registry.ts
 import { Counter } from "./Counter";
 
-export const islands = {
+export default {
     counter: Counter,
 } as const;
-
-export type Islands = typeof islands;
 ```
 
 > `as const` を付けるのは、`name` の型を `"counter"` のようなリテラル union に絞り、
@@ -67,8 +65,8 @@ export type Islands = typeof islands;
 
 ```ts
 // src/islands/Island.ts
-import { createIsland } from "cirro";
-import { islands } from "./registry";
+import { createIsland } from "cirrojs/server";
+import islands from "./registry";
 
 export const Island = createIsland(islands);
 ```
@@ -119,7 +117,7 @@ export function HomePage() {
 
 ### 3.1 ビルド時（サーバー）: 島を HTML へ展開する
 
-`<Island>` の実体は `createIsland` が返す関数コンポーネントである（`packages/cirro/src/island.tsx`）。
+`<Island>` の実体は `createIsland` が返す関数コンポーネントである（`packages/cirrojs/src/island.tsx`）。
 これがサーバーレンダリング時に次を行う。
 
 ```tsx
@@ -156,7 +154,7 @@ function Island({ name, props }) {
 ### 3.2 クライアント: 島マウンタが hydrate する
 
 クライアントが読み込むスクリプト（島マウンタ）は、ユーザーは書かない。
-Cirro が**仮想モジュール** `virtual:cirro/client` として自動生成する（`packages/cirro/src/vite.ts` の `load()`）。
+Cirro が**仮想モジュール** `virtual:cirro/client` として自動生成する（`packages/cirrojs/src/vite.ts` の `load()`）。
 中身は概ね次のコード。
 
 ```js
@@ -224,7 +222,7 @@ Cirro は「ビルド時に HTML 化 → 島だけ後から動かす」設計な
 
 ## 4. 実装方法（Cirro 内部）
 
-### 4.1 createIsland ファクトリ（`packages/cirro/src/island.tsx`）
+### 4.1 createIsland ファクトリ（`packages/cirrojs/src/island.tsx`）
 
 レジストリを受け取り、型付きの `<Island>` を返すファクトリ。型パラメータ `R extends IslandRegistry` に
 ユーザーの**具体的な registry の型**を束ねるのが要点。
@@ -253,7 +251,7 @@ export function createIsland<R extends IslandRegistry>(islands: R) {
 TypeScript が `<Island>` の型を知るには、呼び出し箇所から `typeof islands`（ユーザー固有の具体型）が
 見えている必要があり、それを成立させるのが `createIsland(islands)` の一行である。
 
-### 4.2 Vite プラグイン（`packages/cirro/src/vite.ts`）
+### 4.2 Vite プラグイン（`packages/cirrojs/src/vite.ts`）
 
 `cirro()` は Vite の各フックを持つプラグインオブジェクトを返す。島システムに関わるのは主に次の通り。
 
@@ -298,7 +296,7 @@ CSP 厳格性のためのビルド設定（`modulePreload.polyfill: false` な�
   ```ts
   // .cirro/types.d.ts （生成物・ユーザーは触らない）
   declare module "virtual:cirro/island" {
-      import type { IslandComponent } from "cirro";
+      import type { IslandComponent } from "cirrojs";
       import type { islands } from "../src/islands/registry";
       export const Island: IslandComponent<typeof islands>;
   }

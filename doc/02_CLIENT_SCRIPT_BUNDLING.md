@@ -17,7 +17,7 @@
 
 ### 2.1 単一エントリの宣言
 
-`packages/cirro/src/vite.ts` の `config()` が、Vite のビルド入力をただ1つだけ宣言する。
+`packages/cirrojs/src/vite.ts` の `config()` が、Vite のビルド入力をただ1つだけ宣言する。
 
 ```ts
 rollupOptions: { input: { client: VIRTUAL_CLIENT } } // VIRTUAL_CLIENT = "virtual:cirro/client"
@@ -42,11 +42,11 @@ for (const el of document.querySelectorAll("[data-island]")) { ... }
 
 ### 2.3 全ページが同一スクリプトを参照する
 
-`packages/cirro/src/runtime/build.ts` は、ビルド後の manifest から
+`packages/cirrojs/src/runtime/build.ts` は、ビルド後の manifest から
 `virtual:cirro/client` のエントリファイル名を **ループの外で1回だけ** 取得し、
 その同じ `scriptSrc` を全ページの `<script>` に付与する。
 
-dev（`packages/cirro/src/runtime/dev.ts`）でも、固定の `CLIENT_DEV_URL` 定数を
+dev（`packages/cirrojs/src/runtime/dev.ts`）でも、固定の `CLIENT_DEV_URL` 定数を
 全ページ共通で使用する。
 
 ### 2.4 実測による裏付け（examples/basic のビルド成果物）

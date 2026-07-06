@@ -6,7 +6,7 @@ export function HomePage() {
     // reset css
     defineCascadeLayer();
     resetCss();
-    
+
     const cssPC = genCssFn((fn) => at("@media (min-width: 800px)", fn()));
 
     const pageTitle = cssPC({ padding: "1rem", font_size: "2rem" });

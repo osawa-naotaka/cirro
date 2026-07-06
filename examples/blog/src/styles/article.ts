@@ -21,7 +21,7 @@ export function articleClass(): string {
     const d = (selector: string, properties: Properties): void => {
         const sep = selector.split(",").map((s) => s.trim());
         for (const s of sep) {
-            classNames.push(cssMain(properties, { selector: `\$ ${s}` }));
+            classNames.push(cssMain(properties, { selector: `$ ${s}` }));
         }
     };
 
@@ -82,7 +82,14 @@ export function articleClass(): string {
     d(".token.operator", { color: "#e2e8f0" });
 
     d("table", { border_collapse: "collapse", width: "100%", margin_top: space(6), margin_bottom: space(6) });
-    d("th, td", { border: `1px solid ${color.border}`, padding_left: space(3), padding_right: space(3), padding_top: space(2), padding_bottom: space(2), text_align: "left" });
+    d("th, td", {
+        border: `1px solid ${color.border}`,
+        padding_left: space(3),
+        padding_right: space(3),
+        padding_top: space(2),
+        padding_bottom: space(2),
+        text_align: "left",
+    });
     d("th", { background_color: color.hover, font_weight: "700" });
     d("img", { max_width: "100%", height: "auto", border_radius: radii.card });
     d("hr", { border: "0", border_top: `1px solid ${color.border}`, margin_top: space(8), margin_bottom: space(8) });

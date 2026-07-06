@@ -26,23 +26,16 @@ export function AboutPage() {
     const para = cssMain({ margin_bottom: space(4), line_height: "1.9" });
 
     return (
-        <Layout
-            title="About — Cirro Blog"
-            description="このサイトはセキュリティ第一の軽量 SSG「Cirro」で構築されています。"
-            island={false}
-        >
+        <Layout title="About — Cirro Blog" description="このサイトはセキュリティ第一の軽量 SSG「Cirro」で構築されています。" island={false}>
             <h1 className={cssMain({ font_size: "2rem", font_weight: "700", margin_bottom: space(6) })}>このサイトについて</h1>
             <p className={para}>
-                Cirro Blog は、セキュリティを第一に考えた軽量な静的サイトジェネレーター「Cirro」の
-                公式サンプルブログです。スタイルは Cirro 自前のスタイリングシステム（css()）で記述し、
-                ルート単位に生成した外部 CSS だけで配信することで <code>style-src 'self'</code> の厳格な
-                CSP を満たします。記事は Markdown（frontmatter にタイトル・著者・日付・タグを記載）で
-                執筆しています。
+                Cirro Blog は、セキュリティを第一に考えた軽量な静的サイトジェネレーター「Cirro」の 公式サンプルブログです。スタイルは Cirro
+                自前のスタイリングシステム（css()）で記述し、 ルート単位に生成した外部 CSS だけで配信することで <code>style-src 'self'</code> の厳格な CSP
+                を満たします。記事は Markdown（frontmatter にタイトル・著者・日付・タグを記載）で 執筆しています。
             </p>
             <p className={para}>
-                Markdown は remark / rehype でビルド時に HTML へ変換され、静的なページとして
-                配信されます。クライアントへ送られる JavaScript は「島」の分だけで、すべて外部
-                ファイルとして読み込まれます。
+                Markdown は remark / rehype でビルド時に HTML へ変換され、静的なページとして 配信されます。クライアントへ送られる JavaScript
+                は「島」の分だけで、すべて外部 ファイルとして読み込まれます。
             </p>
 
             <hr className={cssMain({ border: "0", border_top: `1px solid ${color.border}`, margin_top: space(8), margin_bottom: space(8) })} />
@@ -59,9 +52,8 @@ export function AboutPage() {
 
             <div className={cssMain({ margin_top: space(8), padding: space(6), background_color: color.hover, border_radius: radii.card })}>
                 <p className={cssMain({ font_size: fontSize.sm, color: color.fgMuted })}>
-                    このページは「島」を 1 つも含まない純粋な静的ページです。本文の表示に
-                    JavaScript は必要なく、ハイドレーションも発生しません。Cirro が目指すのは、
-                    こうしたページを JS ゼロで配信することです（島の有無に応じた配信の最適化は今後の課題です）。
+                    このページは「島」を 1 つも含まない純粋な静的ページです。本文の表示に JavaScript は必要なく、ハイドレーションも発生しません。Cirro
+                    が目指すのは、 こうしたページを JS ゼロで配信することです（島の有無に応じた配信の最適化は今後の課題です）。
                 </p>
             </div>
         </Layout>

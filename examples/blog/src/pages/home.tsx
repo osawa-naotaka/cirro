@@ -1,15 +1,17 @@
+import type { PageProps } from "cirrojs";
 import { Layout } from "../components/Layout";
 import { PostList } from "../components/PostList";
+import type { content } from "../content";
 import { Island } from "../islands/Island";
-import { allTags, posts } from "../lib/content";
+import { allTags } from "../lib/content";
 import { Cluster } from "../styles/layout";
 import { button, chip } from "../styles/recipes";
 import { color, cssMain, cssMd, cx, fontSize, radii, space } from "../styles/system";
 
 // ホームページ: ヒーロー + 最新記事 + 人気タグ。
-export function HomePage() {
-    const recent = posts.slice(0, 3);
-    const tags = allTags().slice(0, 8);
+export function HomePage(props: PageProps<typeof content>) {
+    const recent = props.content.posts.slice(0, 3);
+    const tags = allTags(props.content.posts).slice(0, 8);
 
     return (
         <Layout
@@ -30,8 +32,8 @@ export function HomePage() {
             >
                 <h1 className={cx(cssMain({ font_size: "2.25rem", font_weight: "700", margin_bottom: space(3) }), cssMd({ font_size: "3rem" }))}>Cirro Blog</h1>
                 <p className={cssMain({ font_size: fontSize.lg, opacity: "0.95", margin_bottom: space(6) })}>
-                    インラインスクリプトを一切生成せず、<code>script-src 'self'</code> の厳格な CSP を満たす。
-                    React だけで書ける、軽量な静的サイトジェネレーター。
+                    インラインスクリプトを一切生成せず、<code>script-src 'self'</code> の厳格な CSP を満たす。 React
+                    だけで書ける、軽量な静的サイトジェネレーター。
                 </p>
                 <Cluster gap={space(4)}>
                     <a href="/blog" className={button({ variant: "contrast" })}>
@@ -70,8 +72,7 @@ export function HomePage() {
                 name="disclosure"
                 props={{
                     summary: "この折りたたみパネルはどう動いている？",
-                    detail:
-                        "このパネルは島（disclosure）で、開くまで DOM にマウントされません。マウントされない部分の css() は通常は収集されませんが、島の本体で styleSample() にサンプル要素を渡してあるため、このパネルのスタイルも初期 SSR 描画時に per-route CSS へ生成されています。",
+                    detail: "このパネルは島（disclosure）で、開くまで DOM にマウントされません。マウントされない部分の css() は通常は収集されませんが、島の本体で styleSample() にサンプル要素を渡してあるため、このパネルのスタイルも初期 SSR 描画時に per-route CSS へ生成されています。",
                 }}
             />
         </Layout>
