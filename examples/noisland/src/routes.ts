@@ -1,18 +1,19 @@
 import { AboutPage } from "./pages/about";
 import { HomePage } from "./pages/home";
 import { PostPage } from "./pages/post";
-import { defineRoutes } from "cirrojs";
+import { createRoute } from "cirrojs";
 
 export { runWithRegistry } from "cirrojs";
 
+const { defineRoutes, dynamicRoute, staticRoute } = createRoute();
+
 // サイトのルート定義（Config Base Routing）。
 export default defineRoutes(
-    { type: "static", path: "/index.html", component: HomePage },
-    { type: "static", path: "/about.html", component: AboutPage },
-    {
-        type: "dynamic",
+    staticRoute({ path: "/index.html", component: HomePage }),
+    staticRoute({ path: "/about.html", component: AboutPage }),
+    dynamicRoute({
         path: ({ slug }) => `/posts/${slug}.html`,
         getStaticPaths: () => [{ slug: "hello" }, { slug: "world" }],
         component: PostPage,
     },
-);
+));
