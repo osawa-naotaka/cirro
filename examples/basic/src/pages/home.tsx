@@ -1,6 +1,6 @@
 import { at, genCssFn } from "cirrojs";
-import { Island } from "../islands/Island";
 import { defineCascadeLayer, resetCss } from "cirrojs/layout";
+import { Island } from "../islands/Island";
 
 // ホームページ（本文は静的 HTML、Counter だけが島）。
 export function HomePage() {

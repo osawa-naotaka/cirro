@@ -1,8 +1,8 @@
 import type { PageProps } from "cirrojs";
 import { Layout } from "../components/Layout";
 import { PostList } from "../components/PostList";
-import { color, cssMain, space } from "../styles/system";
 import type { content } from "../content";
+import { color, cssMain, space } from "../styles/system";
 
 // ブログインデックス: 全記事を新しい順に一覧表示。
 export function BlogIndexPage(props: PageProps<typeof content>) {

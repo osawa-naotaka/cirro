@@ -1,7 +1,7 @@
+import { createRouteFn } from "cirrojs";
 import { AboutPage } from "./pages/about";
 import { HomePage } from "./pages/home";
 import { PostPage } from "./pages/post";
-import { createRouteFn } from "cirrojs";
 
 export { runWithRegistry } from "cirrojs";
 
@@ -16,5 +16,5 @@ export default defineRoutes(
         path: ({ slug }) => `/posts/${slug}.html`,
         getStaticPaths: () => [{ slug: "hello" }, { slug: "world" }],
         component: PostPage,
-    },
-));
+    }),
+);

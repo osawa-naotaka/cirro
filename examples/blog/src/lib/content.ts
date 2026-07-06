@@ -13,9 +13,7 @@ export function allTags(posts: Post[]): TagCount[] {
             counts.set(tag, (counts.get(tag) ?? 0) + 1);
         }
     }
-    return [...counts.entries()]
-        .map(([tag, count]) => ({ tag, count }))
-        .sort((a, b) => b.count - a.count || a.tag.localeCompare(b.tag));
+    return [...counts.entries()].map(([tag, count]) => ({ tag, count })).sort((a, b) => b.count - a.count || a.tag.localeCompare(b.tag));
 }
 
 // 指定タグを持つ記事一覧。

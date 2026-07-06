@@ -1,9 +1,9 @@
 import type { PageProps } from "cirrojs";
 import { Layout } from "../components/Layout";
 import { PostList } from "../components/PostList";
+import type { content } from "../content";
 import { postsByTag } from "../lib/content";
 import { color, cssMain, cx, fontSize, space } from "../styles/system";
-import type { content } from "../content";
 
 // タグ別の記事一覧（/tags/[tag]）。
 export function TagPage(props: PageProps<typeof content, { tag: string }>) {

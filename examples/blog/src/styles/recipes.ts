@@ -45,22 +45,13 @@ function buttonVariant(variant: ButtonVariant): string {
             );
         // 枠線のみ。色は継承（ヒーロー上の白文字などに使う）。
         case "outline":
-            return cx(
-                cssMain({ border_color: "currentcolor", color: "inherit" }),
-                cssMain({ background_color: color.whiteAlpha150 }, { selector: "$:hover" }),
-            );
+            return cx(cssMain({ border_color: "currentcolor", color: "inherit" }), cssMain({ background_color: color.whiteAlpha150 }, { selector: "$:hover" }));
         // 濃い背景の上に置く反転ボタン（白地・プライマリ文字）。
         case "contrast":
-            return cx(
-                cssMain({ background_color: color.white, color: color.primary }),
-                cssMain({ opacity: "0.85" }, { selector: "$:hover" }),
-            );
+            return cx(cssMain({ background_color: color.white, color: color.primary }), cssMain({ opacity: "0.85" }, { selector: "$:hover" }));
         // テキストのみ（ナビゲーション等）。色は継承。
         default:
-            return cx(
-                cssMain({ color: "inherit" }),
-                cssMain({ background_color: color.blackAlpha100 }, { selector: "$:hover" }),
-            );
+            return cx(cssMain({ color: "inherit" }), cssMain({ background_color: color.blackAlpha100 }, { selector: "$:hover" }));
     }
 }
 

@@ -1,10 +1,10 @@
 import type { PageProps } from "cirrojs";
 import { Layout } from "../components/Layout";
+import type { content } from "../content";
 import { allTags } from "../lib/content";
 import { Cluster } from "../styles/layout";
 import { chip } from "../styles/recipes";
 import { color, cssMain, space } from "../styles/system";
-import type { content } from "../content";
 
 // タグインデックス: 全タグを記事数つきで一覧表示。島なし＝JS ゼロのページ。
 export function TagIndexPage(props: PageProps<typeof content>) {

@@ -1,4 +1,5 @@
 import { createRouteFn } from "cirrojs";
+import { content } from "./content";
 import { authors } from "./lib/authors";
 import { allTags } from "./lib/content";
 import { AboutPage } from "./pages/about";
@@ -6,10 +7,9 @@ import { AuthorPage } from "./pages/author";
 import { BlogIndexPage } from "./pages/blog-index";
 import { HomePage } from "./pages/home";
 import { PostPage } from "./pages/post";
-import { TagIndexPage } from "./pages/tag-index";
-import { TagPage } from "./pages/tag";
 import { generateSearchIndex } from "./pages/search-index";
-import { content } from "./content";
+import { TagPage } from "./pages/tag";
+import { TagIndexPage } from "./pages/tag-index";
 
 // 自前スタイリングシステムのレジストリ関数を再 export する（必須）。
 // ランタイムはこのモジュール経由で runWithRegistry を呼び、同一モジュールインスタンスの

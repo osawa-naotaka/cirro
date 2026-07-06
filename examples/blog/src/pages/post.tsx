@@ -2,12 +2,12 @@ import type { PageProps } from "cirrojs";
 import { Layout } from "../components/Layout";
 import { PostMeta } from "../components/PostMeta";
 import { TableOfContents } from "../components/TableOfContents";
+import type { content } from "../content";
 import { getAuthor } from "../lib/authors";
 import { getPost } from "../lib/content";
 import { renderMarkdown } from "../lib/markdown";
 import { articleClass } from "../styles/article";
 import { color, cssMain, cssMd, cx, fontSize, radii, space } from "../styles/system";
-import type { content } from "../content";
 
 // ブログ個別記事ページ（/blog/[slug]）。
 export function PostPage(props: PageProps<typeof content, { slug: string }>) {
@@ -25,10 +25,7 @@ export function PostPage(props: PageProps<typeof content, { slug: string }>) {
     }
 
     const author = getAuthor(post.author);
-    const crumbLink = cx(
-        cssMain({ color: color.fgMuted, text_decoration: "none" }),
-        cssMain({ text_decoration: "underline" }, { selector: "$:hover" }),
-    );
+    const crumbLink = cx(cssMain({ color: color.fgMuted, text_decoration: "none" }), cssMain({ text_decoration: "underline" }, { selector: "$:hover" }));
     // 本文（renderMarkdown が返すサニタイズ済み HTML）のコンテナクラスを生成する。
     const article = articleClass();
     // 本文を 1 パスでサニタイズ済み HTML（body）と目次（toc）に変換する。
@@ -41,11 +38,20 @@ export function PostPage(props: PageProps<typeof content, { slug: string }>) {
                     記事一覧
                 </a>
                 <span className={cssMain({ color: color.fgMuted })}>/</span>
-                <span className={cssMain({ color: color.fg, overflow: "hidden", text_overflow: "ellipsis", white_space: "nowrap", max_width: space(60) })}>{post.title}</span>
+                <span className={cssMain({ color: color.fg, overflow: "hidden", text_overflow: "ellipsis", white_space: "nowrap", max_width: space(60) })}>
+                    {post.title}
+                </span>
             </nav>
 
             <article>
-                <h1 className={cx(cssMain({ font_size: "1.9rem", font_weight: "700", margin_bottom: space(4), line_height: "1.3" }), cssMd({ font_size: "2.5rem" }))}>{post.title}</h1>
+                <h1
+                    className={cx(
+                        cssMain({ font_size: "1.9rem", font_weight: "700", margin_bottom: space(4), line_height: "1.3" }),
+                        cssMd({ font_size: "2.5rem" }),
+                    )}
+                >
+                    {post.title}
+                </h1>
                 <div className={cssMain({ margin_bottom: space(8) })}>
                     <PostMeta post={post} size="medium" />
                 </div>
@@ -80,7 +86,9 @@ export function PostPage(props: PageProps<typeof content, { slug: string }>) {
                         {author.name.charAt(0)}
                     </a>
                     <div>
-                        <p className={cssMain({ font_size: fontSize.xs, color: color.fgMuted, text_transform: "uppercase", letter_spacing: "0.05em" })}>この記事を書いた人</p>
+                        <p className={cssMain({ font_size: fontSize.xs, color: color.fgMuted, text_transform: "uppercase", letter_spacing: "0.05em" })}>
+                            この記事を書いた人
+                        </p>
                         <p className={cssMain({ font_size: fontSize.lg, font_weight: "700" })}>
                             <a
                                 href={`/authors/${author.id}`}
