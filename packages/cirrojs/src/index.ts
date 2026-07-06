@@ -12,5 +12,5 @@ export { at, atStatement, genCssFn, ss, toKeyframes, toStyle } from "./css.ts";
 export type { Properties } from "./properties.ts";
 export type { AtBlockRule, AtStatementRule, Registry, RuleNode, StyleRule } from "./registry.ts";
 export type { AnyRoute, DynamicRoute, FileRoute, Params, StaticRoute } from "./route.ts";
-export { createRoute } from "./route.ts";
+export { createRouteFn } from "./route.ts";
 export { styleSample } from "./styleSample.ts";

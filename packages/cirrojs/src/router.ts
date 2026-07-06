@@ -1,13 +1,23 @@
-import { extname } from "node:path";
-import type { AnyRoute, DynamicRoute, FileRoute, Params, ResolvedPath, StaticRoute } from "./route";
+import type { AnyRoute } from "./route";
+import type { ReactElement } from "react";
 
-// 動的ルートの型パラメータ P を保持するための型推論ヘルパー。
-export function route<T, P extends Params>(def: DynamicRoute<T, P>): DynamicRoute<T, P>;
-export function route<T>(def: StaticRoute<T>): StaticRoute<T>;
-export function route<T>(def: FileRoute<T>): FileRoute<T>;
-export function route<T>(def: AnyRoute<T>): AnyRoute<T> {
-    return def;
-}
+export type ResolvedPath =
+    | {
+          type: "html";
+          path: string;
+          render: () => ReactElement;
+      }
+    | {
+          type: "css";
+          path: string;
+          render: () => ReactElement;
+      }
+    | {
+          type: "file";
+          path: string;
+          ext: string;
+          render: () => string;
+      };
 
 // 全ルートを具体的な URL 一覧へ展開する（build / dev で共有）。
 // 動的ルートは getStaticPaths を path 関数に通して URL を生成するため、正規表現は不要。
@@ -53,4 +63,11 @@ export function expandRoutes<T>(routes: AnyRoute<T>[], content: T): ResolvedPath
         }
     }
     return pages;
+}
+
+function extname(path: string): string {
+    const base = path.slice(path.lastIndexOf("/") + 1);
+    const dot = base.lastIndexOf(".");
+    // 先頭ドット（dotfile）は拡張子扱いしない
+    return dot > 0 ? base.slice(dot) : "";
 }

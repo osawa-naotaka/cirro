@@ -28,40 +28,18 @@ export type FileRoute<T> = {
 // biome-ignore lint/suspicious/noExplicitAny: ルート集合では各動的ルートの params 型を消す必要がある
 export type AnyRoute<T> = StaticRoute<T> | DynamicRoute<T, any> | FileRoute<T>;
 
-export type ResolvedPath =
-    | {
-          type: "html";
-          path: string;
-          render: () => ReactElement;
-      }
-    | {
-          type: "css";
-          path: string;
-          render: () => ReactElement;
-      }
-    | {
-          type: "file";
-          path: string;
-          ext: string;
-          render: () => string;
-      };
-
-export function createRoute<T = undefined>(content?: ContentHandler<T>) {
+export function createRouteFn<T = undefined>(content?: ContentHandler<T>) {
     function defineRoutes(...routes: AnyRoute<T>[]): { content?: ContentHandler<T>; routes: AnyRoute<T>[] } {
         return { content, routes };
     }
 
-    function staticRoute(opt: Omit<StaticRoute<T>, "type">): StaticRoute<T> {
-        return { type: "static", path: opt.path, component: opt.component };
+    // 動的ルートの型パラメータ P を保持するための型推論ヘルパー。
+    function route<T, P extends Params>(def: DynamicRoute<T, P>): DynamicRoute<T, P>;
+    function route<T>(def: StaticRoute<T>): StaticRoute<T>;
+    function route<T>(def: FileRoute<T>): FileRoute<T>;
+    function route<T>(def: AnyRoute<T>): AnyRoute<T> {
+        return def;
     }
 
-    function dynamicRoute<P extends Params>(opt: Omit<DynamicRoute<T, P>, "type">): DynamicRoute<T, P> {
-        return { type: "dynamic", path: opt.path, getStaticPaths: opt.getStaticPaths, component: opt.component };
-    }
-
-    function fileRoute(opt: Omit<FileRoute<T>, "type">): FileRoute<T> {
-        return { type: "file", path: opt.path, component: opt.component };
-    }
-
-    return { defineRoutes, staticRoute, dynamicRoute, fileRoute };
+    return { defineRoutes, route };
 }
