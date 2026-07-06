@@ -158,14 +158,22 @@ export async function runDev(port = 5173) {
     const watchDir = `${resolve(root, options.watchDir ?? "./src")
         .replaceAll("\\", "/")
         .replace(/\/+$/, "")}/`;
-    vite.watcher.on("change", (file) => {
+    const onWatchEvent = (file: string) => {
         const f = file.replaceAll("\\", "/");
         if (islandsDir && f.startsWith(islandsDir)) return; // 島は Fast Refresh に任せる
         if (!f.startsWith(watchDir)) return; // 監視ディレクトリ外は無視
         invalidateModuleAndImporters(vite, file);
         contentPromise = null; // キャッシュを無効化
         vite.ws.send({ type: "full-reload" });
-    });
+    };
+    vite.watcher.on("change", onWatchEvent);
+    // 追加・削除でも full-reload する。import.meta.glob で読むコンテンツ（Markdown 等）は
+    // ファイル集合の変化で結果が変わるため。追加ファイルはモジュールグラフに未登録で
+    // invalidateModuleAndImporters は何もしないが、glob importer（content.ts 等）の無効化は
+    // Vite 本体が add/unlink 時に行う（getAffectedGlobModules）。ここではコンテンツキャッシュの
+    // 破棄と full-reload を担う。
+    vite.watcher.on("add", onWatchEvent);
+    vite.watcher.on("unlink", onWatchEvent);
 
     httpServer.listen(port, () => {
         console.log(`cirro dev: http://localhost:${port}`);

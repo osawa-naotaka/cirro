@@ -164,14 +164,14 @@ bun run preview  # 生成物の確認
 ファイルベースルーティングは採用せず、`routes.ts` に **型付きの JavaScript オブジェクト**として
 ルートを宣言する。正規表現や独自の文字列記法は使わない（型と関数で表現する方針）。
 
-ルートビルダーは `createRoute()` ファクトリから取得する。`staticRoute()`、`dynamicRoute()`、`fileRoute()` で
-**静的ルート（`"static"`）・動的ルート（`"dynamic"`）・ファイルルート（`"file"`）**を宣言し、
-`defineRoutes()` で束ねて default export する。コンテンツ層（5.5）を使う場合は `createRoute(content)` と
+ルートビルダーは `createRouteFn()` ファクトリから取得する。`route()` に **静的ルート（`type: "static"`）・
+動的ルート（`type: "dynamic"`）・ファイルルート（`type: "file"`）**の定義オブジェクトを渡して宣言し、
+`defineRoutes()` で束ねて default export する。コンテンツ層（5.5）を使う場合は `createRouteFn(content)` と
 ハンドルを渡す。これにより `getStaticPaths` と各ページコンポーネントへ型付きの `content` が配られる。
 
 ```ts
 // src/routes.ts
-import { createRoute } from "cirrojs";
+import { createRouteFn } from "cirrojs";
 import { AboutPage } from "./pages/about";
 import { HomePage } from "./pages/home";
 import { PostPage } from "./pages/post";
@@ -180,34 +180,36 @@ import { generateSearchIndex } from "./pages/search-index";
 // 自前 CSS のレジストリ関数を再 export する（必須・05_STYLING.md 7.2 参照）
 export { runWithRegistry } from "cirrojs";
 
-// コンテンツ層を使う場合は createRoute(content) と渡す（5.5 参照）
-const { defineRoutes, staticRoute, dynamicRoute, fileRoute } = createRoute();
+// コンテンツ層を使う場合は createRouteFn(content) と渡す（5.5 参照）
+const { defineRoutes, route } = createRouteFn();
 
 export default defineRoutes(
     // 静的ルート: path は固定文字列
-    staticRoute({ path: "/index.html", component: HomePage }),
-    staticRoute({ path: "/about.html", component: AboutPage }),
+    route({ type: "static", path: "/index.html", component: HomePage }),
+    route({ type: "static", path: "/about.html", component: AboutPage }),
 
     // 動的ルート: path は params から URL を生成する関数
-    dynamicRoute({
+    route({
+        type: "dynamic",
         path: ({ slug }) => `/posts/${slug}.html`,        // params から URL を生成
         getStaticPaths: () => [{ slug: "hello" }, { slug: "world" }], // 生成する全 params
         component: PostPage,
     }),
 
     // ファイルルート: 任意のテキストファイルを生成出力する
-    fileRoute({
+    route({
+        type: "file",
         path: "/search-index.json", // 拡張子まで含む出力パス
         component: generateSearchIndex,
     }),
 );
 ```
 
-- **静的ルート** `{ path, component }` … `path` は固定文字列。`component` は React 要素を返す。
-- **動的ルート** `{ path, getStaticPaths, component }` … `getStaticPaths()` が返す
+- **静的ルート** `{ type: "static", path, component }` … `path` は固定文字列。`component` は React 要素を返す。
+- **動的ルート** `{ type: "dynamic", path, getStaticPaths, component }` … `getStaticPaths()` が返す
   各 params を `path()` 関数に通して URL を生成する。コンテンツ層を使う場合、`getStaticPaths` は
   引数に `content` を受け取る（5.5 参照）。`component` は React 要素を返す。
-- **ファイルルート** `{ path, component }` … 任意のテキストファイルを生成出力する機能。
+- **ファイルルート** `{ type: "file", path, component }` … 任意のテキストファイルを生成出力する機能。
   `component` は **React 要素ではなく文字列を返す**関数で、その文字列が `path`（拡張子まで含む固定パス）
   へそのまま書き出される。`examples/blog` では検索インデックス（`/search-index.json`）の生成に使っている
   （`src/pages/search-index.ts`）。
@@ -282,8 +284,9 @@ export function Layout({ title, description, children, island = true }: LayoutPr
 ページの描画は `renderToStaticMarkup` による同期処理のため、コンポーネント内で `await` はできない。
 DB・CMS・ファイルシステムなどからの非同期なコンテンツ取得は、レンダリングより前に済ませる必要がある。
 この「取得（非同期）と描画（同期）の分離」を担うのがコンテンツ層である。
+設計判断の背景（検討した代替案と不採用理由）は `08_CONTENT_LAYER.md` を参照。
 
-`defineContent()` に async な `loader` を渡してハンドルを作り、`createRoute(content)` に渡す。
+`defineContent()` に async な `loader` を渡してハンドルを作り、`createRouteFn(content)` に渡す。
 
 ```ts
 // src/content.ts
@@ -299,13 +302,14 @@ export const content = defineContent({
 
 ```ts
 // src/routes.ts
-import { createRoute } from "cirrojs";
+import { createRouteFn } from "cirrojs";
 import { content } from "./content";
 
-const { defineRoutes, staticRoute, dynamicRoute, fileRoute } = createRoute(content);
+const { defineRoutes, route } = createRouteFn(content);
 
 export default defineRoutes(
-    dynamicRoute({
+    route({
+        type: "dynamic",
         path: ({ slug }) => `/blog/${slug}.html`,
         getStaticPaths: (content) => content.posts.map(({ slug }) => ({ slug })),
         component: PostPage,
@@ -316,7 +320,7 @@ export default defineRoutes(
 
 ランタイムはレンダリング前に `loader()` を一度だけ await し、結果を `getStaticPaths` の引数と
 全ルートコンポーネント（ファイルルート含む）の `content` prop へ配る。`loader` の戻り値の型は
-`createRoute(content)` を通じて `getStaticPaths` と `component` の型チェックに伝播する。
+`createRouteFn(content)` を通じて `getStaticPaths` と `component` の型チェックに伝播する。
 
 ページ側は `PageProps` で型付けする。第 2 型引数は動的ルートの params。
 
@@ -334,12 +338,12 @@ export function PostPage(props: PageProps<typeof content, { slug: string }>) {
 補足:
 
 - **実行タイミング**: build では生成開始前に 1 回。dev では初回リクエストで実行して結果をキャッシュし、
-  `watchDir` 配下のファイル変更でキャッシュを破棄して次のリクエストで再実行する。
+  `watchDir` 配下のファイルの変更・追加・削除でキャッシュを破棄して次のリクエストで再実行する。
 - **出自は問わない**: loader が返すものがコンテンツである。glob で読んだ Markdown（7.3 参照）、
   ネットワーク越しのフェッチ結果、手書きの JavaScript オブジェクトを 1 つのストアに合成してよい。
 - **コンテンツはビルド時専用**: `content` はサーバー側（SSR）にのみ存在し、島（クライアント）からは
   参照できない。島に渡したいデータは `<Island>` の props として明示的に渡す。
-- コンテンツ層を使わないサイトは `createRoute()` を引数なしで呼ぶ（`examples/basic`）。
+- コンテンツ層を使わないサイトは `createRouteFn()` を引数なしで呼ぶ（`examples/basic`）。
 
 ---
 
@@ -473,8 +477,9 @@ return (
 
 - **島ディレクトリ配下** … React Fast Refresh に委ねる（full-reload しない）。
 - **`watchDir`（既定 `./src`）配下のその他** … ページ・ルート定義・Markdown など、クライアント HMR の
-  境界を持たないものを含むため、変更時は SSR モジュールキャッシュとコンテンツキャッシュ（5.5）を
-  無効化してから **full-reload** する。
+  境界を持たないものを含むため、変更・追加・削除時は SSR モジュールキャッシュとコンテンツキャッシュ（5.5）を
+  無効化してから **full-reload** する。`import.meta.glob` で読むコンテンツはファイルの追加・削除でも
+  結果が変わるため、`change` に加えて `add` / `unlink` も監視する。
 
 ### 8.2 build（`cirro build`）
 
@@ -551,6 +556,7 @@ const CSP = "default-src 'self'; script-src 'self'; style-src 'self'; font-src '
 - `02_CLIENT_SCRIPT_BUNDLING.md` — クライアントスクリプトの配信・バンドルの現状調査
 - `03_ISLAND_SYSTEM.md` — 島システムの使い方と内部の仕組み
 - `05_STYLING.md` — スタイリングガイド（自前 CSS 生成）
+- `08_CONTENT_LAYER.md` — コンテンツ層の設計（defineContent の設計判断と理由）
 
 ### 用語
 

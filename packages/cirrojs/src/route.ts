@@ -34,10 +34,10 @@ export function createRouteFn<T = undefined>(content?: ContentHandler<T>) {
     }
 
     // 動的ルートの型パラメータ P を保持するための型推論ヘルパー。
-    function route<T, P extends Params>(def: DynamicRoute<T, P>): DynamicRoute<T, P>;
-    function route<T>(def: StaticRoute<T>): StaticRoute<T>;
-    function route<T>(def: FileRoute<T>): FileRoute<T>;
-    function route<T>(def: AnyRoute<T>): AnyRoute<T> {
+    function route<P extends Params>(def: DynamicRoute<T, P>): DynamicRoute<T, P>;
+    function route(def: StaticRoute<T>): StaticRoute<T>;
+    function route(def: FileRoute<T>): FileRoute<T>;
+    function route(def: AnyRoute<T>): AnyRoute<T> {
         return def;
     }
 

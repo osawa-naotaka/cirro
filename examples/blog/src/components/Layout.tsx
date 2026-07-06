@@ -20,7 +20,7 @@ const NAV = [
 
 // 全ページ共通のシェル。<html> 全体を返し、ナビゲーション・フッターを提供する。
 // スタイルは Cirro 自前の css() がルート単位に生成する外部 CSS から読み込む。
-// CSS の <link> はランタイムが cssPath を元に自動挿入するため、ここでは記述しない。
+// CSS の <link> はランタイムが自動挿入するため、ここでは記述しない。
 // インライン <style> も style="" 属性も一切生成しない（style-src 'self' を満たす）。
 export function Layout({ title, description, children, island = true }: LayoutProps) {
     // リセット・グローバルスタイルをこのルートの CSS に登録する。

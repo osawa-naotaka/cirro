@@ -385,17 +385,18 @@ CSS の URL をルート定義で指定する必要はない。dev ではルー�
 
 ```ts
 // src/routes.ts
-import { createRoute } from "cirrojs";
+import { createRouteFn } from "cirrojs";
 
 // ↓ これを書かないと CSS が生成されない
 export { runWithRegistry } from "cirrojs";
 
-const { defineRoutes, staticRoute, dynamicRoute } = createRoute();
+const { defineRoutes, route } = createRouteFn();
 
 export default defineRoutes(
-    staticRoute({ path: "/index.html", component: HomePage }),
-    staticRoute({ path: "/about.html", component: AboutPage }),
-    dynamicRoute({
+    route({ type: "static", path: "/index.html", component: HomePage }),
+    route({ type: "static", path: "/about.html", component: AboutPage }),
+    route({
+        type: "dynamic",
         path: ({ slug }) => `/posts/${slug}.html`,
         getStaticPaths: () => [{ slug: "hello" }, { slug: "world" }],
         component: PostPage,
