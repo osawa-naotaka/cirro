@@ -1,11 +1,15 @@
 import { checkLink } from "cirrojs/registry";
-import type { ReactNode } from "react";
+import type { ComponentPropsWithoutRef, ReactNode } from "react";
 
-export function Link(props: { to: string; className?: string; children?: ReactNode }): ReactNode {
-    checkLink(props.to);
+type LinkProps = Omit<ComponentPropsWithoutRef<"a">, "href"> & {
+    to: string;
+};
+
+export function Link({ to, children, ...rest }: LinkProps): ReactNode {
+    checkLink(to);
     return (
-        <a href={props.to} className={props.className}>
-            {props.children}
+        <a {...rest} href={to}>
+            {children}
         </a>
     );
 }
