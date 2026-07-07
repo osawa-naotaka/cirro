@@ -1,3 +1,4 @@
+import { Link } from "cirrojs";
 import { defineCascadeLayer, resetCss } from "cirrojs/layout";
 
 // About ページ（静的・島なし → このページはクライアント JS の島が存在しない）。
@@ -15,7 +16,7 @@ export function AboutPage() {
                 <h1>About</h1>
                 <p>cirro プロトタイプの About ページです。島を含まない純粋な静的ページです。</p>
                 <p>
-                    <a href="/">← home</a>
+                    <Link to="/">← home</Link>
                 </p>
             </body>
         </html>

@@ -47,9 +47,9 @@ export function HomePage(props: PageProps<typeof content>) {
 
             <div className={cssMain({ display: "flex", justify_content: "space-between", align_items: "baseline", margin_bottom: space(4) })}>
                 <h2 className={cssMain({ font_size: fontSize.xl, font_weight: "700" })}>最新の記事</h2>
-                <a href="/blog" className={button({ variant: "text", size: "sm" })}>
+                <Link to="/blog" className={button({ variant: "text", size: "sm" })}>
                     すべて見る
-                </a>
+                </Link>
             </div>
             <PostList posts={recent} />
 
@@ -58,9 +58,9 @@ export function HomePage(props: PageProps<typeof content>) {
             <h2 className={cssMain({ font_size: fontSize.xl, font_weight: "700", margin_bottom: space(4) })}>タグから探す</h2>
             <Cluster gap={space(2)}>
                 {tags.map(({ tag, count }) => (
-                    <a key={tag} href={`/tags/${tag}`} className={chip()}>
+                    <Link key={tag} to={`/tags/${tag}`} className={chip()}>
                         {tag} ({count})
-                    </a>
+                    </Link>
                 ))}
             </Cluster>
 
