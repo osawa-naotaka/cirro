@@ -1,4 +1,4 @@
-import { at, genCssFn } from "cirrojs";
+import { at, genCssFn, Link } from "cirrojs";
 import { defineCascadeLayer, resetCss } from "cirrojs/layout";
 import { Island } from "../islands/Island";
 
@@ -23,7 +23,7 @@ export function HomePage() {
                 <h1 className={pageTitle}>cirro プロトタイプ</h1>
                 <p>この本文は静的 HTML です。下のカウンターだけがクライアントで動く「島」です。</p>
                 <nav>
-                    <a href="/about">about</a> | <a href="/posts/hello">post: hello</a> | <a href="/posts/world">post: world</a>
+                    <Link to="/about">about</Link> | <Link to="/posts/hello">post: hello</Link> | <Link to="/posts/world">post: world</Link>
                 </nav>
                 <Island name="counter" props={{ initial: 3 }} />
             </body>

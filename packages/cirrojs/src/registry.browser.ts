@@ -38,9 +38,15 @@ export function registerGlobalRuleSet(_key: string): void {}
 // クライアントでは no-op。CSS は初期 SSR 描画で収集・生成済みのため、サンプルの描画は不要。
 export function registerStyleSample(_element: ReactNode): void {}
 
+export function checkLink(_link: string): void {}
+
 // レンダリングコンテキストの確立はサーバー専用。クライアントから呼ばれた場合は実装ミスなので明示的に失敗させる。
-export function runWithRegistry<T>(_fn: () => T): { result: T; registry: Registry; globalRuleSet: Set<string> } {
+export function runWithRegistry<T>(_fn: () => T): { result: T; registry: Registry; globalRuleSet: Set<string>; brokenLinks: string[] } {
     throw new Error("cirro: runWithRegistry is server-only and must not be called on the client");
 }
 
-export type RunWithRegistry<T> = (fn: () => T) => { result: T; registry: Registry; globalRuleSet: Set<string> };
+export type RunWithRegistry<T> = (
+    fn: () => T,
+    init?: Registry,
+    links?: Set<string>,
+) => { result: T; registry: Registry; globalRuleSet: Set<string>; brokenLinks: string[] };

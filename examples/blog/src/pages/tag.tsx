@@ -1,4 +1,4 @@
-import type { PageProps } from "cirrojs";
+import { Link, type PageProps } from "cirrojs";
 import { Layout } from "../components/Layout";
 import { PostList } from "../components/PostList";
 import type { content } from "../content";
@@ -13,15 +13,15 @@ export function TagPage(props: PageProps<typeof content, { tag: string }>) {
     return (
         <Layout title={`#${tag} の記事 — Cirro Blog`} description={`タグ「${tag}」が付いた記事一覧。`}>
             <nav className={cssMain({ display: "flex", align_items: "center", gap: space(2), font_size: fontSize.sm, margin_bottom: space(4) })}>
-                <a
-                    href="/tags"
+                <Link
+                    to="/tags"
                     className={cx(
                         cssMain({ color: color.fgMuted, text_decoration: "none" }),
                         cssMain({ text_decoration: "underline" }, { selector: "$:hover" }),
                     )}
                 >
                     タグ一覧
-                </a>
+                </Link>
                 <span className={cssMain({ color: color.fgMuted })}>/</span>
                 <span className={cssMain({ color: color.fg })}>#{tag}</span>
             </nav>

@@ -1,6 +1,7 @@
 import type { ToC } from "cirrojs/server";
 import { stack } from "../styles/layout";
 import { color, cssMain, cx, fontSize, space } from "../styles/system";
+import { Link } from "cirrojs";
 
 // remark-export-toc が抽出した目次（ToC[]）を描画する。各エントリの id は本文見出しの
 // id と一致するため、アンカーリンク（#id）でジャンプできる。
@@ -43,9 +44,9 @@ export function TableOfContents({ toc }: { toc: ToC[] }) {
             <ul className={cx(stack({ gap: space(1) }), cssMain({ list_style: "none", margin: "0", padding: "0" }))}>
                 {toc.map((item) => (
                     <li key={item.id} className={indent[Math.min(item.level - minLevel, indent.length - 1)]}>
-                        <a href={`#${item.id}`} className={link}>
+                        <Link to={`#${item.id}`} className={link}>
                             {item.text}
-                        </a>
+                        </Link>
                     </li>
                 ))}
             </ul>

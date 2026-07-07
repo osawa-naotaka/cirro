@@ -3,9 +3,11 @@ import { dirname, resolve } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createServerModuleRunner, createServer as createViteServer, type ViteDevServer } from "vite";
 import { stringifyCss } from "../css.ts";
+import type { RunWithRegistry } from "../registry.ts";
 import { expandRoutes } from "../router.ts";
 import { contentType } from "./contentType.ts";
 import { appendClientScriptAndCss } from "./head.ts";
+import { collectLinks } from "./link.ts";
 import { getCirroOptions } from "./options.ts";
 
 // 仮想島マウンタ（virtual:cirro/client）の dev 配信 URL。
@@ -100,9 +102,12 @@ export async function runDev(port = 5173) {
                     return;
                 }
 
+                const runWithRegistry: RunWithRegistry<string> = objs.runWithRegistry;
+
                 contentPromise ??= objs.default.content?.loader();
                 const content = await contentPromise;
                 const pages = expandRoutes(objs.default.routes, content);
+                const links = collectLinks(pages);
 
                 const page = pages.find((p) => candidate.has(p.path));
                 if (page === undefined) {
@@ -112,10 +117,19 @@ export async function runDev(port = 5173) {
 
                 switch (page.type) {
                     case "html": {
-                        const { result: html } = objs.runWithRegistry(() => {
-                            const tree = appendClientScriptAndCss(page.render(), CLIENT_DEV_URL, `${page.path}.css`);
-                            return `<!DOCTYPE html>${renderToStaticMarkup(tree)}`;
-                        });
+                        const { result: html, brokenLinks } = runWithRegistry(
+                            () => {
+                                const tree = appendClientScriptAndCss(page.render(), CLIENT_DEV_URL, `${page.path}.css`);
+                                return `<!DOCTYPE html>${renderToStaticMarkup(tree)}`;
+                            },
+                            new Map(),
+                            links,
+                        );
+
+                        for (const link of brokenLinks) {
+                            console.log(`Link is broken: "${link}".`);
+                        }
+
                         const transformed = await vite.transformIndexHtml(rawUrl, html);
                         successResp(".html", transformed);
                         break;

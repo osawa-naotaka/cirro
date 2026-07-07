@@ -1,3 +1,4 @@
+import { Link } from "cirrojs";
 import { getAuthor } from "../lib/authors";
 import { formatDate } from "../lib/format";
 import type { Post } from "../lib/types";
@@ -15,15 +16,15 @@ export function PostMeta({ post, size = "small" }: { post: Post; size?: "small" 
         <Stack gap={space(2)}>
             <Cluster gap={space(3)}>
                 <span className={labelClass}>
-                    <a
-                        href={`/authors/${author.id}`}
+                    <Link
+                        to={`/authors/${author.id}`}
                         className={cx(
                             cssMain({ color: "inherit", text_decoration: "none" }),
                             cssMain({ text_decoration: "underline" }, { selector: "$:hover" }),
                         )}
                     >
                         {author.name}
-                    </a>
+                    </Link>
                 </span>
                 <span className={labelClass}>・</span>
                 <time className={labelClass}>{formatDate(post.date)}</time>
@@ -32,9 +33,9 @@ export function PostMeta({ post, size = "small" }: { post: Post; size?: "small" 
             {post.tags.length > 0 ? (
                 <Cluster gap={space(1.5)}>
                     {post.tags.map((tag) => (
-                        <a key={tag} href={`/tags/${tag}`} className={chip()}>
+                        <Link key={tag} to={`/tags/${tag}`} className={chip()}>
                             {tag}
-                        </a>
+                        </Link>
                     ))}
                 </Cluster>
             ) : null}

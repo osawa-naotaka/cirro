@@ -43,6 +43,8 @@ type Store = {
     registry: Registry;
     globalRuleSet: Set<string>;
     samples: ReactNode[];
+    links?: Set<string>;
+    brokenLinks: string[];
 };
 
 // レンダリング 1 回ごとに専用のストアを割り当て、AsyncLocalStorage で暗黙に引き継ぐ。
@@ -74,6 +76,14 @@ export function registerStyleSample(element: ReactNode) {
     store.samples.push(element);
 }
 
+export function checkLink(link: string) {
+    const store = als.getStore();
+    if (!store) throw new Error("cirro: styleSample() was called outside of a render context");
+    if (store.links && !store.links.has(link)) {
+        store.brokenLinks.push(link);
+    }
+}
+
 // 1 レンダリングで処理するサンプル数の上限。コンポーネントが自分自身を（直接・間接に）
 // styleSample() するとキューは尽きず無限ループになるため、黙って回り続けず原因を示して失敗させる保険。
 const MAX_STYLE_SAMPLES = 1000;
@@ -83,8 +93,12 @@ const MAX_STYLE_SAMPLES = 1000;
 // fn の完了後、styleSample() が積んだサンプル要素を同じコンテキストで順に描画する。
 // 出力 HTML は捨て、描画過程で実行された css() の登録だけを収集へ反映する。
 // サンプルの描画がさらに styleSample() を呼んだ場合も、同じキューへ積まれて続けて処理される。
-export function runWithRegistry<T>(fn: () => T, init?: Registry): { result: T; registry: Registry; globalRuleSet: Set<string> } {
-    const store: Store = { registry: init ?? new Map(), globalRuleSet: new Set(), samples: [] };
+export function runWithRegistry<T>(
+    fn: () => T,
+    init?: Registry,
+    links?: Set<string>,
+): { result: T; registry: Registry; globalRuleSet: Set<string>; brokenLinks: string[] } {
+    const store: Store = { registry: init ?? new Map(), globalRuleSet: new Set(), samples: [], links, brokenLinks: [] };
     const result = als.run(store, fn);
     als.run(store, () => {
         let processed = 0;
@@ -98,7 +112,11 @@ export function runWithRegistry<T>(fn: () => T, init?: Registry): { result: T; r
             renderToStaticMarkup(store.samples.shift());
         }
     });
-    return { result, registry: store.registry, globalRuleSet: store.globalRuleSet };
+    return { result, registry: store.registry, globalRuleSet: store.globalRuleSet, brokenLinks: store.brokenLinks };
 }
 
-export type RunWithRegistry<T> = (fn: () => T) => { result: T; registry: Registry; globalRuleSet: Set<string> };
+export type RunWithRegistry<T> = (
+    fn: () => T,
+    init?: Registry,
+    links?: Set<string>,
+) => { result: T; registry: Registry; globalRuleSet: Set<string>; brokenLinks: string[] };

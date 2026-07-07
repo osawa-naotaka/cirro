@@ -3,6 +3,7 @@ import { Island } from "../islands/Island";
 import { center } from "../styles/layout";
 import { button } from "../styles/recipes";
 import { applyGlobalStyles, color, cssMain, cssMd, cx, fontSize, space } from "../styles/system";
+import { Link } from "cirrojs";
 
 type LayoutProps = {
     title: string;
@@ -42,16 +43,16 @@ export function Layout({ title, description, children, island = true }: LayoutPr
                 <div className={cssMain({ display: "flex", flex_direction: "column", min_height: "100vh" })}>
                     <header className={cssMain({ background_color: color.primary, color: color.white })}>
                         <div className={cx(container, cssMain({ display: "flex", align_items: "center", gap: space(1), height: space(16) }))}>
-                            <a
-                                href="/"
+                            <Link
+                                to="/"
                                 className={cssMain({ flex_grow: "1", font_size: fontSize.lg, font_weight: "700", color: "inherit", text_decoration: "none" })}
                             >
                                 Cirro Blog
-                            </a>
+                            </Link>
                             {NAV.map((item) => (
-                                <a key={item.href} href={item.href} className={button({ variant: "text" })}>
+                                <Link key={item.href} to={item.href} className={button({ variant: "text" })}>
                                     {item.label}
-                                </a>
+                                </Link>
                             ))}
                         </div>
                     </header>

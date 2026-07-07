@@ -1,4 +1,4 @@
-import type { PageProps } from "cirrojs";
+import { Link, type PageProps } from "cirrojs";
 import { Layout } from "../components/Layout";
 import { PostList } from "../components/PostList";
 import type { content } from "../content";
@@ -36,12 +36,12 @@ export function HomePage(props: PageProps<typeof content>) {
                     だけで書ける、軽量な静的サイトジェネレーター。
                 </p>
                 <Cluster gap={space(4)}>
-                    <a href="/blog" className={button({ variant: "contrast" })}>
+                    <Link to="/blog" className={button({ variant: "contrast" })}>
                         記事を読む
-                    </a>
-                    <a href="/about" className={button({ variant: "outline" })}>
+                    </Link>
+                    <Link to="/about" className={button({ variant: "outline" })}>
                         Cirro について
-                    </a>
+                    </Link>
                 </Cluster>
             </section>
 

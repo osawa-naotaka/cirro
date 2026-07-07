@@ -3,9 +3,10 @@ import { dirname, join, resolve } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createServerModuleRunner, createServer as createViteServer, build as viteBuild } from "vite";
 import { stringifyCss } from "../css.ts";
-import type { Registry, RuleNode } from "../registry.ts";
+import type { Registry, RuleNode, RunWithRegistry } from "../registry.ts";
 import { expandRoutes } from "../router.ts";
 import { appendClientScriptAndCss } from "./head.ts";
+import { collectLinks } from "./link.ts";
 import { getCirroOptions } from "./options.ts";
 
 // `cirro build`: クライアントバンドルを作り、各ルートを静的 HTML として書き出す（node:fs のみ、bun 非依存）。
@@ -40,11 +41,7 @@ export async function runBuild() {
         if (!Array.isArray(obj.default.routes)) throw new Error("cirro: you must define routes and export it as `default`");
         if (obj.default.content && typeof obj.default.content.loader !== "function") throw new Error("you must define a valid content loader function");
 
-        const runWithRegistry = obj.runWithRegistry as (
-            fn: () => string,
-            init?: Registry,
-        ) => { result: string; registry: Registry; globalRuleSet: Set<string> };
-
+        const runWithRegistry = obj.runWithRegistry as RunWithRegistry<string>;
         const rootRegistry: Registry = new Map();
         const htmlPagePaths: string[] = [];
         const globalRulePages = new Map<string, string[]>();
@@ -54,16 +51,30 @@ export async function runBuild() {
             content = await obj.default.content.loader();
         }
         const pages = expandRoutes(obj.default.routes, content);
+        const links = collectLinks(pages);
         for (const page of pages) {
             switch (page.type) {
                 case "css": {
                     break;
                 }
                 case "html": {
-                    const { result: html, globalRuleSet: ruleSet } = runWithRegistry(() => {
-                        const tree = appendClientScriptAndCss(page.render(), scriptSrc, cssUrl);
-                        return `<!DOCTYPE html>${renderToStaticMarkup(tree)}`;
-                    }, rootRegistry);
+                    const {
+                        result: html,
+                        globalRuleSet: ruleSet,
+                        brokenLinks,
+                    } = runWithRegistry(
+                        () => {
+                            const tree = appendClientScriptAndCss(page.render(), scriptSrc, cssUrl);
+                            return `<!DOCTYPE html>${renderToStaticMarkup(tree)}`;
+                        },
+                        rootRegistry,
+                        links,
+                    );
+
+                    for (const link of brokenLinks) {
+                        console.log(`Link is broken: "${link}" while rendering "${page.path}".`);
+                    }
+
                     htmlPagePaths.push(page.path);
                     for (const designator of ruleSet) {
                         const pages = globalRulePages.get(designator) ?? [];

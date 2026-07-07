@@ -1,8 +1,10 @@
 import { defineCascadeLayer, resetCss } from "cirrojs/layout";
 import { Island } from "../islands/Island";
+import type { PageProps } from "cirrojs";
+import { Link } from "cirrojs";
 
 // 動的ルート /posts/[slug] のページ。params.slug を受け取る。
-export function PostPage({ params }: { params: { slug: string } }) {
+export function PostPage({ params }: PageProps<undefined, { slug: string }>) {
     defineCascadeLayer();
     resetCss();
     return (
@@ -16,7 +18,7 @@ export function PostPage({ params }: { params: { slug: string } }) {
                 <h1>{`Post: ${params.slug}`}</h1>
                 <p>これは動的ルート /posts/[slug] のページです。</p>
                 <p>
-                    <a href="/">← home</a>
+                    <Link to="/">← home</Link>
                 </p>
                 <Island name="counter" props={{ initial: 1 }} />
             </body>
