@@ -1,6 +1,19 @@
 import type { ReactNode } from "react";
 import type { BrokenLink, Registry, RuleNode } from "./registry.common";
 
+// 型は registry.common.ts に集約したが、公開 API としての所在（cirrojs/registry）は維持する。
+// registry.ts と同一の型を再 export すること。
+export type {
+    AtBlockRule,
+    AtStatementRule,
+    BrokenLink,
+    Declarations,
+    Registry,
+    RuleNode,
+    RunWithRegistry,
+    StyleRule,
+} from "./registry.common";
+
 // クライアントでは no-op。SSR 側（registry.ts）と同一シグネチャを保つこと。
 export function registerRules(_key: string, _nodes: RuleNode[]): void {}
 

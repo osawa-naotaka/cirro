@@ -3,6 +3,19 @@ import type { ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { BrokenLink, Registry, RuleNode } from "./registry.common";
 
+// 型は registry.common.ts に集約したが、公開 API としての所在（cirrojs/registry）は維持する。
+// registry.browser.ts と同一の型を再 export すること。
+export type {
+    AtBlockRule,
+    AtStatementRule,
+    BrokenLink,
+    Declarations,
+    Registry,
+    RuleNode,
+    RunWithRegistry,
+    StyleRule,
+} from "./registry.common";
+
 // レンダリング 1 回分の収集状態。css() の登録先（registry）と、styleSample() が積んだ
 // サンプル要素のキュー（samples）を持つ。
 type Store = {
