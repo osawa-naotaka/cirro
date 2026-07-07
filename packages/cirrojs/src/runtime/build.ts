@@ -3,7 +3,7 @@ import { dirname, join, resolve } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createServerModuleRunner, createServer as createViteServer, build as viteBuild } from "vite";
 import { stringifyCss } from "../css.ts";
-import type { Registry, RuleNode, RunWithRegistry } from "../registry.ts";
+import type { Registry, RuleNode, RunWithRegistry } from "../registry.common.ts";
 import { expandRoutes } from "../router.ts";
 import { appendClientScriptAndCss } from "./head.ts";
 import { collectLinks } from "./link.ts";
@@ -72,7 +72,16 @@ export async function runBuild() {
                     );
 
                     for (const link of brokenLinks) {
-                        console.log(`Link is broken: "${link}" while rendering "${page.path}".`);
+                        switch (link.type) {
+                            case "malformed":
+                                console.log(
+                                    `Link is malformed: "${link.link}" in "${page.path}". to property of Link must begin with "/" or "#". "//" or "/\\" are not allowed.`,
+                                );
+                                break;
+                            case "not-found":
+                                console.log(`Link is not found: "${link.link}" in "${page.path}".`);
+                                break;
+                        }
                     }
 
                     htmlPagePaths.push(page.path);

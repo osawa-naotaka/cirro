@@ -3,7 +3,7 @@ import { dirname, resolve } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createServerModuleRunner, createServer as createViteServer, type ViteDevServer } from "vite";
 import { stringifyCss } from "../css.ts";
-import type { RunWithRegistry } from "../registry.ts";
+import type { RunWithRegistry } from "../registry.common.ts";
 import { expandRoutes } from "../router.ts";
 import { contentType } from "./contentType.ts";
 import { appendClientScriptAndCss } from "./head.ts";
@@ -127,7 +127,16 @@ export async function runDev(port = 5173) {
                         );
 
                         for (const link of brokenLinks) {
-                            console.log(`Link is broken: "${link}".`);
+                            switch (link.type) {
+                                case "malformed":
+                                    console.log(
+                                        `Link is malformed: "${link.link}". to property of Link must begin with "/" or "#". "//" or "/\\" are not allowed.`,
+                                    );
+                                    break;
+                                case "not-found":
+                                    console.log(`Link is not found: "${link.link}".`);
+                                    break;
+                            }
                         }
 
                         const transformed = await vite.transformIndexHtml(rawUrl, html);
