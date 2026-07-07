@@ -9,7 +9,7 @@ export type { ContentType, PageProps } from "./content.ts";
 export { defineContent } from "./content.ts";
 export type { CssFn, CssFnOpt, InjectFn, SsOpt, ToKeyframesOpt, ToStyleOpt } from "./css.ts";
 export { at, atStatement, genCssFn, ss, toKeyframes, toStyle } from "./css.ts";
-export { Link } from "./Link.tsx";
+export { Link, type LinkProps } from "./Link.tsx";
 export type { Properties } from "./properties.ts";
 export type { AtBlockRule, AtStatementRule, Registry, RuleNode, StyleRule } from "./registry.common.ts";
 export type { AnyRoute, DynamicRoute, FileRoute, Params, StaticRoute } from "./route.ts";

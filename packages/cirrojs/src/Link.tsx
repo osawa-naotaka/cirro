@@ -1,7 +1,7 @@
 import { checkLink } from "cirrojs/registry";
 import type { ComponentPropsWithoutRef, ReactNode } from "react";
 
-type LinkProps = Omit<ComponentPropsWithoutRef<"a">, "href"> & {
+export type LinkProps = Omit<ComponentPropsWithoutRef<"a">, "href"> & {
     to: string;
 };
 

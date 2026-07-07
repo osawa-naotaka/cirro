@@ -1,4 +1,4 @@
-import { glob, mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createServerModuleRunner, createServer as createViteServer, build as viteBuild } from "vite";
@@ -6,7 +6,7 @@ import { stringifyCss } from "../css.ts";
 import type { BrokenLink, Registry, RuleNode, RunWithRegistry } from "../registry.common.ts";
 import { expandRoutes } from "../router.ts";
 import { appendClientScriptAndCss } from "./head.ts";
-import { collectLinks } from "./link.ts";
+import { collectSiteLinks } from "./link.ts";
 import { getCirroOptions } from "./options.ts";
 
 // `cirro build`: クライアントバンドルを作り、各ルートを静的 HTML として書き出す（node:fs のみ、bun 非依存）。
@@ -28,7 +28,6 @@ export async function runBuild() {
         const root = config.root;
         const outDir = resolve(root, config.build.outDir);
         const routesPath = resolve(root, options.routes);
-        const publicPath = resolve(root, "public");
         const cssUrl = "/assets/styles.css";
 
         const manifest = JSON.parse(await readFile(join(outDir, ".vite/manifest.json"), "utf-8"));
@@ -53,10 +52,10 @@ export async function runBuild() {
             content = await obj.default.content.loader();
         }
         const pages = expandRoutes(obj.default.routes, content);
-        let links = collectLinks(pages.map((p) => p.path));
-        for await (const path of glob(`${publicPath}/**/*`)) {
-            links = collectLinks([path.replace(publicPath, "")], links);
-        }
+        const links = collectSiteLinks(
+            pages.filter((x) => x.type !== "css"),
+            server.config.publicDir,
+        );
 
         for (const page of pages) {
             switch (page.type) {
@@ -118,6 +117,11 @@ export async function runBuild() {
 
         reportGlobalRuleMismatch(globalRulePages, htmlPagePaths, rootRegistry);
         reportBrokenLinks(brokenLinksWithPagePaths);
+        if (brokenLinksWithPagePaths.length === 0) {
+            console.log("no broken links found");
+        } else {
+            process.exitCode = 1;
+        }
 
         console.log(`build completed in ${Date.now() - startTime}ms`);
     } finally {

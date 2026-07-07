@@ -1,9 +1,9 @@
+import { Link } from "cirrojs";
 import type { ReactNode } from "react";
 import { Island } from "../islands/Island";
 import { center } from "../styles/layout";
 import { button } from "../styles/recipes";
 import { applyGlobalStyles, color, cssMain, cssMd, cx, fontSize, space } from "../styles/system";
-import { Link } from "cirrojs";
 
 type LayoutProps = {
     title: string;

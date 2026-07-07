@@ -42,37 +42,39 @@ export function registerStyleSample(element: ReactNode) {
     store.samples.push(element);
 }
 
-// export function registerLinks(links: string[]) {
-//     const store = als.getStore();
-//     if (!store) throw new Error("cirro: registerLink() was called outside of a render context");
-//     for (const link of links) {
-//         store.links?.add(link);        
-//     }
-// }
-
 export function checkLink(link: string) {
     const store = als.getStore();
-    if (!store) throw new Error("cirro: styleSample() was called outside of a render context");
+    if (!store) throw new Error("cirro: checkLink() was called outside of a render context");
 
-    if (link.startsWith("//") || link.startsWith("/\\")) {
-        store.brokenLinks.push({ type: "malformed", link });
-        return;
-    }
+    try {
+        const decodedLink = decodeURIComponent(link);
 
-    if (!link.startsWith("/") && !link.startsWith("#")) {
-        store.brokenLinks.push({ type: "malformed", link });
-        return;
-    }
+        if (decodedLink.startsWith("//") || decodedLink.startsWith("/\\")) {
+            store.brokenLinks.push({ type: "malformed", link });
+            return;
+        }
 
-    if (link.startsWith("#")) {
-        return;
-    }
+        if (!decodedLink.startsWith("/") && !decodedLink.startsWith("#")) {
+            store.brokenLinks.push({ type: "malformed", link });
+            return;
+        }
 
-    const normalizedLink = link.replace(/#.*$/, "").replace(/\?.*$/, "");
+        if (decodedLink.startsWith("#")) {
+            return;
+        }
 
-    if (store.links && !store.links.has(normalizedLink)) {
-        store.brokenLinks.push({ type: "not-found", link });
-        return;
+        const normalizedLink = decodedLink.replace(/#.*$/, "").replace(/\?.*$/, "");
+
+        if (store.links && !store.links.has(normalizedLink)) {
+            store.brokenLinks.push({ type: "not-found", link });
+            return;
+        }
+    } catch (e) {
+        if (e instanceof URIError) {
+            store.brokenLinks.push({ type: "malformed", link });
+        } else {
+            throw e;
+        }
     }
 }
 

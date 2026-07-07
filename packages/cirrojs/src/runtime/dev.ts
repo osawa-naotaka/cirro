@@ -7,10 +7,8 @@ import type { RunWithRegistry } from "../registry.common.ts";
 import { expandRoutes } from "../router.ts";
 import { contentType } from "./contentType.ts";
 import { appendClientScriptAndCss } from "./head.ts";
-import { collectLinks } from "./link.ts";
+import { collectSiteLinks } from "./link.ts";
 import { getCirroOptions } from "./options.ts";
-import { glob } from "node:fs/promises";
-
 
 // 仮想島マウンタ（virtual:cirro/client）の dev 配信 URL。
 const CLIENT_DEV_URL = "/@id/__x00__virtual:cirro/client";
@@ -51,7 +49,6 @@ export async function runDev(port = 5173) {
     const root = vite.config.root;
     const routesPath = resolve(root, options.routes);
     const islandsDir = options.islands && dirname(resolve(root, options.islands)).replaceAll("\\", "/");
-    const publicPath = resolve(root, "public");
     let contentPromise: Promise<unknown> | null = null;
 
     const httpServer = createHttpServer((req, res) => {
@@ -110,11 +107,6 @@ export async function runDev(port = 5173) {
                 contentPromise ??= objs.default.content?.loader();
                 const content = await contentPromise;
                 const pages = expandRoutes(objs.default.routes, content);
-                let links = collectLinks(pages.map((p) => p.path));
-                for await (const path of glob(`${publicPath}/**/*`)) {
-                    links = collectLinks([path.replace(publicPath, "")], links);
-                }
-                
                 const page = pages.find((p) => candidate.has(p.path));
                 if (page === undefined) {
                     errorResp(".html", `no route found for the requested path: ${pathname}`);
@@ -123,6 +115,11 @@ export async function runDev(port = 5173) {
 
                 switch (page.type) {
                     case "html": {
+                        const links = collectSiteLinks(
+                            pages.filter((p) => p.type !== "css"),
+                            vite.config.publicDir,
+                        );
+
                         const { result: html, brokenLinks } = runWithRegistry(
                             () => {
                                 const tree = appendClientScriptAndCss(page.render(), CLIENT_DEV_URL, `${page.path}.css`);

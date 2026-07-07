@@ -1,7 +1,7 @@
+import { Link } from "cirrojs";
 import type { ToC } from "cirrojs/server";
 import { stack } from "../styles/layout";
 import { color, cssMain, cx, fontSize, space } from "../styles/system";
-import { Link } from "cirrojs";
 
 // remark-export-toc が抽出した目次（ToC[]）を描画する。各エントリの id は本文見出しの
 // id と一致するため、アンカーリンク（#id）でジャンプできる。
