@@ -1,3 +1,4 @@
+import { Link } from "cirrojs";
 import type { ToC } from "cirrojs/server";
 import { stack } from "../styles/layout";
 import { color, cssMain, cx, fontSize, space } from "../styles/system";
@@ -43,9 +44,9 @@ export function TableOfContents({ toc }: { toc: ToC[] }) {
             <ul className={cx(stack({ gap: space(1) }), cssMain({ list_style: "none", margin: "0", padding: "0" }))}>
                 {toc.map((item) => (
                     <li key={item.id} className={indent[Math.min(item.level - minLevel, indent.length - 1)]}>
-                        <a href={`#${item.id}`} className={link}>
+                        <Link to={`#${item.id}`} className={link}>
                             {item.text}
-                        </a>
+                        </Link>
                     </li>
                 ))}
             </ul>

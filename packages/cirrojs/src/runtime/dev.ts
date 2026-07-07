@@ -3,9 +3,11 @@ import { dirname, resolve } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createServerModuleRunner, createServer as createViteServer, type ViteDevServer } from "vite";
 import { stringifyCss } from "../css.ts";
+import type { RunWithRegistry } from "../registry.common.ts";
 import { expandRoutes } from "../router.ts";
 import { contentType } from "./contentType.ts";
 import { appendClientScriptAndCss } from "./head.ts";
+import { collectSiteLinks } from "./link.ts";
 import { getCirroOptions } from "./options.ts";
 
 // 仮想島マウンタ（virtual:cirro/client）の dev 配信 URL。
@@ -100,10 +102,11 @@ export async function runDev(port = 5173) {
                     return;
                 }
 
+                const runWithRegistry: RunWithRegistry<string> = objs.runWithRegistry;
+
                 contentPromise ??= objs.default.content?.loader();
                 const content = await contentPromise;
                 const pages = expandRoutes(objs.default.routes, content);
-
                 const page = pages.find((p) => candidate.has(p.path));
                 if (page === undefined) {
                     errorResp(".html", `no route found for the requested path: ${pathname}`);
@@ -112,10 +115,33 @@ export async function runDev(port = 5173) {
 
                 switch (page.type) {
                     case "html": {
-                        const { result: html } = objs.runWithRegistry(() => {
-                            const tree = appendClientScriptAndCss(page.render(), CLIENT_DEV_URL, `${page.path}.css`);
-                            return `<!DOCTYPE html>${renderToStaticMarkup(tree)}`;
-                        });
+                        const links = collectSiteLinks(
+                            pages.filter((p) => p.type !== "css"),
+                            vite.config.publicDir,
+                        );
+
+                        const { result: html, brokenLinks } = runWithRegistry(
+                            () => {
+                                const tree = appendClientScriptAndCss(page.render(), CLIENT_DEV_URL, `${page.path}.css`);
+                                return `<!DOCTYPE html>${renderToStaticMarkup(tree)}`;
+                            },
+                            new Map(),
+                            links,
+                        );
+
+                        for (const link of brokenLinks) {
+                            switch (link.type) {
+                                case "malformed":
+                                    console.log(
+                                        `Link is malformed: "${link.link}". to property of Link must begin with "/" or "#". "//" or "/\\" are not allowed.`,
+                                    );
+                                    break;
+                                case "not-found":
+                                    console.log(`Link is not found: "${link.link}".`);
+                                    break;
+                            }
+                        }
+
                         const transformed = await vite.transformIndexHtml(rawUrl, html);
                         successResp(".html", transformed);
                         break;

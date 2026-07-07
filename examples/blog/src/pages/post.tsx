@@ -1,4 +1,4 @@
-import type { PageProps } from "cirrojs";
+import { Link, type PageProps } from "cirrojs";
 import { Layout } from "../components/Layout";
 import { PostMeta } from "../components/PostMeta";
 import { TableOfContents } from "../components/TableOfContents";
@@ -17,9 +17,9 @@ export function PostPage(props: PageProps<typeof content, { slug: string }>) {
         return (
             <Layout title="記事が見つかりません — Cirro Blog" island={false}>
                 <h1 className={cssMain({ font_size: "2rem", font_weight: "700", margin_bottom: space(4) })}>記事が見つかりません</h1>
-                <a href="/blog" className={cssMain({ color: color.primary })}>
+                <Link to="/blog" className={cssMain({ color: color.primary })}>
                     ← 記事一覧へ
-                </a>
+                </Link>
             </Layout>
         );
     }
@@ -34,9 +34,9 @@ export function PostPage(props: PageProps<typeof content, { slug: string }>) {
     return (
         <Layout title={`${post.title} — Cirro Blog`} description={post.description}>
             <nav className={cssMain({ display: "flex", align_items: "center", gap: space(2), font_size: fontSize.sm, margin_bottom: space(6) })}>
-                <a href="/blog" className={crumbLink}>
+                <Link to="/blog" className={crumbLink}>
                     記事一覧
-                </a>
+                </Link>
                 <span className={cssMain({ color: color.fgMuted })}>/</span>
                 <span className={cssMain({ color: color.fg, overflow: "hidden", text_overflow: "ellipsis", white_space: "nowrap", max_width: space(60) })}>
                     {post.title}
@@ -67,8 +67,8 @@ export function PostPage(props: PageProps<typeof content, { slug: string }>) {
 
             <div className={cssMain({ border: `1px solid ${color.border}`, border_radius: radii.panel, padding: space(6) })}>
                 <div className={cssMain({ display: "flex", align_items: "center", gap: space(4) })}>
-                    <a
-                        href={`/authors/${author.id}`}
+                    <Link
+                        to={`/authors/${author.id}`}
                         className={cssMain({
                             flex_shrink: "0",
                             width: space(14),
@@ -84,21 +84,21 @@ export function PostPage(props: PageProps<typeof content, { slug: string }>) {
                         })}
                     >
                         {author.name.charAt(0)}
-                    </a>
+                    </Link>
                     <div>
                         <p className={cssMain({ font_size: fontSize.xs, color: color.fgMuted, text_transform: "uppercase", letter_spacing: "0.05em" })}>
                             この記事を書いた人
                         </p>
                         <p className={cssMain({ font_size: fontSize.lg, font_weight: "700" })}>
-                            <a
-                                href={`/authors/${author.id}`}
+                            <Link
+                                to={`/authors/${author.id}`}
                                 className={cx(
                                     cssMain({ color: "inherit", text_decoration: "none" }),
                                     cssMain({ text_decoration: "underline" }, { selector: "$:hover" }),
                                 )}
                             >
                                 {author.name}
-                            </a>
+                            </Link>
                         </p>
                         <p className={cssMain({ font_size: fontSize.sm, color: color.fgMuted })}>{author.bio}</p>
                     </div>

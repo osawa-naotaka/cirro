@@ -1,4 +1,4 @@
-import type { PageProps } from "cirrojs";
+import { Link, type PageProps } from "cirrojs";
 import { Layout } from "../components/Layout";
 import { PostList } from "../components/PostList";
 import type { content } from "../content";
@@ -36,20 +36,20 @@ export function HomePage(props: PageProps<typeof content>) {
                     だけで書ける、軽量な静的サイトジェネレーター。
                 </p>
                 <Cluster gap={space(4)}>
-                    <a href="/blog" className={button({ variant: "contrast" })}>
+                    <Link to="/blog" className={button({ variant: "contrast" })}>
                         記事を読む
-                    </a>
-                    <a href="/about" className={button({ variant: "outline" })}>
+                    </Link>
+                    <Link to="/about" className={button({ variant: "outline" })}>
                         Cirro について
-                    </a>
+                    </Link>
                 </Cluster>
             </section>
 
             <div className={cssMain({ display: "flex", justify_content: "space-between", align_items: "baseline", margin_bottom: space(4) })}>
                 <h2 className={cssMain({ font_size: fontSize.xl, font_weight: "700" })}>最新の記事</h2>
-                <a href="/blog" className={button({ variant: "text", size: "sm" })}>
+                <Link to="/blog" className={button({ variant: "text", size: "sm" })}>
                     すべて見る
-                </a>
+                </Link>
             </div>
             <PostList posts={recent} />
 
@@ -58,9 +58,9 @@ export function HomePage(props: PageProps<typeof content>) {
             <h2 className={cssMain({ font_size: fontSize.xl, font_weight: "700", margin_bottom: space(4) })}>タグから探す</h2>
             <Cluster gap={space(2)}>
                 {tags.map(({ tag, count }) => (
-                    <a key={tag} href={`/tags/${tag}`} className={chip()}>
+                    <Link key={tag} to={`/tags/${tag}`} className={chip()}>
                         {tag} ({count})
-                    </a>
+                    </Link>
                 ))}
             </Cluster>
 

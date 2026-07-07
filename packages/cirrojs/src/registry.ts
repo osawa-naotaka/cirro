@@ -1,41 +1,20 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import type { ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import type { Properties } from "./properties";
+import type { BrokenLink, Registry, RuleNode } from "./registry.common";
 
-export type Declarations = Partial<Properties>;
-
-// 生成 CSS を表す小さな AST。css() / cssRules() / cssKeyframes() が登録時に構築し、
-// stringifyCss() が再帰的に文字列化する。
-// - StyleRule: セレクタ 1 個と宣言ブロック。selector は登録時点で $（自クラス参照）解決済み。
-//   children はネストルール（cssRules）で、ネイティブ CSS ネストとしてブロック内に出力される
-//   （& はブラウザがそのまま解釈する。生成側では置換しない）。
-// - AtBlockRule: @layer / @media / @keyframes など任意のブロックアットルール。入れ子可。
-// - AtStatementRule: "@layer a, b" のようなブロックを持たない文アットルール。
-//   トップレベル専用で、出力時はプリアンブル直後に登録順で並ぶ（末尾の ; は出力時に付与）。
-export type StyleRule = {
-    type: "style";
-    selector: string;
-    declarations: Declarations;
-    children?: RuleNode[];
-};
-
-export type AtBlockRule = {
-    type: "at-block";
-    prelude: string;
-    children: RuleNode[];
-};
-
-export type AtStatementRule = {
-    type: "at-statement";
-    statement: string;
-};
-
-export type RuleNode = StyleRule | AtBlockRule | AtStatementRule;
-
-// キーは designator（クラス名 / @keyframes 名 / 文のハッシュ）。同一キーの再登録は
-// 上書きになるため、決定的ハッシュにより同一スタイルの重複出力が自然に排除される。
-export type Registry = Map<string, RuleNode[]>;
+// 型は registry.common.ts に集約したが、公開 API としての所在（cirrojs/registry）は維持する。
+// registry.browser.ts と同一の型を再 export すること。
+export type {
+    AtBlockRule,
+    AtStatementRule,
+    BrokenLink,
+    Declarations,
+    Registry,
+    RuleNode,
+    RunWithRegistry,
+    StyleRule,
+} from "./registry.common";
 
 // レンダリング 1 回分の収集状態。css() の登録先（registry）と、styleSample() が積んだ
 // サンプル要素のキュー（samples）を持つ。
@@ -43,6 +22,8 @@ type Store = {
     registry: Registry;
     globalRuleSet: Set<string>;
     samples: ReactNode[];
+    links?: Set<string>;
+    brokenLinks: BrokenLink[];
 };
 
 // レンダリング 1 回ごとに専用のストアを割り当て、AsyncLocalStorage で暗黙に引き継ぐ。
@@ -74,6 +55,42 @@ export function registerStyleSample(element: ReactNode) {
     store.samples.push(element);
 }
 
+export function checkLink(link: string) {
+    const store = als.getStore();
+    if (!store) throw new Error("cirro: checkLink() was called outside of a render context");
+
+    try {
+        const decodedLink = decodeURIComponent(link);
+
+        if (decodedLink.startsWith("//") || decodedLink.startsWith("/\\")) {
+            store.brokenLinks.push({ type: "malformed", link });
+            return;
+        }
+
+        if (!decodedLink.startsWith("/") && !decodedLink.startsWith("#")) {
+            store.brokenLinks.push({ type: "malformed", link });
+            return;
+        }
+
+        if (decodedLink.startsWith("#")) {
+            return;
+        }
+
+        const normalizedLink = decodedLink.replace(/#.*$/, "").replace(/\?.*$/, "");
+
+        if (store.links && !store.links.has(normalizedLink)) {
+            store.brokenLinks.push({ type: "not-found", link });
+            return;
+        }
+    } catch (e) {
+        if (e instanceof URIError) {
+            store.brokenLinks.push({ type: "malformed", link });
+        } else {
+            throw e;
+        }
+    }
+}
+
 // 1 レンダリングで処理するサンプル数の上限。コンポーネントが自分自身を（直接・間接に）
 // styleSample() するとキューは尽きず無限ループになるため、黙って回り続けず原因を示して失敗させる保険。
 const MAX_STYLE_SAMPLES = 1000;
@@ -83,8 +100,12 @@ const MAX_STYLE_SAMPLES = 1000;
 // fn の完了後、styleSample() が積んだサンプル要素を同じコンテキストで順に描画する。
 // 出力 HTML は捨て、描画過程で実行された css() の登録だけを収集へ反映する。
 // サンプルの描画がさらに styleSample() を呼んだ場合も、同じキューへ積まれて続けて処理される。
-export function runWithRegistry<T>(fn: () => T, init?: Registry): { result: T; registry: Registry; globalRuleSet: Set<string> } {
-    const store: Store = { registry: init ?? new Map(), globalRuleSet: new Set(), samples: [] };
+export function runWithRegistry<T>(
+    fn: () => T,
+    init?: Registry,
+    links?: Set<string>,
+): { result: T; registry: Registry; globalRuleSet: Set<string>; brokenLinks: BrokenLink[] } {
+    const store: Store = { registry: init ?? new Map(), globalRuleSet: new Set(), samples: [], links, brokenLinks: [] };
     const result = als.run(store, fn);
     als.run(store, () => {
         let processed = 0;
@@ -98,7 +119,5 @@ export function runWithRegistry<T>(fn: () => T, init?: Registry): { result: T; r
             renderToStaticMarkup(store.samples.shift());
         }
     });
-    return { result, registry: store.registry, globalRuleSet: store.globalRuleSet };
+    return { result, registry: store.registry, globalRuleSet: store.globalRuleSet, brokenLinks: store.brokenLinks };
 }
-
-export type RunWithRegistry<T> = (fn: () => T) => { result: T; registry: Registry; globalRuleSet: Set<string> };

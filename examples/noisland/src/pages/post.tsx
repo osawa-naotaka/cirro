@@ -1,3 +1,4 @@
+import { Link } from "cirrojs";
 import { defineCascadeLayer, resetCss } from "cirrojs/layout";
 
 // 動的ルート /posts/[slug] のページ。params.slug を受け取る。
@@ -15,7 +16,7 @@ export function PostPage({ params }: { params: { slug: string } }) {
                 <h1>{`Post: ${params.slug}`}</h1>
                 <p>これは動的ルート /posts/[slug] のページです。</p>
                 <p>
-                    <a href="/">← home</a>
+                    <Link to="/">← home</Link>
                 </p>
             </body>
         </html>

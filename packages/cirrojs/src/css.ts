@@ -3,7 +3,7 @@
 // no-op 実装（registry.browser.ts）に差し替わる。型は erase される import type で real から取得する。
 import { registerGlobalRuleSet, registerRules } from "cirrojs/registry";
 import { type Properties, property_names } from "./properties.ts";
-import type { Registry, RuleNode } from "./registry.ts";
+import type { Registry, RuleNode } from "./registry.common.ts";
 
 export type CssFnOpt = {
     name?: string;

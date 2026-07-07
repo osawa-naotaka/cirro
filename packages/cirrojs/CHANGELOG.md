@@ -13,6 +13,18 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [0.0.27] - 2026-07-07
+
+### Added
+- `Link` component and `LinkProps` type, exported from the package entry point. `Link` renders an `<a>` element whose `href` is the `to` prop as written, and passes through every other standard anchor attribute (`href` itself is excluded from the props type, so `to` is the only way to set the destination). During server rendering the component validates `to` against the set of site-internal URLs; in the client (island) bundle the check resolves to a no-op.
+- Build-time validation of internal links written with `<Link>`. `to` must be a root-relative path (starting with `/`) or an in-page anchor (starting with `#`); values starting with `//` or `/\` (protocol-relative URLs), relative paths, external URLs, and invalid percent-encoding are reported as malformed. Links are percent-decoded before matching, and query strings and fragments are ignored. A link target is valid when it matches an accepted spelling of a route URL (the exact `.html` / `.htm` path, the clean URL without the extension, and, for directory indexes, the directory path with and without the trailing slash) or a file under Vite's `publicDir`. The dev server logs broken links to the console when rendering a page; `cirro build` reports all broken links together with the page they appear on after generating all pages, and exits with a non-zero code when any are found.
+- `BrokenLink` type, exported from `cirrojs/registry`. It describes one invalid link collected during a render: `{ type: "not-found" | "malformed"; link: string }`.
+- `checkLink(link)`, exported from `cirrojs/registry`. It is the validation entry called by `<Link>` during server rendering: it validates the link against the URL set of the current render context and collects violations into the render result's `brokenLinks`. The browser build resolves it to a no-op.
+
+### Changed
+- `runWithRegistry` accepts an optional third argument, `links?: Set<string>`, the set of valid site-internal URLs used to validate `<Link>` targets, and its result gains `brokenLinks: BrokenLink[]` (`{ type: "not-found" | "malformed"; link: string }`) listing the invalid links collected during the render. When `links` is omitted, existence checks are skipped; malformed values are still collected. The `RunWithRegistry` type includes the new parameter and result field.
+- `ContentType<H>` resolves to `undefined` instead of `never` when `H` is not a content handle.
+
 ## [0.0.26] - 2026-07-06
 
 ### Added
@@ -229,7 +241,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## 0.0.1 - 2026-06-15
 - initial release
 
-[Unreleased]: https://github.com/osawa-naotaka/cirro/compare/v0.0.26...HEAD
+[Unreleased]: https://github.com/osawa-naotaka/cirro/compare/v0.0.27...HEAD
+[0.0.27]: https://github.com/osawa-naotaka/cirro/compare/v0.0.26...v0.0.27
 [0.0.26]: https://github.com/osawa-naotaka/cirro/compare/v0.0.25...v0.0.26
 [0.0.25]: https://github.com/osawa-naotaka/cirro/compare/v0.0.24...v0.0.25
 [0.0.24]: https://github.com/osawa-naotaka/cirro/compare/v0.0.23...v0.0.24

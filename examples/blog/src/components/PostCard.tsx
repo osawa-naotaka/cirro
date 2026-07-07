@@ -1,3 +1,4 @@
+import { Link } from "cirrojs";
 import type { Post } from "../lib/types";
 import { color, cssMain, cx, fontSize, radii, shadow, space } from "../styles/system";
 import { PostMeta } from "./PostMeta";
@@ -17,8 +18,8 @@ export function PostCard({ post }: { post: Post }) {
                 cssMain({ box_shadow: shadow.md }, { selector: "$:hover" }),
             )}
         >
-            <a
-                href={`/blog/${post.slug}`}
+            <Link
+                to={`/blog/${post.slug}`}
                 className={cx(
                     cssMain({ display: "block", padding: space(4), color: "inherit", text_decoration: "none" }),
                     cssMain({ background_color: color.hover }, { selector: "$:hover" }),
@@ -26,7 +27,7 @@ export function PostCard({ post }: { post: Post }) {
             >
                 <h2 className={cssMain({ font_size: fontSize.lg, font_weight: "700", margin_bottom: space(1) })}>{post.title}</h2>
                 <p className={cssMain({ font_size: fontSize.sm, color: color.fgMuted })}>{post.description}</p>
-            </a>
+            </Link>
             <div className={cssMain({ padding_left: space(4), padding_right: space(4), padding_bottom: space(4) })}>
                 <PostMeta post={post} />
             </div>

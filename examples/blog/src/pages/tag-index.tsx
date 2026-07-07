@@ -1,4 +1,4 @@
-import type { PageProps } from "cirrojs";
+import { Link, type PageProps } from "cirrojs";
 import { Layout } from "../components/Layout";
 import type { content } from "../content";
 import { allTags } from "../lib/content";
@@ -16,9 +16,9 @@ export function TagIndexPage(props: PageProps<typeof content>) {
             <p className={cssMain({ color: color.fgMuted, margin_bottom: space(8) })}>全 {tags.length} 個のタグ</p>
             <Cluster gap={space(3)}>
                 {tags.map(({ tag, count }) => (
-                    <a key={tag} href={`/tags/${tag}`} className={chip({ size: "md" })}>
+                    <Link key={tag} to={`/tags/${tag}`} className={chip({ size: "md" })}>
                         {tag} ({count})
-                    </a>
+                    </Link>
                 ))}
             </Cluster>
         </Layout>

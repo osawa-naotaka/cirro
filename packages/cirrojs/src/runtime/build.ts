@@ -3,9 +3,10 @@ import { dirname, join, resolve } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createServerModuleRunner, createServer as createViteServer, build as viteBuild } from "vite";
 import { stringifyCss } from "../css.ts";
-import type { Registry, RuleNode } from "../registry.ts";
+import type { BrokenLink, Registry, RuleNode, RunWithRegistry } from "../registry.common.ts";
 import { expandRoutes } from "../router.ts";
 import { appendClientScriptAndCss } from "./head.ts";
+import { collectSiteLinks } from "./link.ts";
 import { getCirroOptions } from "./options.ts";
 
 // `cirro build`: クライアントバンドルを作り、各ルートを静的 HTML として書き出す（node:fs のみ、bun 非依存）。
@@ -40,30 +41,45 @@ export async function runBuild() {
         if (!Array.isArray(obj.default.routes)) throw new Error("cirro: you must define routes and export it as `default`");
         if (obj.default.content && typeof obj.default.content.loader !== "function") throw new Error("you must define a valid content loader function");
 
-        const runWithRegistry = obj.runWithRegistry as (
-            fn: () => string,
-            init?: Registry,
-        ) => { result: string; registry: Registry; globalRuleSet: Set<string> };
-
+        const runWithRegistry = obj.runWithRegistry as RunWithRegistry<string>;
         const rootRegistry: Registry = new Map();
         const htmlPagePaths: string[] = [];
         const globalRulePages = new Map<string, string[]>();
+        const brokenLinksWithPagePaths: { path: string; brokenLinks: BrokenLink[] }[] = [];
 
         let content: unknown;
         if (obj.default.content) {
             content = await obj.default.content.loader();
         }
         const pages = expandRoutes(obj.default.routes, content);
+        const links = collectSiteLinks(
+            pages.filter((x) => x.type !== "css"),
+            server.config.publicDir,
+        );
+
         for (const page of pages) {
             switch (page.type) {
                 case "css": {
                     break;
                 }
                 case "html": {
-                    const { result: html, globalRuleSet: ruleSet } = runWithRegistry(() => {
-                        const tree = appendClientScriptAndCss(page.render(), scriptSrc, cssUrl);
-                        return `<!DOCTYPE html>${renderToStaticMarkup(tree)}`;
-                    }, rootRegistry);
+                    const {
+                        result: html,
+                        globalRuleSet: ruleSet,
+                        brokenLinks,
+                    } = runWithRegistry(
+                        () => {
+                            const tree = appendClientScriptAndCss(page.render(), scriptSrc, cssUrl);
+                            return `<!DOCTYPE html>${renderToStaticMarkup(tree)}`;
+                        },
+                        rootRegistry,
+                        links,
+                    );
+
+                    if (brokenLinks.length > 0) {
+                        brokenLinksWithPagePaths.push({ path: page.path, brokenLinks });
+                    }
+
                     htmlPagePaths.push(page.path);
                     for (const designator of ruleSet) {
                         const pages = globalRulePages.get(designator) ?? [];
@@ -100,6 +116,12 @@ export async function runBuild() {
         console.log(`global rule set: ${globalRulePages.size} rules`);
 
         reportGlobalRuleMismatch(globalRulePages, htmlPagePaths, rootRegistry);
+        reportBrokenLinks(brokenLinksWithPagePaths);
+        if (brokenLinksWithPagePaths.length === 0) {
+            console.log("no broken links found");
+        } else {
+            process.exitCode = 1;
+        }
 
         console.log(`build completed in ${Date.now() - startTime}ms`);
     } finally {
@@ -121,6 +143,12 @@ function reportGlobalRuleMismatch(globalRulePages: Map<string, string[]>, allPag
         // 少ない側のページ一覧を出す（原因ページを特定しやすくするため）。
         const detail = pages.length <= missing.length ? `registered only on: ${pages.join(", ")}` : `missing on: ${missing.join(", ")}`;
         console.warn(`Warning: global rule ${rules} (${designator}) is not registered on all pages (${detail}); dev and build styles will differ.`);
+    }
+}
+
+function reportBrokenLinks(brokenLinksWithPagePaths: { path: string; brokenLinks: BrokenLink[] }[]): void {
+    for (const { path, brokenLinks } of brokenLinksWithPagePaths) {
+        console.warn(`Warning: broken links in "${path}": ${brokenLinks.map((l) => `"${l.link}" (${l.type})`).join(", ")}`);
     }
 }
 

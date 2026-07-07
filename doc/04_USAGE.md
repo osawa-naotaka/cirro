@@ -345,6 +345,34 @@ export function PostPage(props: PageProps<typeof content, { slug: string }>) {
   参照できない。島に渡したいデータは `<Island>` の props として明示的に渡す。
 - コンテンツ層を使わないサイトは `createRouteFn()` を引数なしで呼ぶ（`examples/basic`）。
 
+### 5.6 サイト内リンク（Link コンポーネント）
+
+サイト内リンクは素の `<a>` ではなく `<Link>` で書く。レンダリングされた Link の `to` は
+サイト内の全 URL と照合され、**リンク切れがビルド時に検出される**。
+設計判断の背景は `09_LINK_SAFETY.md` を参照。
+
+```tsx
+import { Link } from "cirrojs";
+
+<Link to="/about">このサイトについて</Link>
+<Link to="/tags/react" className={chip()}>#react</Link>
+<Link to="#section-1">ページ内アンカー</Link>
+```
+
+- `to` には**ルート相対パス（`/` 始まり）**か**ページ内アンカー（`#` 始まり）**を書く。それ以外
+  （相対パス・外部 URL・プロトコル相対の `//` 始まり）は不正として報告される。外部サイトへの
+  リンクは素の `<a>` を使う。
+- `href` 以外の `<a>` の標準属性（`className`・`target`・`download` など）はそのまま渡せる。
+  `href` は `to` に一本化されており、**書いた `to` がそのまま href として出力される**（Cirro は
+  書き換えない。クリーン URL に正規化したい場合は最初からそう書く）。
+- リンク先として有効なのは、`routes.ts` の全ルート（静的・動的・ファイルルート）と `public/`
+  配下のファイル。`/about.html` と `/about`（クリーン URL）、ディレクトリインデックスの
+  `/path/to/` と `/path/to` はどれも受理される。`?query` と `#fragment` は存在チェックでは
+  無視される。
+- リンク切れ・不正な `to` は、**dev サーバーではコンソール警告**、**`cirro build` では全ページ分を
+  ページ path 付きでまとめて報告して非ゼロ終了**（CI で止まる）。
+- Markdown 本文中のリンクと素の `<a href>` は検証対象外（検証は Link を使うことによる opt-in）。
+
 ---
 
 ## 6. 島（islands）システム
@@ -557,6 +585,7 @@ const CSP = "default-src 'self'; script-src 'self'; style-src 'self'; font-src '
 - `03_ISLAND_SYSTEM.md` — 島システムの使い方と内部の仕組み
 - `05_STYLING.md` — スタイリングガイド（自前 CSS 生成）
 - `08_CONTENT_LAYER.md` — コンテンツ層の設計（defineContent の設計判断と理由）
+- `09_LINK_SAFETY.md` — リンク安全性の設計（Link コンポーネントとビルド時検証の設計判断と理由）
 
 ### 用語
 
