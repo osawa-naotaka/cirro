@@ -1,9 +1,9 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { glob, mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createServerModuleRunner, createServer as createViteServer, build as viteBuild } from "vite";
 import { stringifyCss } from "../css.ts";
-import type { Registry, RuleNode, RunWithRegistry } from "../registry.common.ts";
+import type { BrokenLink, Registry, RuleNode, RunWithRegistry } from "../registry.common.ts";
 import { expandRoutes } from "../router.ts";
 import { appendClientScriptAndCss } from "./head.ts";
 import { collectLinks } from "./link.ts";
@@ -28,6 +28,7 @@ export async function runBuild() {
         const root = config.root;
         const outDir = resolve(root, config.build.outDir);
         const routesPath = resolve(root, options.routes);
+        const publicPath = resolve(root, "public");
         const cssUrl = "/assets/styles.css";
 
         const manifest = JSON.parse(await readFile(join(outDir, ".vite/manifest.json"), "utf-8"));
@@ -45,13 +46,18 @@ export async function runBuild() {
         const rootRegistry: Registry = new Map();
         const htmlPagePaths: string[] = [];
         const globalRulePages = new Map<string, string[]>();
+        const brokenLinksWithPagePaths: { path: string; brokenLinks: BrokenLink[] }[] = [];
 
         let content: unknown;
         if (obj.default.content) {
             content = await obj.default.content.loader();
         }
         const pages = expandRoutes(obj.default.routes, content);
-        const links = collectLinks(pages);
+        let links = collectLinks(pages.map((p) => p.path));
+        for await (const path of glob(`${publicPath}/**/*`)) {
+            links = collectLinks([path.replace(publicPath, "")], links);
+        }
+
         for (const page of pages) {
             switch (page.type) {
                 case "css": {
@@ -71,17 +77,8 @@ export async function runBuild() {
                         links,
                     );
 
-                    for (const link of brokenLinks) {
-                        switch (link.type) {
-                            case "malformed":
-                                console.log(
-                                    `Link is malformed: "${link.link}" in "${page.path}". to property of Link must begin with "/" or "#". "//" or "/\\" are not allowed.`,
-                                );
-                                break;
-                            case "not-found":
-                                console.log(`Link is not found: "${link.link}" in "${page.path}".`);
-                                break;
-                        }
+                    if (brokenLinks.length > 0) {
+                        brokenLinksWithPagePaths.push({ path: page.path, brokenLinks });
                     }
 
                     htmlPagePaths.push(page.path);
@@ -120,6 +117,7 @@ export async function runBuild() {
         console.log(`global rule set: ${globalRulePages.size} rules`);
 
         reportGlobalRuleMismatch(globalRulePages, htmlPagePaths, rootRegistry);
+        reportBrokenLinks(brokenLinksWithPagePaths);
 
         console.log(`build completed in ${Date.now() - startTime}ms`);
     } finally {
@@ -141,6 +139,12 @@ function reportGlobalRuleMismatch(globalRulePages: Map<string, string[]>, allPag
         // 少ない側のページ一覧を出す（原因ページを特定しやすくするため）。
         const detail = pages.length <= missing.length ? `registered only on: ${pages.join(", ")}` : `missing on: ${missing.join(", ")}`;
         console.warn(`Warning: global rule ${rules} (${designator}) is not registered on all pages (${detail}); dev and build styles will differ.`);
+    }
+}
+
+function reportBrokenLinks(brokenLinksWithPagePaths: { path: string; brokenLinks: BrokenLink[] }[]): void {
+    for (const { path, brokenLinks } of brokenLinksWithPagePaths) {
+        console.warn(`Warning: broken links in "${path}": ${brokenLinks.map((l) => `"${l.link}" (${l.type})`).join(", ")}`);
     }
 }
 

@@ -1,22 +1,21 @@
 import { basename, dirname, extname, join } from "node:path";
-import type { ResolvedPath } from "../router";
 
-export function collectLinks(paths: ResolvedPath[]): Set<string> {
-    const links = new Set<string>();
+export function collectLinks(paths: string[], initialLinks?: Set<string>): Set<string> {
+    const links = initialLinks ?? new Set<string>();
     for (const p of paths) {
-        links.add(decodeURIComponent(p.path));
+        links.add(decodeURIComponent(p));
 
-        if (p.path.endsWith("/index.html") || p.path.endsWith("/index.htm")) {
-            const dir = dirname(p.path);
+        if (p.endsWith("/index.html") || p.endsWith("/index.htm")) {
+            const dir = dirname(p);
             links.add(decodeURIComponent(dir));
             if (dir !== "/") {
                 links.add(decodeURIComponent(`${dir}/`));
             }
         } else {
-            const ext = extname(p.path);
+            const ext = extname(p);
             if (ext === ".html" || ext === ".htm") {
-                const dir = dirname(p.path);
-                links.add(decodeURIComponent(join(dir, basename(p.path, ext))));
+                const dir = dirname(p);
+                links.add(decodeURIComponent(join(dir, basename(p, ext))));
             }
         }
     }

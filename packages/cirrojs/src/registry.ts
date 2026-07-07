@@ -42,6 +42,14 @@ export function registerStyleSample(element: ReactNode) {
     store.samples.push(element);
 }
 
+// export function registerLinks(links: string[]) {
+//     const store = als.getStore();
+//     if (!store) throw new Error("cirro: registerLink() was called outside of a render context");
+//     for (const link of links) {
+//         store.links?.add(link);        
+//     }
+// }
+
 export function checkLink(link: string) {
     const store = als.getStore();
     if (!store) throw new Error("cirro: styleSample() was called outside of a render context");
