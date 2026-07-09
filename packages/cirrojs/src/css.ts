@@ -1,7 +1,7 @@
 // registerRules はランタイム値なので自己参照 import 経由で解決する。
 // これにより exports の browser 条件が効き、クライアントでは async_hooks 非依存の
 // no-op 実装（registry.browser.ts）に差し替わる。型は erase される import type で real から取得する。
-import { registerGlobalRuleSet, registerRules } from "cirrojs/registry";
+import { registerGlobalRuleDesignator, registerRules } from "cirrojs/registry";
 import { type Properties, property_names } from "./properties.ts";
 import type { Registry, RuleNode } from "./registry.common.ts";
 
@@ -58,7 +58,7 @@ export function toStyle(node: RuleNode, opt?: ToStyleOpt): string {
     const designator = `${opt?.name ?? "cirro"}-${hash.toString(16)}`;
 
     if (hasGlobalRule(node)) {
-        registerGlobalRuleSet(designator);
+        registerGlobalRuleDesignator(designator);
     }
 
     const resolved = resolveSelectorsInNode(node, `.${designator}`, false);

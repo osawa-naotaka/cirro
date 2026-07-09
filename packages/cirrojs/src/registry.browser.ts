@@ -17,7 +17,7 @@ export type {
 // クライアントでは no-op。SSR 側（registry.ts）と同一シグネチャを保つこと。
 export function registerRules(_key: string, _nodes: RuleNode[]): void {}
 
-export function registerGlobalRuleSet(_key: string): void {}
+export function registerGlobalRuleDesignator(_key: string): void {}
 
 // クライアントでは no-op。CSS は初期 SSR 描画で収集・生成済みのため、サンプルの描画は不要。
 export function registerStyleSample(_element: ReactNode): void {}

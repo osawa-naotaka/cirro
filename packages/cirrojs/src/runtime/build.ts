@@ -46,7 +46,7 @@ export async function runBuild() {
                 case "html": {
                     const {
                         result: html,
-                        globalRuleSet: ruleSet,
+                        globalRuleDesignators,
                         brokenLinks,
                     } = runWithRegistry(
                         () => {
@@ -62,7 +62,7 @@ export async function runBuild() {
                     }
 
                     htmlPagePaths.push(page.path);
-                    for (const designator of ruleSet) {
+                    for (const designator of globalRuleDesignators) {
                         const pages = globalRulePages.get(designator) ?? [];
                         pages.push(page.path);
                         globalRulePages.set(designator, pages);

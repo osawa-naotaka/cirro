@@ -20,7 +20,7 @@ export type {
 // サンプル要素のキュー（samples）を持つ。
 type Store = {
     registry: Registry;
-    globalRuleSet: Set<string>;
+    globalRuleDesignators: Set<string>;
     samples: ReactNode[];
     links?: Set<string>;
     brokenLinks: BrokenLink[];
@@ -39,10 +39,10 @@ export function registerRules(key: string, nodes: RuleNode[]) {
     store.registry.set(key, nodes);
 }
 
-export function registerGlobalRuleSet(key: string) {
+export function registerGlobalRuleDesignator(key: string) {
     const store = als.getStore();
     if (!store) throw new Error("cirro: css() was called outside of a render context");
-    store.globalRuleSet.add(key);
+    store.globalRuleDesignators.add(key);
 }
 
 // styleSample() のサンプル要素をキューへ積む。ここでは描画しない。
@@ -104,8 +104,8 @@ export function runWithRegistry<T>(
     fn: () => T,
     init?: Registry,
     links?: Set<string>,
-): { result: T; registry: Registry; globalRuleSet: Set<string>; brokenLinks: BrokenLink[] } {
-    const store: Store = { registry: init ?? new Map(), globalRuleSet: new Set(), samples: [], links, brokenLinks: [] };
+): { result: T; registry: Registry; globalRuleDesignators: Set<string>; brokenLinks: BrokenLink[] } {
+    const store: Store = { registry: init ?? new Map(), globalRuleDesignators: new Set(), samples: [], links, brokenLinks: [] };
     const result = als.run(store, fn);
     als.run(store, () => {
         let processed = 0;
@@ -119,5 +119,5 @@ export function runWithRegistry<T>(
             renderToStaticMarkup(store.samples.shift());
         }
     });
-    return { result, registry: store.registry, globalRuleSet: store.globalRuleSet, brokenLinks: store.brokenLinks };
+    return { result, registry: store.registry, globalRuleDesignators: store.globalRuleDesignators, brokenLinks: store.brokenLinks };
 }

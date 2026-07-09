@@ -43,4 +43,4 @@ export type RunWithRegistry<T> = (
     fn: () => T,
     init?: Registry,
     links?: Set<string>,
-) => { result: T; registry: Registry; globalRuleSet: Set<string>; brokenLinks: BrokenLink[] };
+) => { result: T; registry: Registry; globalRuleDesignators: Set<string>; brokenLinks: BrokenLink[] };
