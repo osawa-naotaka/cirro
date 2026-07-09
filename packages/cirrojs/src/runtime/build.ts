@@ -1,13 +1,12 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { dirname, join, resolve } from "node:path";
+import { dirname, join } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
-import { createServerModuleRunner, createServer as createViteServer, build as viteBuild } from "vite";
+import { createServer as createViteServer, build as viteBuild } from "vite";
 import { stringifyCss } from "../css.ts";
-import type { BrokenLink, Registry, RuleNode, RunWithRegistry } from "../registry.common.ts";
+import type { BrokenLink, Registry, RuleNode } from "../registry.common.ts";
 import { expandRoutes } from "../router.ts";
-import { appendClientScriptAndCss } from "./head.ts";
-import { collectSiteLinks } from "./link.ts";
-import { getCirroOptions } from "./options.ts";
+import { collectSiteLinks, reportBrokenLink } from "./link.ts";
+import { appendClientScriptAndCss, setupCirro } from "./setup.ts";
 
 // `cirro build`: クライアントバンドルを作り、各ルートを静的 HTML として書き出す（node:fs のみ、bun 非依存）。
 export async function runBuild() {
@@ -20,38 +19,20 @@ export async function runBuild() {
 
     // 2. routes を評価するための一時 Vite server（ssrLoadModule）。
     const server = await createViteServer({ server: { middlewareMode: true, hmr: false }, appType: "custom" });
-    const runner = createServerModuleRunner(server.environments.ssr);
     try {
         const startTime = Date.now();
-        const config = server.config;
-        const options = getCirroOptions(config);
-        const root = config.root;
-        const outDir = resolve(root, config.build.outDir);
-        const routesPath = resolve(root, options.routes);
+        const { runWithRegistry, contentHandler, outDir, routes } = await setupCirro(server);
+
         const cssUrl = "/assets/styles.css";
+        const scriptSrc = await getScriptSrc(outDir);
 
-        const manifest = JSON.parse(await readFile(join(outDir, ".vite/manifest.json"), "utf-8"));
-        const entry = manifest["virtual:cirro/client"];
-        if (!entry) throw new Error('cirro: manifest entry "virtual:cirro/client" not found');
-        const scriptSrc = `/${entry.file}`;
-
-        const obj = await runner.import(routesPath);
-        if (typeof obj.runWithRegistry !== "function") throw new Error("cirro: you must export runWithRegistry.");
-        if (typeof obj.default !== "object") throw new Error("cirro: you must export routes.");
-        if (!Array.isArray(obj.default.routes)) throw new Error("cirro: you must define routes and export it as `default`");
-        if (obj.default.content && typeof obj.default.content.loader !== "function") throw new Error("you must define a valid content loader function");
-
-        const runWithRegistry = obj.runWithRegistry as RunWithRegistry<string>;
         const rootRegistry: Registry = new Map();
         const htmlPagePaths: string[] = [];
         const globalRulePages = new Map<string, string[]>();
         const brokenLinksWithPagePaths: { path: string; brokenLinks: BrokenLink[] }[] = [];
 
-        let content: unknown;
-        if (obj.default.content) {
-            content = await obj.default.content.loader();
-        }
-        const pages = expandRoutes(obj.default.routes, content);
+        const content = contentHandler && (await contentHandler.loader());
+        const pages = expandRoutes(routes, content);
         const links = collectSiteLinks(
             pages.filter((x) => x.type !== "css"),
             server.config.publicDir,
@@ -87,18 +68,12 @@ export async function runBuild() {
                         globalRulePages.set(designator, pages);
                     }
 
-                    const filePath = join(outDir, page.path);
-                    await mkdir(dirname(filePath), { recursive: true });
-                    await writeFile(filePath, html);
-                    console.log(`wrote ${filePath} (url: ${page.path})`);
+                    await writeToFile(page.path, outDir, html);
                     break;
                 }
                 case "file": {
                     const file = page.render();
-                    const filePath = join(outDir, page.path);
-                    await mkdir(dirname(filePath), { recursive: true });
-                    await writeFile(filePath, file);
-                    console.log(`wrote ${filePath} (url: ${page.path})`);
+                    await writeToFile(page.path, outDir, file);
                     break;
                 }
                 default: {
@@ -108,10 +83,7 @@ export async function runBuild() {
         }
 
         const css = stringifyCss(rootRegistry);
-        const filePath = join(outDir, cssUrl);
-        await mkdir(dirname(filePath), { recursive: true });
-        await writeFile(filePath, css);
-        console.log(`wrote ${filePath} (url: ${cssUrl})`);
+        await writeToFile(cssUrl, outDir, css);
 
         console.log(`global rule set: ${globalRulePages.size} rules`);
 
@@ -127,6 +99,21 @@ export async function runBuild() {
     } finally {
         await server.close();
     }
+}
+
+async function writeToFile(path: string, outDir: string, content: string): Promise<void> {
+    const filePath = join(outDir, path);
+    await mkdir(dirname(filePath), { recursive: true });
+    await writeFile(filePath, content);
+    console.log(`wrote ${filePath} (url: ${path})`);
+}
+
+async function getScriptSrc(outDir: string): Promise<string> {
+    const manifest = JSON.parse(await readFile(join(outDir, ".vite/manifest.json"), "utf-8"));
+    const entry = manifest["virtual:cirro/client"];
+    if (!entry) throw new Error('cirro: manifest entry "virtual:cirro/client" not found');
+    const scriptSrc = `/${entry.file}`;
+    return scriptSrc;
 }
 
 // グローバル規則（$ を含まないセレクタ・文アットルール）が全ページで登録されているかを検査する。
@@ -148,7 +135,8 @@ function reportGlobalRuleMismatch(globalRulePages: Map<string, string[]>, allPag
 
 function reportBrokenLinks(brokenLinksWithPagePaths: { path: string; brokenLinks: BrokenLink[] }[]): void {
     for (const { path, brokenLinks } of brokenLinksWithPagePaths) {
-        console.warn(`Warning: broken links in "${path}": ${brokenLinks.map((l) => `"${l.link}" (${l.type})`).join(", ")}`);
+        console.warn(`Warning: broken links in "${path}":`);
+        reportBrokenLink(brokenLinks);
     }
 }
 
