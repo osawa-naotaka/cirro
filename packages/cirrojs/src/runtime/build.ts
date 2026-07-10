@@ -21,9 +21,8 @@ export async function runBuild() {
     const server = await createViteServer({ server: { middlewareMode: true, hmr: false }, appType: "custom" });
     try {
         const startTime = Date.now();
-        const { runWithRegistry, contentHandler, outDir, routes } = await setupCirro(server);
+        const { runWithRegistry, contentHandler, outDir, routes, cssUrl } = await setupCirro(server);
 
-        const cssUrl = "/assets/styles.css";
         const scriptSrc = await getScriptSrc(outDir);
 
         const rootRegistry: Registry = new Map();
