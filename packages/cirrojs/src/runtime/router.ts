@@ -1,5 +1,5 @@
 import type { ReactElement } from "react";
-import type { AnyRoute } from "./route";
+import type { AnyRoute } from "../lib/route";
 
 export type ResolvedPath =
     | {

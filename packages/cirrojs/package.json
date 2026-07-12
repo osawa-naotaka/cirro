@@ -15,14 +15,14 @@
         "LICENSE"
     ],
     "exports": {
-        ".": "./src/index.ts",
-        "./server": "./src/server.ts",
-        "./vite": "./src/vite.ts",
-        "./bin": "./src/cli.ts",
-        "./layout": "./src/layout.tsx",
+        ".": "./src/lib/index.ts",
+        "./server": "./src/server/server.ts",
+        "./vite": "./src/vite/vite.ts",
+        "./bin": "./src/runtime/cli.ts",
+        "./layout": "./src/layout/layout.tsx",
         "./registry": {
-            "browser": "./src/registry.browser.ts",
-            "default": "./src/registry.ts"
+            "browser": "./src/registry/registry.browser.ts",
+            "default": "./src/registry/registry.ts"
         }
     },
     "bin": {

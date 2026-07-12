@@ -1,8 +1,8 @@
 import { createServer as createHttpServer } from "node:http";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createServer as createViteServer, type ViteDevServer } from "vite";
-import { stringifyCss } from "../css.ts";
-import { expandRoutes } from "../router.ts";
+import { stringifyCss } from "../lib/css.ts";
+import { expandRoutes } from "./router.ts";
 import { contentType } from "./contentType.ts";
 import { collectSiteLinks, reportBrokenLink } from "./link.ts";
 import { appendClientScriptAndCss, setupCirro } from "./setup.ts";

@@ -2,9 +2,9 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createServer as createViteServer, build as viteBuild } from "vite";
-import { stringifyCss } from "../css.ts";
-import type { BrokenLink, Registry, RuleNode } from "../registry.common.ts";
-import { expandRoutes } from "../router.ts";
+import { stringifyCss } from "../lib/css.ts";
+import type { BrokenLink, Registry, RuleNode } from "../registry/registry.common.ts";
+import { expandRoutes } from "./router.ts";
 import { collectSiteLinks, reportBrokenLink } from "./link.ts";
 import { appendClientScriptAndCss, setupCirro } from "./setup.ts";
 

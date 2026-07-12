@@ -1,5 +1,5 @@
-import { runBuild } from "./runtime/build.ts";
-import { runDev } from "./runtime/dev.ts";
+import { runBuild } from "./build.ts";
+import { runDev } from "./dev.ts";
 
 // cli.sh（bin ランチャー）から呼ばれるエントリ。args は実行 runtime のパスを除いた引数列。
 export async function main(args: string[]): Promise<void> {

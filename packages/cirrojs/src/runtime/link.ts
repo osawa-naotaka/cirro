@@ -1,7 +1,7 @@
 import { existsSync, readdirSync } from "node:fs";
 import { basename, dirname, extname, join } from "node:path/posix";
-import type { BrokenLink } from "../registry.common";
-import type { ResolvedPath } from "../router";
+import type { BrokenLink } from "../registry/registry.common";
+import type { ResolvedPath } from "./router";
 
 export function collectLinks(paths: string[], initialLinks?: Set<string>): Set<string> {
     const links = initialLinks ?? new Set<string>();

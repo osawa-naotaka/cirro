@@ -1,4 +1,4 @@
-import type { Properties } from "./properties";
+import type { Properties } from "../lib/properties";
 
 export type Declarations = Partial<Properties>;
 
