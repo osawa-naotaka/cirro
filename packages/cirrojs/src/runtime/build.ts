@@ -4,8 +4,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { createServer as createViteServer, build as viteBuild } from "vite";
 import { stringifyCss } from "../lib/css.ts";
 import type { BrokenLink, Registry, RuleNode } from "../registry/registry.common.ts";
-import { expandRoutes } from "./router.ts";
 import { collectSiteLinks, reportBrokenLink } from "./link.ts";
+import { expandRoutes } from "./router.ts";
 import { appendClientScriptAndCss, setupCirro } from "./setup.ts";
 
 // `cirro build`: クライアントバンドルを作り、各ルートを静的 HTML として書き出す（node:fs のみ、bun 非依存）。

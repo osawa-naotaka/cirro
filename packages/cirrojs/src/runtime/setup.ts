@@ -2,8 +2,8 @@ import { dirname, resolve } from "node:path";
 import { createElement, Fragment, type ReactElement } from "react";
 import { createServerModuleRunner, type ResolvedConfig, type ViteDevServer } from "vite";
 import type { ContentHandler } from "../lib/content.ts";
-import type { RunWithRegistry } from "../registry/registry.common.ts";
 import type { AnyRoute } from "../lib/route.ts";
+import type { RunWithRegistry } from "../registry/registry.common.ts";
 import type { CirroOptions } from "../vite/vite.ts";
 
 export type setupCirroResult = {
