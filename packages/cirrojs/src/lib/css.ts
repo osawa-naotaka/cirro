@@ -13,10 +13,10 @@ export type CssFnOpt = {
 export type CssFn = (properties: Properties, opt?: CssFnOpt, ...children: RuleNode[]) => string;
 export type InjectFn = (injected: () => RuleNode) => RuleNode;
 
-export function genCssFn(arg: InjectFn): CssFn {
+export function genCssFn(injFn: InjectFn = (injected) => injected()): CssFn {
     return (properties: Properties, opt?: CssFnOpt, ...children: RuleNode[]) => {
         const bottom = () => ss(properties, opt, ...children);
-        const node = arg(bottom);
+        const node = injFn(bottom);
         return toStyle(node, { name: opt?.name });
     };
 }
