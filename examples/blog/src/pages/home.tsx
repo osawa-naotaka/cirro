@@ -1,4 +1,4 @@
-import { Image, Link, type PageProps } from "cirrojs";
+import { FaImage, Image, Link, type PageProps } from "cirrojs";
 import { Layout } from "../components/Layout";
 import { PostList } from "../components/PostList";
 import type { content } from "../content";
@@ -43,6 +43,7 @@ export function HomePage(props: PageProps<typeof content>) {
                         Cirro について
                     </Link>
                     <Image from="/assets/image/github-brands-solid-full.svg" alt="GitHub" className={cssMain({ height: "3rem" })} />
+                    <FaImage icon={{ type: "solid", name: "home" }} className={cssMain({ height: "2rem" })} />
                 </Cluster>
             </section>
 
