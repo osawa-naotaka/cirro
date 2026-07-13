@@ -66,6 +66,7 @@
         "format": "biome check --write ./src"
     },
     "dependencies": {
+        "@fortawesome/fontawesome-free": "^7.3.0",
         "hast-util-sanitize": "^5.0.2",
         "mdast-util-from-markdown": "^2.0.3",
         "mdast-util-to-string": "^4.0.0",
