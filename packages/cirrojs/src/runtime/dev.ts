@@ -42,7 +42,7 @@ export async function runDev(port = 5173) {
     process.env.CIRRO_COMMAND = "dev";
 
     const vite = await createViteServer({ server: { middlewareMode: true }, appType: "custom" });
-    const { runWithRegistry, contentHandler, routes, islandsDir, watchDir } = await setupCirro(vite);
+    const { runWithRegistry, contentHandler, routes, islandsDir, watchDir, assetsUrl } = await setupCirro(vite);
 
     let contentPromise: Promise<unknown> | null = null;
 
@@ -71,7 +71,7 @@ export async function runDev(port = 5173) {
             try {
                 contentPromise ??= contentHandler?.loader() || null;
                 const content = await contentPromise;
-                const pages = expandRoutes(routes, content);
+                const pages = expandRoutes(routes, assetsUrl, content);
                 const page = pages.find((p) => candidate.has(p.path));
                 if (page === undefined) {
                     errorResp(".html", `no route found for the requested path: ${rawUrl}`);
@@ -112,6 +112,11 @@ export async function runDev(port = 5173) {
                         break;
                     }
                     case "file": {
+                        const file = page.render();
+                        successResp(page.ext, file);
+                        break;
+                    }
+                    case "asset": {
                         const file = page.render();
                         successResp(page.ext, file);
                         break;

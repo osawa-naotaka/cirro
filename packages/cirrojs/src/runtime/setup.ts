@@ -14,6 +14,7 @@ export type setupCirroResult = {
     islandsDir?: string;
     watchDir: string;
     cssUrl: string;
+    assetsUrl: string;
 };
 
 export async function setupCirro(server: ViteDevServer): Promise<setupCirroResult> {
@@ -25,6 +26,7 @@ export async function setupCirro(server: ViteDevServer): Promise<setupCirroResul
     const cssUrl = options.cssUrl ?? "/assets/styles.css";
     const routesPath = resolve(root, options.routes);
     const islandsDir = options.islands && dirname(resolve(root, options.islands)).replaceAll("\\", "/");
+    const assetsUrl = options.assetsUrl ?? "/assets";
     const watchDir = resolve(root, options.watchDir ?? "./src")
         .replaceAll("\\", "/")
         .replace(/\/+$/, "");
@@ -35,7 +37,16 @@ export async function setupCirro(server: ViteDevServer): Promise<setupCirroResul
     if (!Array.isArray(obj.default.routes)) throw new Error("cirro: you must define routes and export it as `default`");
     if (obj.default.content && typeof obj.default.content.loader !== "function") throw new Error("you must define a valid content loader function");
 
-    return { runWithRegistry: obj.runWithRegistry, contentHandler: obj.default.content, routes: obj.default.routes, outDir, islandsDir, watchDir, cssUrl };
+    return {
+        runWithRegistry: obj.runWithRegistry,
+        contentHandler: obj.default.content,
+        routes: obj.default.routes,
+        outDir,
+        islandsDir,
+        watchDir,
+        cssUrl,
+        assetsUrl,
+    };
 }
 
 // 解決済み Vite config から cirro プラグインのオプションを取り出す。

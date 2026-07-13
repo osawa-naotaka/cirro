@@ -22,7 +22,7 @@ export async function runBuild() {
     const server = await createViteServer({ server: { middlewareMode: true, hmr: false }, appType: "custom" });
     try {
         const startTime = Date.now();
-        const { runWithRegistry, contentHandler, outDir, routes, cssUrl } = await setupCirro(server);
+        const { runWithRegistry, contentHandler, outDir, routes, cssUrl, assetsUrl } = await setupCirro(server);
 
         const scriptSrc = await getScriptSrc(outDir);
 
@@ -33,7 +33,7 @@ export async function runBuild() {
         const brokenImageSrcWithPagePaths: { path: string; brokenImageSrc: BrokenImageSrc[] }[] = [];
 
         const content = contentHandler && (await contentHandler.loader());
-        const pages = expandRoutes(routes, content);
+        const pages = expandRoutes(routes, assetsUrl, content);
         const links = collectSiteLinks(
             pages.filter((x) => x.type !== "css"),
             server.config.publicDir,
@@ -78,6 +78,11 @@ export async function runBuild() {
                     break;
                 }
                 case "file": {
+                    const file = page.render();
+                    await writeToFile(page.path, outDir, file);
+                    break;
+                }
+                case "asset": {
                     const file = page.render();
                     await writeToFile(page.path, outDir, file);
                     break;

@@ -10,7 +10,7 @@ export type { ContentType, PageProps } from "./content.ts";
 export { defineContent } from "./content.ts";
 export type { CssFn, CssFnOpt, InjectFn, SsOpt, ToKeyframesOpt, ToStyleOpt } from "./css.ts";
 export { at, atStatement, genCssFn, ss, toKeyframes, toStyle } from "./css.ts";
-export type { BrandsIcon, BrandsIconName, FaIcon, IconType, SolidIcon, SolidIconName } from "./FaImage.tsx";
+export type { BrandsIcon, BrandsIconName, FaIcon, FaImageProps, IconType, RegularIcon, RegularIconName, SolidIcon, SolidIconName } from "./FaImage.tsx";
 export { FaImage } from "./FaImage.tsx";
 export { Image, type ImageProps } from "./Image.tsx";
 export { Link, type LinkProps } from "./Link.tsx";

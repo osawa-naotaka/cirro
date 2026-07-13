@@ -43,7 +43,7 @@ export function HomePage(props: PageProps<typeof content>) {
                         Cirro について
                     </Link>
                     <Image from="/assets/image/github-brands-solid-full.svg" alt="GitHub" className={cssMain({ height: "3rem" })} />
-                    <FaImage icon={{ type: "solid", name: "home" }} className={cssMain({ height: "2rem" })} />
+                    <FaImage icon={{ type: "solid", name: "house" }} className={cssMain({ height: "2rem" })} />
                 </Cluster>
             </section>
 

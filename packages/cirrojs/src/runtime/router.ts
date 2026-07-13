@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import type { ReactElement } from "react";
 import type { AnyRoute } from "../lib/route";
 
@@ -17,11 +19,17 @@ export type ResolvedPath =
           path: string;
           ext: string;
           render: () => string;
+      }
+    | {
+          type: "asset";
+          path: string;
+          ext: string;
+          render: () => string;
       };
 
 // 全ルートを具体的な URL 一覧へ展開する（build / dev で共有）。
 // 動的ルートは getStaticPaths を path 関数に通して URL を生成するため、正規表現は不要。
-export function expandRoutes<T>(routes: AnyRoute<T>[], content: T): ResolvedPath[] {
+export function expandRoutes<T>(routes: AnyRoute<T>[], _assetsUrl: string, content: T): ResolvedPath[] {
     const pages: ResolvedPath[] = [];
     for (const r of routes) {
         switch (r.type) {
@@ -61,6 +69,21 @@ export function expandRoutes<T>(routes: AnyRoute<T>[], content: T): ResolvedPath
                 });
                 break;
         }
+    }
+
+    // fontawesome assetsUrl
+    for (const t of ["brands", "regular", "solid"]) {
+        pages.push({
+            type: "asset",
+            path: `/fa/${t}.svg`,
+            ext: ".svg",
+            render: () => {
+                const require = createRequire(import.meta.url);
+                const path = require.resolve(`@fortawesome/fontawesome-free/sprites/${t}.svg`);
+                const svg = readFileSync(path, "utf-8");
+                return svg;
+            },
+        });
     }
     return pages;
 }
