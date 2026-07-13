@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { createServer as createViteServer, type ViteDevServer } from "vite";
 import { stringifyCss } from "../lib/css.ts";
 import { contentType } from "./contentType.ts";
+import { reportBrokenImageSrc } from "./image.ts";
 import { collectSiteLinks, reportBrokenLink } from "./link.ts";
 import { expandRoutes } from "./router.ts";
 import { appendClientScriptAndCss, setupCirro } from "./setup.ts";
@@ -84,7 +85,11 @@ export async function runDev(port = 5173) {
                             vite.config.publicDir,
                         );
 
-                        const { result: html, brokenLinks } = runWithRegistry(
+                        const {
+                            result: html,
+                            brokenLinks,
+                            brokenImageSrc,
+                        } = runWithRegistry(
                             () => {
                                 const tree = appendClientScriptAndCss(page.render(), CLIENT_DEV_URL, `${page.path}.css`);
                                 return `<!DOCTYPE html>${renderToStaticMarkup(tree)}`;
@@ -94,6 +99,7 @@ export async function runDev(port = 5173) {
                         );
 
                         reportBrokenLink(brokenLinks);
+                        reportBrokenImageSrc(brokenImageSrc);
 
                         const transformed = await vite.transformIndexHtml(rawUrl, html);
                         successResp(".html", transformed);

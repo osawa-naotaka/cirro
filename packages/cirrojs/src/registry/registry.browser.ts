@@ -1,11 +1,12 @@
 import type { ReactNode } from "react";
-import type { BrokenLink, Registry, RuleNode } from "./registry.common";
+import type { BrokenImageSrc, BrokenLink, Registry, RuleNode } from "./registry.common";
 
 // 型は registry.common.ts に集約したが、公開 API としての所在（cirrojs/registry）は維持する。
 // registry.ts と同一の型を再 export すること。
 export type {
     AtBlockRule,
     AtStatementRule,
+    BrokenImageSrc,
     BrokenLink,
     Declarations,
     Registry,
@@ -24,7 +25,17 @@ export function registerStyleSample(_element: ReactNode): void {}
 
 export function checkLink(_link: string): void {}
 
+export function checkImage(from: string): string | null {
+    return from;
+}
+
 // レンダリングコンテキストの確立はサーバー専用。クライアントから呼ばれた場合は実装ミスなので明示的に失敗させる。
-export function runWithRegistry<T>(_fn: () => T): { result: T; registry: Registry; globalRuleSet: Set<string>; brokenLinks: BrokenLink[] } {
+export function runWithRegistry<T>(_fn: () => T): {
+    result: T;
+    registry: Registry;
+    globalRuleSet: Set<string>;
+    brokenLinks: BrokenLink[];
+    brokenImageSrc: BrokenImageSrc[];
+} {
     throw new Error("cirro: runWithRegistry is server-only and must not be called on the client");
 }

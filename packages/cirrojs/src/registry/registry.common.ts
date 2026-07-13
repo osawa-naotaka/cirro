@@ -39,8 +39,13 @@ export type BrokenLink = {
     link: string;
 };
 
+export type BrokenImageSrc = {
+    type: "not-found" | "unsupported" | "malformed";
+    from: string;
+};
+
 export type RunWithRegistry<T> = (
     fn: () => T,
     init?: Registry,
     links?: Set<string>,
-) => { result: T; registry: Registry; globalRuleDesignators: Set<string>; brokenLinks: BrokenLink[] };
+) => { result: T; registry: Registry; globalRuleDesignators: Set<string>; brokenLinks: BrokenLink[]; brokenImageSrc: BrokenImageSrc[] };

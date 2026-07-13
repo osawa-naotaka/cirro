@@ -3,7 +3,8 @@ import { dirname, join } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createServer as createViteServer, build as viteBuild } from "vite";
 import { stringifyCss } from "../lib/css.ts";
-import type { BrokenLink, Registry, RuleNode } from "../registry/registry.common.ts";
+import type { BrokenImageSrc, BrokenLink, Registry, RuleNode } from "../registry/registry.common.ts";
+import { reportBrokenImageSrc } from "./image.ts";
 import { collectSiteLinks, reportBrokenLink } from "./link.ts";
 import { expandRoutes } from "./router.ts";
 import { appendClientScriptAndCss, setupCirro } from "./setup.ts";
@@ -29,6 +30,7 @@ export async function runBuild() {
         const htmlPagePaths: string[] = [];
         const globalRulePages = new Map<string, string[]>();
         const brokenLinksWithPagePaths: { path: string; brokenLinks: BrokenLink[] }[] = [];
+        const brokenImageSrcWithPagePaths: { path: string; brokenImageSrc: BrokenImageSrc[] }[] = [];
 
         const content = contentHandler && (await contentHandler.loader());
         const pages = expandRoutes(routes, content);
@@ -47,6 +49,7 @@ export async function runBuild() {
                         result: html,
                         globalRuleDesignators,
                         brokenLinks,
+                        brokenImageSrc,
                     } = runWithRegistry(
                         () => {
                             const tree = appendClientScriptAndCss(page.render(), scriptSrc, cssUrl);
@@ -58,6 +61,10 @@ export async function runBuild() {
 
                     if (brokenLinks.length > 0) {
                         brokenLinksWithPagePaths.push({ path: page.path, brokenLinks });
+                    }
+
+                    if (brokenImageSrc.length > 0) {
+                        brokenImageSrcWithPagePaths.push({ path: page.path, brokenImageSrc });
                     }
 
                     htmlPagePaths.push(page.path);
@@ -88,8 +95,16 @@ export async function runBuild() {
 
         reportGlobalRuleMismatch(globalRulePages, htmlPagePaths, rootRegistry);
         reportBrokenLinks(brokenLinksWithPagePaths);
+        reportBrokenImageSrcs(brokenImageSrcWithPagePaths);
+
         if (brokenLinksWithPagePaths.length === 0) {
             console.log("no broken links found");
+        } else {
+            process.exitCode = 1;
+        }
+
+        if (brokenImageSrcWithPagePaths.length === 0) {
+            console.log("no broken image sources found");
         } else {
             process.exitCode = 1;
         }
@@ -136,6 +151,13 @@ function reportBrokenLinks(brokenLinksWithPagePaths: { path: string; brokenLinks
     for (const { path, brokenLinks } of brokenLinksWithPagePaths) {
         console.warn(`Warning: broken links in "${path}":`);
         reportBrokenLink(brokenLinks);
+    }
+}
+
+function reportBrokenImageSrcs(brokenImageSrcWithPagePaths: { path: string; brokenImageSrc: BrokenImageSrc[] }[]): void {
+    for (const { path, brokenImageSrc } of brokenImageSrcWithPagePaths) {
+        console.warn(`Warning: broken image sources in "${path}":`);
+        reportBrokenImageSrc(brokenImageSrc);
     }
 }
 

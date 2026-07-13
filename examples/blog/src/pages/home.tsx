@@ -1,4 +1,4 @@
-import { Link, type PageProps } from "cirrojs";
+import { Image, Link, type PageProps } from "cirrojs";
 import { Layout } from "../components/Layout";
 import { PostList } from "../components/PostList";
 import type { content } from "../content";
@@ -42,6 +42,7 @@ export function HomePage(props: PageProps<typeof content>) {
                     <Link to="/about" className={button({ variant: "outline" })}>
                         Cirro について
                     </Link>
+                    <Image from="/assets/image/github-brands-solid-full.svg" alt="GitHub" className={cssMain({ height: "3rem" })} />
                 </Cluster>
             </section>
 

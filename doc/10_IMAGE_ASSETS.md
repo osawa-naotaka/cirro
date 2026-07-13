@@ -8,6 +8,12 @@
 関連実装（予定）: `packages/cirrojs/src/Image.tsx` / `FaImg.tsx` / `registry.ts` ほか
 （Link と同じ ALS Store のレール）/ `runtime/build.ts` / `runtime/dev.ts`。
 
+**実装フェーズ**（2026-07 決定）: 利用頻度と実装の手間から、① 種別 2（public 照合）のみの
+`<Image>`、② `<FaImg>` の順で実装する。種別 3・4（コピー機構・dev 配信ミドルウェア・realpath
+検証を必要とする部分）は①②の完了後に必要性を再検討する。①の時点でも `from` の prefix 判別は
+3 章の構文どおり実装し、種別 3・4 の形式は malformed とは区別して「未対応」として報告する
+（将来の有効化を前方互換にするため）。
+
 ---
 
 ## 1. 問題設定
