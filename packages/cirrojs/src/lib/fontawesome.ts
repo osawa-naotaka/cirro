@@ -2191,7 +2191,7 @@ export const regular = {
     keyboard: 576,
 } as const;
 
-export const allowed_icon_names = /* @__PURE__*/ {
+export const allowed_icon_names = {
     brands: new Set<string>(Object.keys(brands)),
     solid: new Set<string>(Object.keys(solid)),
     regular: new Set<string>(Object.keys(regular)),

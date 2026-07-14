@@ -12,7 +12,7 @@ export function bundleIcon(registry: Registry, outDir: string): void {
         const path = require.resolve(`@fortawesome/fontawesome-free/sprites/${t}.svg`);
         const url = join(faDir, `${t}.svg`);
         const filePath = join(outDir, url);
-        
+
         mkdirSync(dirname(filePath), { recursive: true });
         copyFileSync(path, filePath);
         console.log(`wrote ${filePath} (url: ${url})`);
