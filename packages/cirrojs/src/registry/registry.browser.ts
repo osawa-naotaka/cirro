@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import type { BrokenImageSrc, BrokenLink, Registry, RuleNode } from "./registry.common";
+import type { FaIcon } from "../lib";
 
 // 型は registry.common.ts に集約したが、公開 API としての所在（cirrojs/registry）は維持する。
 // registry.ts と同一の型を再 export すること。
@@ -28,6 +29,8 @@ export function checkLink(_link: string): void {}
 export function checkImage(from: string): string | null {
     return from;
 }
+
+export function registerIcon(_icon: FaIcon): void {}
 
 // レンダリングコンテキストの確立はサーバー専用。クライアントから呼ばれた場合は実装ミスなので明示的に失敗させる。
 export function runWithRegistry<T>(_fn: () => T): {

@@ -40,7 +40,7 @@ export type BrokenLink = {
 };
 
 export type BrokenImageSrc = {
-    type: "not-found" | "unsupported" | "malformed";
+    type: "not-found" | "unsupported" | "malformed" | "not-exist";
     from: string;
 };
 

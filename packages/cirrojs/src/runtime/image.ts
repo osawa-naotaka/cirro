@@ -12,6 +12,9 @@ export function reportBrokenImageSrc(brokenImageSrc: BrokenImageSrc[]) {
             case "not-found":
                 console.log(`Image is not found: "${link.from}".`);
                 break;
+            case "not-exist":
+                console.log(`Icon is not found: "${link.from}".`);
+                break;
         }
     }
 }
