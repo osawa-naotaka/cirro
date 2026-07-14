@@ -13,6 +13,24 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [0.0.28] - 2026-07-14
+
+### Added
+- `Image` component and `ImageProps` type, exported from the package entry point. `Image` renders an `<img>` element whose `src` is the `from` prop as written (`src` itself is excluded from the props type, so `from` is the only way to set the source), and passes through every other standard img attribute. During server rendering the component validates `from`: a root-relative path (starting with `/`) must match a file under Vite's `publicDir` — the value is percent-decoded and query strings and fragments are ignored for matching. The source forms `:/path` (site-relative) and `package:/path` (package-relative) are reserved for future support and reported as unsupported; everything else (external URLs, relative paths, invalid percent-encoding) is reported as malformed. When validation fails, the component renders the `<img>` element without a `src` attribute. The dev server logs violations to the console when rendering a page; `cirro build` reports all violations together with the page they appear on and exits with a non-zero code when any are found. In the client (island) bundle the check resolves to a pass-through.
+- `checkImage(from)`, exported from `cirrojs/registry`. It is the validation entry called by `<Image>` during server rendering: it returns the value to emit as `src`, or `null` when the source is invalid, collecting violations into the render result's `brokenImageSrc`. The browser build returns `from` unchanged.
+- `BrokenImageSrc` type, exported from `cirrojs/registry`. It describes one invalid image source or icon collected during a render: `{ type: "not-found" | "unsupported" | "malformed" | "not-exist"; from: string }`.
+- `FaImage` component and `FaImageProps` type, exported from the package entry point, for using Font Awesome Free icons without installing Font Awesome (the package now depends on `@fortawesome/fontawesome-free`, pinned exactly to 7.3.0). `FaImage` renders an inline `<svg>` element that references a symbol of the bundled Font Awesome sprite with `<use href="/fa/{style}.svg#{name}">`. The markup is identical on server and client, so the component can be used inside islands and hydrates cleanly. The `icon` prop is a discriminated union `{ type: "brands" | "solid" | "regular"; name: ... }` whose `name` is a literal union generated per style from the sprite contents, so a reference to a nonexistent icon fails to compile; at render time the icon is also validated against the generated metadata and reported as `not-exist` when unknown. `aria-hidden="true"` and `height="1em"` are emitted as defaults that props can override, and every standard svg attribute passes through. Icon color follows the surrounding text color (the sprite paths carry `fill="currentColor"`). The dev server serves the three sprite files at `/fa/{style}.svg`; `cirro build` copies the sprites of the styles actually used during rendering to `dist/fa/`.
+- `FaIcon`, `IconType`, `BrandsIcon`, `BrandsIconName`, `SolidIcon`, `SolidIconName`, `RegularIcon`, and `RegularIconName` types, exported from the package entry point.
+- `registerIcon(icon)`, exported from `cirrojs/registry`. It is the validation and collection entry called by `<FaImage>` during server rendering. The browser build resolves it to a no-op.
+- `CirroOptions.cssUrl`, an optional output URL for the merged stylesheet written by `cirro build` (default `/assets/styles.css`).
+
+### Changed
+- **Breaking**: the `Registry` type changed from `Map<string, RuleNode[]>` to `{ style: Map<string, RuleNode[]>; icon: Set<string> }`. Style rules are collected into `style`, and the icons used by `<FaImage>` are collected into `icon`.
+- **Breaking**: the `globalRuleSet` field of `runWithRegistry`'s result was renamed to `globalRuleDesignators`.
+- `runWithRegistry`'s result gains `brokenImageSrc: BrokenImageSrc[]`, the invalid image sources and icons collected during the render. The `RunWithRegistry` type includes the new field.
+- The attribute suffix matcher (`$=`) is now allowed in selectors, in top-level and nested selectors alike: the `$` of `$=` is treated as part of the operator and is not replaced with the generated class name. Selectors containing `$=` were previously rejected at registration time.
+- `genCssFn`'s `InjectFn` argument is now optional. When it is omitted, the generated style node is registered without any wrapping at-rule.
+
 ## [0.0.27] - 2026-07-07
 
 ### Added
@@ -241,7 +259,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## 0.0.1 - 2026-06-15
 - initial release
 
-[Unreleased]: https://github.com/osawa-naotaka/cirro/compare/v0.0.27...HEAD
+[Unreleased]: https://github.com/osawa-naotaka/cirro/compare/v0.0.28...HEAD
+[0.0.28]: https://github.com/osawa-naotaka/cirro/compare/v0.0.27...v0.0.28
 [0.0.27]: https://github.com/osawa-naotaka/cirro/compare/v0.0.26...v0.0.27
 [0.0.26]: https://github.com/osawa-naotaka/cirro/compare/v0.0.25...v0.0.26
 [0.0.25]: https://github.com/osawa-naotaka/cirro/compare/v0.0.24...v0.0.25
