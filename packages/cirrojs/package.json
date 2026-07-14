@@ -62,11 +62,12 @@
     },
     "scripts": {
         "build": "tsdown",
+        "gen": "node script/genFontAwesomeDefs.ts && biome check --write ./src",
         "typecheck": "tsc -p tsconfig.json --noEmit",
-        "format": "biome check --write ./src"
+        "format": "biome check --write ./src ./script"
     },
     "dependencies": {
-        "@fortawesome/fontawesome-free": "^7.3.0",
+        "@fortawesome/fontawesome-free": "7.3.0",
         "hast-util-sanitize": "^5.0.2",
         "mdast-util-from-markdown": "^2.0.3",
         "mdast-util-to-string": "^4.0.0",

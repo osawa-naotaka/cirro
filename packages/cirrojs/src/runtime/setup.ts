@@ -14,7 +14,6 @@ export type setupCirroResult = {
     islandsDir?: string;
     watchDir: string;
     cssUrl: string;
-    assetsUrl: string;
 };
 
 export async function setupCirro(server: ViteDevServer): Promise<setupCirroResult> {
@@ -26,7 +25,6 @@ export async function setupCirro(server: ViteDevServer): Promise<setupCirroResul
     const cssUrl = options.cssUrl ?? "/assets/styles.css";
     const routesPath = resolve(root, options.routes);
     const islandsDir = options.islands && dirname(resolve(root, options.islands)).replaceAll("\\", "/");
-    const assetsUrl = options.assetsUrl ?? "/assets";
     const watchDir = resolve(root, options.watchDir ?? "./src")
         .replaceAll("\\", "/")
         .replace(/\/+$/, "");
@@ -45,7 +43,6 @@ export async function setupCirro(server: ViteDevServer): Promise<setupCirroResul
         islandsDir,
         watchDir,
         cssUrl,
-        assetsUrl,
     };
 }
 

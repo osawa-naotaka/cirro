@@ -43,7 +43,7 @@ export async function runDev(port = 5173) {
     process.env.CIRRO_COMMAND = "dev";
 
     const vite = await createViteServer({ server: { middlewareMode: true }, appType: "custom" });
-    const { runWithRegistry, contentHandler, routes, islandsDir, watchDir, assetsUrl } = await setupCirro(vite);
+    const { runWithRegistry, contentHandler, routes, islandsDir, watchDir } = await setupCirro(vite);
 
     let contentPromise: Promise<unknown> | null = null;
 
@@ -72,7 +72,7 @@ export async function runDev(port = 5173) {
             try {
                 contentPromise ??= contentHandler?.loader() || null;
                 const content = await contentPromise;
-                const pages = expandRoutes(routes, assetsUrl, content);
+                const pages = expandRoutes(routes, content);
                 const page = pages.find((p) => candidate.has(p.path));
                 if (page === undefined) {
                     errorResp(".html", `no route found for the requested path: ${rawUrl}`);
@@ -82,7 +82,7 @@ export async function runDev(port = 5173) {
                 switch (page.type) {
                     case "html": {
                         const links = collectSiteLinks(
-                            pages.filter((p) => p.type !== "css"),
+                            pages.filter((p) => p.type !== "css" && p.type !== "fontawesome"),
                             vite.config.publicDir,
                         );
 

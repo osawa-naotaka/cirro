@@ -5,7 +5,6 @@ export type CirroOptions = {
     routes: string;
     islands?: string;
     cssUrl?: string;
-    assetsUrl?: string;
     // dev サーバーが full-reload の対象として監視するディレクトリ（root からの相対パス）。
     // 既定は "./src"。このディレクトリ配下（islands を除く）の変更で full-reload する。
     watchDir?: string;

@@ -135,7 +135,7 @@ export function checkImage(from: string): string | null {
 
 export function registerIcon(icon: FaIcon) {
     const store = als.getStore();
-    if (!store) throw new Error("cirro: checkImage() was called outside of a render context");
+    if (!store) throw new Error("cirro: registerIcon() was called outside of a render context");
 
     const iconId = `${icon.type}/${icon.name}`;
     const icons = allowed_icon_names[icon.type];
