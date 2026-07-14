@@ -1,9 +1,9 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import type { ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import type { BrokenImageSrc, BrokenLink, Registry, RuleNode } from "./registry.common";
 import type { FaIcon } from "../lib/fontawesome.ts";
 import { allowed_icon_names } from "../lib/fontawesome.ts";
+import { type BrokenImageSrc, type BrokenLink, createRegistry, type Registry, type RuleNode } from "./registry.common.ts";
 
 // 型は registry.common.ts に集約したが、公開 API としての所在（cirrojs/registry）は維持する。
 // registry.browser.ts と同一の型を再 export すること。
@@ -26,7 +26,6 @@ type Store = {
     globalRuleDesignators: Set<string>;
     samples: ReactNode[];
     links?: Set<string>;
-    icons: Set<string>;
     brokenLinks: BrokenLink[];
     brokenImageSrc: BrokenImageSrc[];
 };
@@ -41,7 +40,7 @@ const als = new AsyncLocalStorage<Store>();
 export function registerRules(key: string, nodes: RuleNode[]) {
     const store = als.getStore();
     if (!store) throw new Error("cirro: css() was called outside of a render context");
-    store.registry.set(key, nodes);
+    store.registry.style.set(key, nodes);
 }
 
 export function registerGlobalRuleDesignator(key: string) {
@@ -150,7 +149,7 @@ export function registerIcon(icon: FaIcon) {
         return;
     }
 
-    store.icons.add(`${icon.type}/${icon.name}`);
+    store.registry.icon.add(`${icon.type}/${icon.name}`);
 }
 
 // 1 レンダリングで処理するサンプル数の上限。コンポーネントが自分自身を（直接・間接に）
@@ -167,7 +166,14 @@ export function runWithRegistry<T>(
     init?: Registry,
     links?: Set<string>,
 ): { result: T; registry: Registry; globalRuleDesignators: Set<string>; brokenLinks: BrokenLink[]; brokenImageSrc: BrokenImageSrc[] } {
-    const store: Store = { registry: init ?? new Map(), globalRuleDesignators: new Set(), samples: [], links, brokenLinks: [], brokenImageSrc: [], icons: new Set() };
+    const store: Store = {
+        registry: init ?? createRegistry(),
+        globalRuleDesignators: new Set(),
+        samples: [],
+        links,
+        brokenLinks: [],
+        brokenImageSrc: [],
+    };
     const result = als.run(store, fn);
     als.run(store, () => {
         let processed = 0;

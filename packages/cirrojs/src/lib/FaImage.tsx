@@ -1,6 +1,6 @@
-import type { ComponentPropsWithoutRef, ReactNode } from "react";
 import { registerIcon } from "cirrojs/registry";
-import { brands, regular, solid, type FaIcon, faDir } from "./fontawesome";
+import type { ComponentPropsWithoutRef, ReactNode } from "react";
+import { brands, type FaIcon, faDir, regular, solid } from "./fontawesome";
 
 export type FaImageProps = ComponentPropsWithoutRef<"svg"> & {
     icon: FaIcon;

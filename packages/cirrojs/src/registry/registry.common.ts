@@ -32,7 +32,10 @@ export type RuleNode = StyleRule | AtBlockRule | AtStatementRule;
 
 // キーは designator（クラス名 / @keyframes 名 / 文のハッシュ）。同一キーの再登録は
 // 上書きになるため、決定的ハッシュにより同一スタイルの重複出力が自然に排除される。
-export type Registry = Map<string, RuleNode[]>;
+export type Registry = {
+    style: Map<string, RuleNode[]>;
+    icon: Set<string>;
+};
 
 export type BrokenLink = {
     type: "not-found" | "malformed";
@@ -49,3 +52,10 @@ export type RunWithRegistry<T> = (
     init?: Registry,
     links?: Set<string>,
 ) => { result: T; registry: Registry; globalRuleDesignators: Set<string>; brokenLinks: BrokenLink[]; brokenImageSrc: BrokenImageSrc[] };
+
+export function createRegistry(): Registry {
+    return {
+        style: new Map(),
+        icon: new Set(),
+    };
+}

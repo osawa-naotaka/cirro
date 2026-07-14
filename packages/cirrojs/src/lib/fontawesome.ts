@@ -1,4 +1,3 @@
-
 export const faDir = "/fa";
 
 export type IconType = "brands" | "solid";
@@ -2191,7 +2190,6 @@ export const regular = {
     "hard-drive": 448,
     keyboard: 576,
 } as const;
-
 
 export const allowed_icon_names = /* @__PURE__*/ {
     brands: new Set<string>(Object.keys(brands)),

@@ -1,8 +1,8 @@
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import type { ReactElement } from "react";
-import type { AnyRoute } from "../lib/route";
 import { faDir } from "../lib/fontawesome.ts";
+import type { AnyRoute } from "../lib/route";
 
 export type ResolvedPath =
     | {
@@ -22,7 +22,7 @@ export type ResolvedPath =
           render: () => string;
       }
     | {
-          type: "asset";
+          type: "fontawesome";
           path: string;
           ext: string;
           render: () => string;
@@ -75,7 +75,7 @@ export function expandRoutes<T>(routes: AnyRoute<T>[], _assetsUrl: string, conte
     // fontawesome assetsUrl
     for (const t of ["brands", "regular", "solid"]) {
         pages.push({
-            type: "asset",
+            type: "fontawesome",
             path: `${faDir}/${t}.svg`,
             ext: ".svg",
             render: () => {

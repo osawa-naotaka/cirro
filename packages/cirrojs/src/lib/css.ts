@@ -147,7 +147,7 @@ export function stringifyCss(registry: Registry): string {
     // 文アットルールはプリアンブル直後にまとめる（@layer の順序宣言などが規則より先に来るように）。
     let statements = "";
     let rules = "";
-    for (const nodes of registry.values()) {
+    for (const nodes of registry.style.values()) {
         for (const node of nodes) {
             if (node.type === "at-statement") {
                 validateAtPrelude(node.statement);

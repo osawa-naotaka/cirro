@@ -2,6 +2,7 @@ import { createServer as createHttpServer } from "node:http";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createServer as createViteServer, type ViteDevServer } from "vite";
 import { stringifyCss } from "../lib/css.ts";
+import { createRegistry } from "../registry/registry.common.ts";
 import { contentType } from "./contentType.ts";
 import { reportBrokenImageSrc } from "./image.ts";
 import { collectSiteLinks, reportBrokenLink } from "./link.ts";
@@ -94,7 +95,7 @@ export async function runDev(port = 5173) {
                                 const tree = appendClientScriptAndCss(page.render(), CLIENT_DEV_URL, `${page.path}.css`);
                                 return `<!DOCTYPE html>${renderToStaticMarkup(tree)}`;
                             },
-                            new Map(),
+                            createRegistry(),
                             links,
                         );
 
@@ -116,7 +117,7 @@ export async function runDev(port = 5173) {
                         successResp(page.ext, file);
                         break;
                     }
-                    case "asset": {
+                    case "fontawesome": {
                         const file = page.render();
                         successResp(page.ext, file);
                         break;

@@ -3,7 +3,8 @@ import { dirname, join } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createServer as createViteServer, build as viteBuild } from "vite";
 import { stringifyCss } from "../lib/css.ts";
-import type { BrokenImageSrc, BrokenLink, Registry, RuleNode } from "../registry/registry.common.ts";
+import { type BrokenImageSrc, type BrokenLink, createRegistry, type Registry, type RuleNode } from "../registry/registry.common.ts";
+import { bundleIcon } from "./icon.ts";
 import { reportBrokenImageSrc } from "./image.ts";
 import { collectSiteLinks, reportBrokenLink } from "./link.ts";
 import { expandRoutes } from "./router.ts";
@@ -26,7 +27,7 @@ export async function runBuild() {
 
         const scriptSrc = await getScriptSrc(outDir);
 
-        const rootRegistry: Registry = new Map();
+        const rootRegistry: Registry = createRegistry();
         const htmlPagePaths: string[] = [];
         const globalRulePages = new Map<string, string[]>();
         const brokenLinksWithPagePaths: { path: string; brokenLinks: BrokenLink[] }[] = [];
@@ -82,9 +83,7 @@ export async function runBuild() {
                     await writeToFile(page.path, outDir, file);
                     break;
                 }
-                case "asset": {
-                    const file = page.render();
-                    await writeToFile(page.path, outDir, file);
+                case "fontawesome": {
                     break;
                 }
                 default: {
@@ -95,6 +94,8 @@ export async function runBuild() {
 
         const css = stringifyCss(rootRegistry);
         await writeToFile(cssUrl, outDir, css);
+
+        bundleIcon(rootRegistry, outDir);
 
         console.log(`global rule set: ${globalRulePages.size} rules`);
 
@@ -143,7 +144,7 @@ function reportGlobalRuleMismatch(globalRulePages: Map<string, string[]>, allPag
         if (pages.length === allPages.length) continue;
         const registered = new Set(pages);
         const missing = allPages.filter((p) => !registered.has(p));
-        const rules = describeRuleNodes(registry.get(designator) ?? [])
+        const rules = describeRuleNodes(registry.style.get(designator) ?? [])
             .map((s) => `"${s}"`)
             .join(", ");
         // 少ない側のページ一覧を出す（原因ページを特定しやすくするため）。

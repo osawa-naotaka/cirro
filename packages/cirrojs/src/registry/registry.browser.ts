@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
-import type { BrokenImageSrc, BrokenLink, Registry, RuleNode } from "./registry.common";
 import type { FaIcon } from "../lib";
+import type { BrokenImageSrc, BrokenLink, Registry, RuleNode } from "./registry.common";
 
 // 型は registry.common.ts に集約したが、公開 API としての所在（cirrojs/registry）は維持する。
 // registry.ts と同一の型を再 export すること。
