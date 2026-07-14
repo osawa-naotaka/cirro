@@ -23,7 +23,8 @@ export async function runBuild() {
     const server = await createViteServer({ server: { middlewareMode: true, hmr: false }, appType: "custom" });
     try {
         const startTime = Date.now();
-        const { runWithRegistry, contentHandler, outDir, routes, cssUrl } = await setupCirro(server);
+        const { loadRoutesModule, outDir, cssUrl } = setupCirro(server);
+        const { runWithRegistry, contentHandler, routes } = await loadRoutesModule();
 
         const scriptSrc = await getScriptSrc(outDir);
 

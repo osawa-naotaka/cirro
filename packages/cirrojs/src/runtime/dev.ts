@@ -43,7 +43,7 @@ export async function runDev(port = 5173) {
     process.env.CIRRO_COMMAND = "dev";
 
     const vite = await createViteServer({ server: { middlewareMode: true }, appType: "custom" });
-    const { runWithRegistry, contentHandler, routes, islandsDir, watchDir } = await setupCirro(vite);
+    const { loadRoutesModule, islandsDir, watchDir } = setupCirro(vite);
 
     let contentPromise: Promise<unknown> | null = null;
 
@@ -70,6 +70,11 @@ export async function runDev(port = 5173) {
             const candidate = listupCandidate(rawUrl);
 
             try {
+                // routes は Module Runner で毎リクエスト読み直す。ファイル変更時に onWatchEvent が
+                // モジュールグラフを無効化しているので、変更後の最初のリクエストで再評価され、
+                // 最新のページ定義で描画される（無効化されていなければキャッシュが返るだけ）。
+                const { runWithRegistry, contentHandler, routes } = await loadRoutesModule();
+
                 contentPromise ??= contentHandler?.loader() || null;
                 const content = await contentPromise;
                 const pages = expandRoutes(routes, content);

@@ -13,6 +13,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [0.0.29] - 2026-07-15
+
+### Fixed
+- The dev server rendered stale pages after a file change: the full reload fired, but the routes module evaluated at startup was kept and reused, so edits to pages, route definitions, and Markdown content never appeared until the dev server was restarted (regression in 0.0.28). The routes module is now re-imported through the module runner on every request, so the first request after an invalidation renders with the latest sources.
+
 ## [0.0.28] - 2026-07-14
 
 ### Added
@@ -259,7 +264,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## 0.0.1 - 2026-06-15
 - initial release
 
-[Unreleased]: https://github.com/osawa-naotaka/cirro/compare/v0.0.28...HEAD
+[Unreleased]: https://github.com/osawa-naotaka/cirro/compare/v0.0.29...HEAD
+[0.0.29]: https://github.com/osawa-naotaka/cirro/compare/v0.0.28...v0.0.29
 [0.0.28]: https://github.com/osawa-naotaka/cirro/compare/v0.0.27...v0.0.28
 [0.0.27]: https://github.com/osawa-naotaka/cirro/compare/v0.0.26...v0.0.27
 [0.0.26]: https://github.com/osawa-naotaka/cirro/compare/v0.0.25...v0.0.26

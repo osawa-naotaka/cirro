@@ -6,17 +6,27 @@ import type { AnyRoute } from "../lib/route.ts";
 import type { RunWithRegistry } from "../registry/registry.common.ts";
 import type { CirroOptions } from "../vite/vite.ts";
 
-export type setupCirroResult = {
+// routes モジュール（ユーザーの routes 定義ファイル）を Module Runner で評価した結果。
+export type CirroRoutesModule = {
     runWithRegistry: RunWithRegistry<string>;
-    outDir: string;
     contentHandler?: ContentHandler<unknown>;
     routes: AnyRoute<unknown>[];
+};
+
+export type setupCirroResult = {
+    loadRoutesModule: () => Promise<CirroRoutesModule>;
+    outDir: string;
     islandsDir?: string;
     watchDir: string;
     cssUrl: string;
 };
 
-export async function setupCirro(server: ViteDevServer): Promise<setupCirroResult> {
+// config 由来の静的情報を解決し、routes モジュールのローダーを返す。
+// routes の評価は loadRoutesModule に遅延させる。dev サーバーはファイル変更時にモジュールグラフを
+// 無効化するため、リクエストごとに loadRoutesModule を呼び直すことで最新の routes を得る
+// （起動時に一度だけ評価すると、full-reload 後も古いページを描画し続けてしまう）。
+// Module Runner は評価結果をキャッシュするので、無効化されていなければ再評価は起きない。
+export function setupCirro(server: ViteDevServer): setupCirroResult {
     const runner = createServerModuleRunner(server.environments.ssr);
     const config = server.config;
     const options = getCirroOptions(config);
@@ -29,16 +39,22 @@ export async function setupCirro(server: ViteDevServer): Promise<setupCirroResul
         .replaceAll("\\", "/")
         .replace(/\/+$/, "");
 
-    const obj = await runner.import(routesPath);
-    if (typeof obj.runWithRegistry !== "function") throw new Error("cirro: you must export runWithRegistry.");
-    if (typeof obj.default !== "object") throw new Error("cirro: you must export routes.");
-    if (!Array.isArray(obj.default.routes)) throw new Error("cirro: you must define routes and export it as `default`");
-    if (obj.default.content && typeof obj.default.content.loader !== "function") throw new Error("you must define a valid content loader function");
+    const loadRoutesModule = async (): Promise<CirroRoutesModule> => {
+        const obj = await runner.import(routesPath);
+        if (typeof obj.runWithRegistry !== "function") throw new Error("cirro: you must export runWithRegistry.");
+        if (typeof obj.default !== "object") throw new Error("cirro: you must export routes.");
+        if (!Array.isArray(obj.default.routes)) throw new Error("cirro: you must define routes and export it as `default`");
+        if (obj.default.content && typeof obj.default.content.loader !== "function") throw new Error("you must define a valid content loader function");
+
+        return {
+            runWithRegistry: obj.runWithRegistry,
+            contentHandler: obj.default.content,
+            routes: obj.default.routes,
+        };
+    };
 
     return {
-        runWithRegistry: obj.runWithRegistry,
-        contentHandler: obj.default.content,
-        routes: obj.default.routes,
+        loadRoutesModule,
         outDir,
         islandsDir,
         watchDir,
