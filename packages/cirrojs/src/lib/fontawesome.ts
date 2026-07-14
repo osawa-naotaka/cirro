@@ -1,4 +1,6 @@
 
+export const faDir = "/fa";
+
 export type IconType = "brands" | "solid";
 
 export type BrandsIconName = keyof typeof brands;
