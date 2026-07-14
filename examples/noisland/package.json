@@ -1,5 +1,5 @@
 {
-    "name": "@cirro-examples/basic",
+    "name": "@cirro-examples/noisland",
     "version": "0.0.0",
     "private": true,
     "type": "module",
@@ -16,13 +16,11 @@
         "react-dom": "19.2.7"
     },
     "devDependencies": {
-        "@biomejs/biome": "2.5.0",
-        "@cloudflare/vite-plugin": "1.40.2",
-        "@types/bun": "1.3.14",
+        "@biomejs/biome": "2.5.3",
         "@types/react": "19.2.17",
         "@types/react-dom": "19.2.3",
-        "@vitejs/plugin-react": "6.0.2",
-        "typescript": "6.0.3",
-        "vite": "8.0.16"
+        "@vitejs/plugin-react": "6.0.3",
+        "typescript": "7.0.2",
+        "vite": "8.1.4"
     }
 }

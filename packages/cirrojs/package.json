@@ -1,6 +1,6 @@
 {
     "name": "cirrojs",
-    "version": "0.0.27",
+    "version": "0.0.28",
     "description": "React islands SSG with strict CSP (no unsafe-inline). Vite-based, MPA-first.",
     "license": "MIT",
     "type": "module",
@@ -15,14 +15,14 @@
         "LICENSE"
     ],
     "exports": {
-        ".": "./src/index.ts",
-        "./server": "./src/server.ts",
-        "./vite": "./src/vite.ts",
-        "./bin": "./src/cli.ts",
-        "./layout": "./src/layout.tsx",
+        ".": "./src/lib/index.ts",
+        "./server": "./src/server/server.ts",
+        "./vite": "./src/vite/vite.ts",
+        "./bin": "./src/runtime/cli.ts",
+        "./layout": "./src/layout/layout.tsx",
         "./registry": {
-            "browser": "./src/registry.browser.ts",
-            "default": "./src/registry.ts"
+            "browser": "./src/registry/registry.browser.ts",
+            "default": "./src/registry/registry.ts"
         }
     },
     "bin": {
@@ -62,10 +62,12 @@
     },
     "scripts": {
         "build": "tsdown",
+        "gen": "node script/genFontAwesomeDefs.ts && biome check --write ./src",
         "typecheck": "tsc -p tsconfig.json --noEmit",
-        "format": "biome check --write ./src"
+        "format": "biome check --write ./src ./script"
     },
     "dependencies": {
+        "@fortawesome/fontawesome-free": "7.3.0",
         "hast-util-sanitize": "^5.0.2",
         "mdast-util-from-markdown": "^2.0.3",
         "mdast-util-to-string": "^4.0.0",
@@ -84,12 +86,12 @@
         "vite": "^8.0.0"
     },
     "devDependencies": {
-        "@biomejs/biome": "2.5.0",
-        "@types/node": "25.9.3",
+        "@biomejs/biome": "2.5.3",
+        "@types/node": "26.1.1",
         "@types/react": "19.2.17",
         "@types/react-dom": "19.2.3",
-        "tsdown": "^0.22.2",
-        "typescript": "6.0.3",
-        "vite": "8.0.16"
+        "tsdown": "^0.22.4",
+        "typescript": "^7.0.2",
+        "vite": "^8.1.4"
     }
 }

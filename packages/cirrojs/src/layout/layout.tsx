@@ -1,6 +1,6 @@
 import type { ComponentPropsWithoutRef, ReactNode } from "react";
-import { at, atStatement, type CssFn, genCssFn, ss, toStyle } from "./css.ts";
-import type { Properties } from "./properties.ts";
+import { at, atStatement, type CssFn, genCssFn, ss, toStyle } from "../lib/css.ts";
+import type { Properties } from "../lib/properties.ts";
 
 // Every Layout（every-layout.dev）のレイアウトプリミティブを「意図で名付けた型付き関数」として提供する。
 // 各関数は呼び出すたびに css() を実行し、決定的なクラス名（の束）を返す（recipe と同じ形）。

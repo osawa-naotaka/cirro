@@ -1,13 +1,16 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import type { ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import type { BrokenLink, Registry, RuleNode } from "./registry.common";
+import type { FaIcon } from "../lib/fontawesome.ts";
+import { allowed_icon_names } from "../lib/fontawesome.ts";
+import { type BrokenImageSrc, type BrokenLink, createRegistry, type Registry, type RuleNode } from "./registry.common.ts";
 
 // 型は registry.common.ts に集約したが、公開 API としての所在（cirrojs/registry）は維持する。
 // registry.browser.ts と同一の型を再 export すること。
 export type {
     AtBlockRule,
     AtStatementRule,
+    BrokenImageSrc,
     BrokenLink,
     Declarations,
     Registry,
@@ -20,10 +23,11 @@ export type {
 // サンプル要素のキュー（samples）を持つ。
 type Store = {
     registry: Registry;
-    globalRuleSet: Set<string>;
+    globalRuleDesignators: Set<string>;
     samples: ReactNode[];
     links?: Set<string>;
     brokenLinks: BrokenLink[];
+    brokenImageSrc: BrokenImageSrc[];
 };
 
 // レンダリング 1 回ごとに専用のストアを割り当て、AsyncLocalStorage で暗黙に引き継ぐ。
@@ -36,13 +40,13 @@ const als = new AsyncLocalStorage<Store>();
 export function registerRules(key: string, nodes: RuleNode[]) {
     const store = als.getStore();
     if (!store) throw new Error("cirro: css() was called outside of a render context");
-    store.registry.set(key, nodes);
+    store.registry.style.set(key, nodes);
 }
 
-export function registerGlobalRuleSet(key: string) {
+export function registerGlobalRuleDesignator(key: string) {
     const store = als.getStore();
     if (!store) throw new Error("cirro: css() was called outside of a render context");
-    store.globalRuleSet.add(key);
+    store.globalRuleDesignators.add(key);
 }
 
 // styleSample() のサンプル要素をキューへ積む。ここでは描画しない。
@@ -91,6 +95,63 @@ export function checkLink(link: string) {
     }
 }
 
+export function checkImage(from: string): string | null {
+    const store = als.getStore();
+    if (!store) throw new Error("cirro: checkImage() was called outside of a render context");
+
+    try {
+        const decodedFrom = decodeURIComponent(from);
+        const normalizedFrom = decodedFrom.replace(/#.*$/, "").replace(/\?.*$/, "");
+
+        if (decodedFrom.startsWith("/")) {
+            if (store.links && !store.links.has(normalizedFrom)) {
+                store.brokenImageSrc.push({ type: "not-found", from });
+                return null;
+            }
+            return from;
+        }
+
+        if (decodedFrom.startsWith(":")) {
+            store.brokenImageSrc.push({ type: "unsupported", from });
+            return null;
+        }
+
+        if (/^(@[a-z0-9~][\w.~-]*\/)?[a-z0-9~][\w.~-]*:\/(?!\/)/.test(decodedFrom)) {
+            store.brokenImageSrc.push({ type: "unsupported", from });
+            return null;
+        }
+
+        store.brokenImageSrc.push({ type: "malformed", from });
+        return null;
+    } catch (e) {
+        if (e instanceof URIError) {
+            store.brokenImageSrc.push({ type: "malformed", from });
+            return null;
+        } else {
+            throw e;
+        }
+    }
+}
+
+export function registerIcon(icon: FaIcon) {
+    const store = als.getStore();
+    if (!store) throw new Error("cirro: registerIcon() was called outside of a render context");
+
+    const iconId = `${icon.type}/${icon.name}`;
+    const icons = allowed_icon_names[icon.type];
+    if (icons === undefined) {
+        store.brokenImageSrc.push({ type: "not-exist", from: iconId });
+        return;
+    }
+
+    if (!icons.has(icon.name)) {
+        store.brokenImageSrc.push({ type: "not-exist", from: iconId });
+        return;
+    }
+
+    store.registry.icon.add(`${icon.type}/${icon.name}`);
+}
+
 // 1 レンダリングで処理するサンプル数の上限。コンポーネントが自分自身を（直接・間接に）
 // styleSample() するとキューは尽きず無限ループになるため、黙って回り続けず原因を示して失敗させる保険。
 const MAX_STYLE_SAMPLES = 1000;
@@ -104,8 +165,15 @@ export function runWithRegistry<T>(
     fn: () => T,
     init?: Registry,
     links?: Set<string>,
-): { result: T; registry: Registry; globalRuleSet: Set<string>; brokenLinks: BrokenLink[] } {
-    const store: Store = { registry: init ?? new Map(), globalRuleSet: new Set(), samples: [], links, brokenLinks: [] };
+): { result: T; registry: Registry; globalRuleDesignators: Set<string>; brokenLinks: BrokenLink[]; brokenImageSrc: BrokenImageSrc[] } {
+    const store: Store = {
+        registry: init ?? createRegistry(),
+        globalRuleDesignators: new Set(),
+        samples: [],
+        links,
+        brokenLinks: [],
+        brokenImageSrc: [],
+    };
     const result = als.run(store, fn);
     als.run(store, () => {
         let processed = 0;
@@ -119,5 +187,11 @@ export function runWithRegistry<T>(
             renderToStaticMarkup(store.samples.shift());
         }
     });
-    return { result, registry: store.registry, globalRuleSet: store.globalRuleSet, brokenLinks: store.brokenLinks };
+    return {
+        result,
+        registry: store.registry,
+        globalRuleDesignators: store.globalRuleDesignators,
+        brokenLinks: store.brokenLinks,
+        brokenImageSrc: store.brokenImageSrc,
+    };
 }

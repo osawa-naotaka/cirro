@@ -576,6 +576,56 @@ const CSP = "default-src 'self'; script-src 'self'; style-src 'self'; font-src '
 
 ---
 
+## 10. デプロイとキャッシュ（Cloudflare Workers スタティックアセット）
+
+Cirro の成果物には、キャッシュの観点で性質の異なる 2 種類のアセットが混ざっている。
+
+1. **安定名アセット**: URL が固定で、内容だけが変わり得るもの。`/assets/styles.css`（全ページの
+   レンダリング後に確定する収集型の成果物）、`/fa/{style}.svg`（Font Awesome スプライト。
+   `10_IMAGE_ASSETS.md` 5.7）、`public/` 配下のファイル。
+2. **ハッシュ名アセット**: 内容が変わると URL 自体が変わるもの。Vite が生成する島の JS チャンク
+   （`/assets/*-<hash>.js`）。
+
+### 10.1 デフォルト挙動で安定名アセットは安全
+
+Workers のスタティックアセット配信は、デフォルトで **`Cache-Control: public, max-age=0,
+must-revalidate`** と **`ETag`**（内容のハッシュ）を付けて応答する。ブラウザはキャッシュを保持
+しつつ、使用前に毎回 `If-None-Match` で鮮度を確認し、変わっていなければ **304 Not Modified**
+（数百バイト）で済む。
+
+したがって安定名アセットについて**利用者側の設定は不要**である。「デプロイで `styles.css` や
+スプライトの内容が変わったのに、訪問者に古いキャッシュが使われ続ける」という事故は、この
+デフォルトのもとでは起きない。Cirro が収集型の成果物にハッシュ付きファイル名を採用していないのは、
+この再検証モデルで正しさが担保されるためでもある（ハッシュはレンダリング完了まで確定できず、
+2 パスレンダリング等の複雑さに見合わない）。
+
+### 10.2 ハッシュ名アセットには `immutable` を推奨（任意）
+
+ハッシュ名アセットは内容が変われば URL が変わるので、再検証すら不要である。`public/_headers` に
+以下を置くと（Vite が `dist/` へコピーし、Workers が設定として解釈する）、304 の往復も消える:
+
+```
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+```
+
+`_headers` は Pages と同じ構文で、ワイルドカード対応・ルール 100 個まで・Worker コードが生成した
+レスポンスには適用されない（静的アセット配信のみ）。なお `/assets/styles.css` は安定名なのに
+このパターンに含まれてしまう点に注意。マッチした全ルールのヘッダが適用され、**同名ヘッダは
+上書きではなくカンマ結合される**仕様のため、特定パスだけ値を変えるには `!` プレフィックスで
+一度取り消してから設定し直す:
+
+```
+/assets/styles.css
+  ! Cache-Control
+  Cache-Control: public, max-age=0, must-revalidate
+```
+
+あるいは `cssUrl` オプションで CSS を `/assets/` の外へ出し、`/assets/*` をハッシュ名アセット
+専用に保ってもよい。
+
+---
+
 ## 付録
 
 ### 関連ドキュメント
@@ -586,6 +636,7 @@ const CSP = "default-src 'self'; script-src 'self'; style-src 'self'; font-src '
 - `05_STYLING.md` — スタイリングガイド（自前 CSS 生成）
 - `08_CONTENT_LAYER.md` — コンテンツ層の設計（defineContent の設計判断と理由）
 - `09_LINK_SAFETY.md` — リンク安全性の設計（Link コンポーネントとビルド時検証の設計判断と理由）
+- `10_IMAGE_ASSETS.md` — 画像アセットの設計（Image / FaImage コンポーネントの設計判断と理由）
 
 ### 用語
 

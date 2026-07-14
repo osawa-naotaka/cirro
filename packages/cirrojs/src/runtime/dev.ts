@@ -1,14 +1,13 @@
 import { createServer as createHttpServer } from "node:http";
-import { dirname, resolve } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
-import { createServerModuleRunner, createServer as createViteServer, type ViteDevServer } from "vite";
-import { stringifyCss } from "../css.ts";
-import type { RunWithRegistry } from "../registry.common.ts";
-import { expandRoutes } from "../router.ts";
+import { createServer as createViteServer, type ViteDevServer } from "vite";
+import { stringifyCss } from "../lib/css.ts";
+import { createRegistry } from "../registry/registry.common.ts";
 import { contentType } from "./contentType.ts";
-import { appendClientScriptAndCss } from "./head.ts";
-import { collectSiteLinks } from "./link.ts";
-import { getCirroOptions } from "./options.ts";
+import { reportBrokenImageSrc } from "./image.ts";
+import { collectSiteLinks, reportBrokenLink } from "./link.ts";
+import { expandRoutes } from "./router.ts";
+import { appendClientScriptAndCss, setupCirro } from "./setup.ts";
 
 // 仮想島マウンタ（virtual:cirro/client）の dev 配信 URL。
 const CLIENT_DEV_URL = "/@id/__x00__virtual:cirro/client";
@@ -44,11 +43,8 @@ export async function runDev(port = 5173) {
     process.env.CIRRO_COMMAND = "dev";
 
     const vite = await createViteServer({ server: { middlewareMode: true }, appType: "custom" });
-    const runner = createServerModuleRunner(vite.environments.ssr);
-    const options = getCirroOptions(vite.config);
-    const root = vite.config.root;
-    const routesPath = resolve(root, options.routes);
-    const islandsDir = options.islands && dirname(resolve(root, options.islands)).replaceAll("\\", "/");
+    const { runWithRegistry, contentHandler, routes, islandsDir, watchDir } = await setupCirro(vite);
+
     let contentPromise: Promise<unknown> | null = null;
 
     const httpServer = createHttpServer((req, res) => {
@@ -71,88 +67,57 @@ export async function runDev(port = 5173) {
 
         vite.middlewares(req, res, async () => {
             const rawUrl = req.url ?? "/";
-            const pathname = new URL(rawUrl, "http://localhost").pathname;
-            const candidate = new Set();
-            if (pathname.endsWith(".html") || pathname.endsWith(".htm")) {
-                candidate.add(pathname);
-            } else if (pathname.endsWith("/")) {
-                candidate.add(`${pathname}index.html`);
-                candidate.add(`${pathname}index.htm`);
-            } else {
-                candidate.add(`${pathname}.html`);
-                candidate.add(`${pathname}.htm`);
-                candidate.add(`${pathname}/index.html`);
-                candidate.add(`${pathname}/index.htm`);
-                candidate.add(pathname);
-            }
+            const candidate = listupCandidate(rawUrl);
 
             try {
-                // routes は Module Runner で最新を読む（HMR と整合）。
-                const objs = await runner.import(routesPath);
-                if (typeof objs.runWithRegistry !== "function") {
-                    errorResp(".html", "you must export a `runWithRegistry` function");
-                    return;
-                }
-                if (!Array.isArray(objs.default.routes)) {
-                    errorResp(".html", "you must define routes and export it as `default`");
-                    return;
-                }
-                if (objs.default.content && typeof objs.default.content.loader !== "function") {
-                    errorResp(".html", "you must define a valid content loader function");
-                    return;
-                }
-
-                const runWithRegistry: RunWithRegistry<string> = objs.runWithRegistry;
-
-                contentPromise ??= objs.default.content?.loader();
+                contentPromise ??= contentHandler?.loader() || null;
                 const content = await contentPromise;
-                const pages = expandRoutes(objs.default.routes, content);
+                const pages = expandRoutes(routes, content);
                 const page = pages.find((p) => candidate.has(p.path));
                 if (page === undefined) {
-                    errorResp(".html", `no route found for the requested path: ${pathname}`);
+                    errorResp(".html", `no route found for the requested path: ${rawUrl}`);
                     return;
                 }
 
                 switch (page.type) {
                     case "html": {
                         const links = collectSiteLinks(
-                            pages.filter((p) => p.type !== "css"),
+                            pages.filter((p) => p.type !== "css" && p.type !== "fontawesome"),
                             vite.config.publicDir,
                         );
 
-                        const { result: html, brokenLinks } = runWithRegistry(
+                        const {
+                            result: html,
+                            brokenLinks,
+                            brokenImageSrc,
+                        } = runWithRegistry(
                             () => {
                                 const tree = appendClientScriptAndCss(page.render(), CLIENT_DEV_URL, `${page.path}.css`);
                                 return `<!DOCTYPE html>${renderToStaticMarkup(tree)}`;
                             },
-                            new Map(),
+                            createRegistry(),
                             links,
                         );
 
-                        for (const link of brokenLinks) {
-                            switch (link.type) {
-                                case "malformed":
-                                    console.log(
-                                        `Link is malformed: "${link.link}". to property of Link must begin with "/" or "#". "//" or "/\\" are not allowed.`,
-                                    );
-                                    break;
-                                case "not-found":
-                                    console.log(`Link is not found: "${link.link}".`);
-                                    break;
-                            }
-                        }
+                        reportBrokenLink(brokenLinks);
+                        reportBrokenImageSrc(brokenImageSrc);
 
                         const transformed = await vite.transformIndexHtml(rawUrl, html);
                         successResp(".html", transformed);
                         break;
                     }
                     case "css": {
-                        const { registry } = objs.runWithRegistry(() => renderToStaticMarkup(page.render()));
+                        const { registry } = runWithRegistry(() => renderToStaticMarkup(page.render()));
                         const css = stringifyCss(registry);
                         successResp(".css", css);
                         break;
                     }
                     case "file": {
+                        const file = page.render();
+                        successResp(page.ext, file);
+                        break;
+                    }
+                    case "fontawesome": {
                         const file = page.render();
                         successResp(page.ext, file);
                         break;
@@ -181,9 +146,6 @@ export async function runDev(port = 5173) {
     // キャッシュを無効化しておく。これをしないと Module Runner が古い Markdown を返す可能性がある。
     //
     // 監視ディレクトリは config の watchDir（既定 "./src"）で設定する。
-    const watchDir = `${resolve(root, options.watchDir ?? "./src")
-        .replaceAll("\\", "/")
-        .replace(/\/+$/, "")}/`;
     const onWatchEvent = (file: string) => {
         const f = file.replaceAll("\\", "/");
         if (islandsDir && f.startsWith(islandsDir)) return; // 島は Fast Refresh に任せる
@@ -204,6 +166,25 @@ export async function runDev(port = 5173) {
     httpServer.listen(port, () => {
         console.log(`cirro dev: http://localhost:${port}`);
     });
+}
+
+function listupCandidate(rawUrl: string): Set<string> {
+    const pathname = new URL(rawUrl, "http://localhost").pathname;
+    const candidate = new Set<string>();
+    if (pathname.endsWith(".html") || pathname.endsWith(".htm")) {
+        candidate.add(pathname);
+    } else if (pathname.endsWith("/")) {
+        candidate.add(`${pathname}index.html`);
+        candidate.add(`${pathname}index.htm`);
+    } else {
+        candidate.add(`${pathname}.html`);
+        candidate.add(`${pathname}.htm`);
+        candidate.add(`${pathname}/index.html`);
+        candidate.add(`${pathname}/index.htm`);
+        candidate.add(pathname);
+    }
+
+    return candidate;
 }
 
 function errorHtml(message: string): string {

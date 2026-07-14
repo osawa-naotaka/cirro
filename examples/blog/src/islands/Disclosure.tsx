@@ -1,4 +1,4 @@
-import { styleSample } from "cirrojs";
+import { FaImage, styleSample } from "cirrojs";
 import { type ReactNode, useState } from "react";
 import { color, cssMain, fontSize, radii, space } from "../styles/system";
 
@@ -52,5 +52,11 @@ function DisclosurePanel({ detail }: { detail: string }): ReactNode {
         line_height: "1.9",
     });
 
-    return <p className={panel}>{detail}</p>;
+    return (
+        <p className={panel}>
+            <FaImage icon={{
+                type: "solid", name: "triangle-exclamation" }} className={cssMain({ height: "2rem" })} />
+            {detail}
+        </p>
+    );
 }

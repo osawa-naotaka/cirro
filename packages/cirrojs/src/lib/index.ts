@@ -5,13 +5,16 @@
 // runWithRegistry はランタイム値。css.ts の registerCss と同一モジュールインスタンス（=同一 als）を
 // 共有させるため、こちらも自己参照 import 経由で解決する。SSR では real の registry.ts に解決される。
 export { runWithRegistry } from "cirrojs/registry";
+export type { AtBlockRule, AtStatementRule, Registry, RuleNode, StyleRule } from "../registry/registry.common.ts";
 export type { ContentType, PageProps } from "./content.ts";
 export { defineContent } from "./content.ts";
 export type { CssFn, CssFnOpt, InjectFn, SsOpt, ToKeyframesOpt, ToStyleOpt } from "./css.ts";
 export { at, atStatement, genCssFn, ss, toKeyframes, toStyle } from "./css.ts";
+export { FaImage, type FaImageProps } from "./FaImage.tsx";
+export type { BrandsIcon, BrandsIconName, FaIcon, IconType, RegularIcon, RegularIconName, SolidIcon, SolidIconName } from "./fontawesome.ts";
+export { Image, type ImageProps } from "./Image.tsx";
 export { Link, type LinkProps } from "./Link.tsx";
 export type { Properties } from "./properties.ts";
-export type { AtBlockRule, AtStatementRule, Registry, RuleNode, StyleRule } from "./registry.common.ts";
 export type { AnyRoute, DynamicRoute, FileRoute, Params, StaticRoute } from "./route.ts";
 export { createRouteFn } from "./route.ts";
 export { styleSample } from "./styleSample.ts";

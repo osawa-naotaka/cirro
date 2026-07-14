@@ -1,13 +1,14 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { dirname, join, resolve } from "node:path";
+import { dirname, join } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
-import { createServerModuleRunner, createServer as createViteServer, build as viteBuild } from "vite";
-import { stringifyCss } from "../css.ts";
-import type { BrokenLink, Registry, RuleNode, RunWithRegistry } from "../registry.common.ts";
-import { expandRoutes } from "../router.ts";
-import { appendClientScriptAndCss } from "./head.ts";
-import { collectSiteLinks } from "./link.ts";
-import { getCirroOptions } from "./options.ts";
+import { createServer as createViteServer, build as viteBuild } from "vite";
+import { stringifyCss } from "../lib/css.ts";
+import { type BrokenImageSrc, type BrokenLink, createRegistry, type Registry, type RuleNode } from "../registry/registry.common.ts";
+import { bundleIcon } from "./icon.ts";
+import { reportBrokenImageSrc } from "./image.ts";
+import { collectSiteLinks, reportBrokenLink } from "./link.ts";
+import { expandRoutes } from "./router.ts";
+import { appendClientScriptAndCss, setupCirro } from "./setup.ts";
 
 // `cirro build`: クライアントバンドルを作り、各ルートを静的 HTML として書き出す（node:fs のみ、bun 非依存）。
 export async function runBuild() {
@@ -20,40 +21,22 @@ export async function runBuild() {
 
     // 2. routes を評価するための一時 Vite server（ssrLoadModule）。
     const server = await createViteServer({ server: { middlewareMode: true, hmr: false }, appType: "custom" });
-    const runner = createServerModuleRunner(server.environments.ssr);
     try {
         const startTime = Date.now();
-        const config = server.config;
-        const options = getCirroOptions(config);
-        const root = config.root;
-        const outDir = resolve(root, config.build.outDir);
-        const routesPath = resolve(root, options.routes);
-        const cssUrl = "/assets/styles.css";
+        const { runWithRegistry, contentHandler, outDir, routes, cssUrl } = await setupCirro(server);
 
-        const manifest = JSON.parse(await readFile(join(outDir, ".vite/manifest.json"), "utf-8"));
-        const entry = manifest["virtual:cirro/client"];
-        if (!entry) throw new Error('cirro: manifest entry "virtual:cirro/client" not found');
-        const scriptSrc = `/${entry.file}`;
+        const scriptSrc = await getScriptSrc(outDir);
 
-        const obj = await runner.import(routesPath);
-        if (typeof obj.runWithRegistry !== "function") throw new Error("cirro: you must export runWithRegistry.");
-        if (typeof obj.default !== "object") throw new Error("cirro: you must export routes.");
-        if (!Array.isArray(obj.default.routes)) throw new Error("cirro: you must define routes and export it as `default`");
-        if (obj.default.content && typeof obj.default.content.loader !== "function") throw new Error("you must define a valid content loader function");
-
-        const runWithRegistry = obj.runWithRegistry as RunWithRegistry<string>;
-        const rootRegistry: Registry = new Map();
+        const rootRegistry: Registry = createRegistry();
         const htmlPagePaths: string[] = [];
         const globalRulePages = new Map<string, string[]>();
         const brokenLinksWithPagePaths: { path: string; brokenLinks: BrokenLink[] }[] = [];
+        const brokenImageSrcWithPagePaths: { path: string; brokenImageSrc: BrokenImageSrc[] }[] = [];
 
-        let content: unknown;
-        if (obj.default.content) {
-            content = await obj.default.content.loader();
-        }
-        const pages = expandRoutes(obj.default.routes, content);
+        const content = contentHandler && (await contentHandler.loader());
+        const pages = expandRoutes(routes, content);
         const links = collectSiteLinks(
-            pages.filter((x) => x.type !== "css"),
+            pages.filter((x) => x.type !== "css" && x.type !== "fontawesome"),
             server.config.publicDir,
         );
 
@@ -65,8 +48,9 @@ export async function runBuild() {
                 case "html": {
                     const {
                         result: html,
-                        globalRuleSet: ruleSet,
+                        globalRuleDesignators,
                         brokenLinks,
+                        brokenImageSrc,
                     } = runWithRegistry(
                         () => {
                             const tree = appendClientScriptAndCss(page.render(), scriptSrc, cssUrl);
@@ -80,25 +64,26 @@ export async function runBuild() {
                         brokenLinksWithPagePaths.push({ path: page.path, brokenLinks });
                     }
 
+                    if (brokenImageSrc.length > 0) {
+                        brokenImageSrcWithPagePaths.push({ path: page.path, brokenImageSrc });
+                    }
+
                     htmlPagePaths.push(page.path);
-                    for (const designator of ruleSet) {
+                    for (const designator of globalRuleDesignators) {
                         const pages = globalRulePages.get(designator) ?? [];
                         pages.push(page.path);
                         globalRulePages.set(designator, pages);
                     }
 
-                    const filePath = join(outDir, page.path);
-                    await mkdir(dirname(filePath), { recursive: true });
-                    await writeFile(filePath, html);
-                    console.log(`wrote ${filePath} (url: ${page.path})`);
+                    await writeToFile(page.path, outDir, html);
                     break;
                 }
                 case "file": {
                     const file = page.render();
-                    const filePath = join(outDir, page.path);
-                    await mkdir(dirname(filePath), { recursive: true });
-                    await writeFile(filePath, file);
-                    console.log(`wrote ${filePath} (url: ${page.path})`);
+                    await writeToFile(page.path, outDir, file);
+                    break;
+                }
+                case "fontawesome": {
                     break;
                 }
                 default: {
@@ -108,17 +93,24 @@ export async function runBuild() {
         }
 
         const css = stringifyCss(rootRegistry);
-        const filePath = join(outDir, cssUrl);
-        await mkdir(dirname(filePath), { recursive: true });
-        await writeFile(filePath, css);
-        console.log(`wrote ${filePath} (url: ${cssUrl})`);
+        await writeToFile(cssUrl, outDir, css);
+
+        bundleIcon(rootRegistry, outDir);
 
         console.log(`global rule set: ${globalRulePages.size} rules`);
 
         reportGlobalRuleMismatch(globalRulePages, htmlPagePaths, rootRegistry);
         reportBrokenLinks(brokenLinksWithPagePaths);
+        reportBrokenImageSrcs(brokenImageSrcWithPagePaths);
+
         if (brokenLinksWithPagePaths.length === 0) {
             console.log("no broken links found");
+        } else {
+            process.exitCode = 1;
+        }
+
+        if (brokenImageSrcWithPagePaths.length === 0) {
+            console.log("no broken image sources found");
         } else {
             process.exitCode = 1;
         }
@@ -129,6 +121,21 @@ export async function runBuild() {
     }
 }
 
+async function writeToFile(path: string, outDir: string, content: string): Promise<void> {
+    const filePath = join(outDir, path);
+    await mkdir(dirname(filePath), { recursive: true });
+    await writeFile(filePath, content);
+    console.log(`wrote ${filePath} (url: ${path})`);
+}
+
+async function getScriptSrc(outDir: string): Promise<string> {
+    const manifest = JSON.parse(await readFile(join(outDir, ".vite/manifest.json"), "utf-8"));
+    const entry = manifest["virtual:cirro/client"];
+    if (!entry) throw new Error('cirro: manifest entry "virtual:cirro/client" not found');
+    const scriptSrc = `/${entry.file}`;
+    return scriptSrc;
+}
+
 // グローバル規則（$ を含まないセレクタ・文アットルール）が全ページで登録されているかを検査する。
 // 欠けているページがあると、そのページの dev 表示（自ページ分のみの CSS）と build 表示
 // （全ページ分をマージした CSS）が食い違うため、規則の中身と登録元ページを特定して警告する。
@@ -137,7 +144,7 @@ function reportGlobalRuleMismatch(globalRulePages: Map<string, string[]>, allPag
         if (pages.length === allPages.length) continue;
         const registered = new Set(pages);
         const missing = allPages.filter((p) => !registered.has(p));
-        const rules = describeRuleNodes(registry.get(designator) ?? [])
+        const rules = describeRuleNodes(registry.style.get(designator) ?? [])
             .map((s) => `"${s}"`)
             .join(", ");
         // 少ない側のページ一覧を出す（原因ページを特定しやすくするため）。
@@ -148,7 +155,15 @@ function reportGlobalRuleMismatch(globalRulePages: Map<string, string[]>, allPag
 
 function reportBrokenLinks(brokenLinksWithPagePaths: { path: string; brokenLinks: BrokenLink[] }[]): void {
     for (const { path, brokenLinks } of brokenLinksWithPagePaths) {
-        console.warn(`Warning: broken links in "${path}": ${brokenLinks.map((l) => `"${l.link}" (${l.type})`).join(", ")}`);
+        console.warn(`Warning: broken links in "${path}":`);
+        reportBrokenLink(brokenLinks);
+    }
+}
+
+function reportBrokenImageSrcs(brokenImageSrcWithPagePaths: { path: string; brokenImageSrc: BrokenImageSrc[] }[]): void {
+    for (const { path, brokenImageSrc } of brokenImageSrcWithPagePaths) {
+        console.warn(`Warning: broken image sources in "${path}":`);
+        reportBrokenImageSrc(brokenImageSrc);
     }
 }
 

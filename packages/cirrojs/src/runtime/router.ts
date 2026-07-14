@@ -1,5 +1,8 @@
+import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import type { ReactElement } from "react";
-import type { AnyRoute } from "./route";
+import { faDir } from "../lib/fontawesome.ts";
+import type { AnyRoute } from "../lib/route";
 
 export type ResolvedPath =
     | {
@@ -14,6 +17,12 @@ export type ResolvedPath =
       }
     | {
           type: "file";
+          path: string;
+          ext: string;
+          render: () => string;
+      }
+    | {
+          type: "fontawesome";
           path: string;
           ext: string;
           render: () => string;
@@ -61,6 +70,21 @@ export function expandRoutes<T>(routes: AnyRoute<T>[], content: T): ResolvedPath
                 });
                 break;
         }
+    }
+
+    // fontawesome スプライトの合成ルート
+    for (const t of ["brands", "regular", "solid"]) {
+        pages.push({
+            type: "fontawesome",
+            path: `${faDir}/${t}.svg`,
+            ext: ".svg",
+            render: () => {
+                const require = createRequire(import.meta.url);
+                const path = require.resolve(`@fortawesome/fontawesome-free/sprites/${t}.svg`);
+                const svg = readFileSync(path, "utf-8");
+                return svg;
+            },
+        });
     }
     return pages;
 }

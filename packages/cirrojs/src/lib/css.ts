@@ -1,9 +1,9 @@
 // registerRules はランタイム値なので自己参照 import 経由で解決する。
 // これにより exports の browser 条件が効き、クライアントでは async_hooks 非依存の
 // no-op 実装（registry.browser.ts）に差し替わる。型は erase される import type で real から取得する。
-import { registerGlobalRuleSet, registerRules } from "cirrojs/registry";
+import { registerGlobalRuleDesignator, registerRules } from "cirrojs/registry";
+import type { Registry, RuleNode } from "../registry/registry.common.ts";
 import { type Properties, property_names } from "./properties.ts";
-import type { Registry, RuleNode } from "./registry.common.ts";
 
 export type CssFnOpt = {
     name?: string;
@@ -13,10 +13,10 @@ export type CssFnOpt = {
 export type CssFn = (properties: Properties, opt?: CssFnOpt, ...children: RuleNode[]) => string;
 export type InjectFn = (injected: () => RuleNode) => RuleNode;
 
-export function genCssFn(arg: InjectFn): CssFn {
+export function genCssFn(injFn: InjectFn = (injected) => injected()): CssFn {
     return (properties: Properties, opt?: CssFnOpt, ...children: RuleNode[]) => {
         const bottom = () => ss(properties, opt, ...children);
-        const node = arg(bottom);
+        const node = injFn(bottom);
         return toStyle(node, { name: opt?.name });
     };
 }
@@ -58,7 +58,7 @@ export function toStyle(node: RuleNode, opt?: ToStyleOpt): string {
     const designator = `${opt?.name ?? "cirro"}-${hash.toString(16)}`;
 
     if (hasGlobalRule(node)) {
-        registerGlobalRuleSet(designator);
+        registerGlobalRuleDesignator(designator);
     }
 
     const resolved = resolveSelectorsInNode(node, `.${designator}`, false);
@@ -147,7 +147,7 @@ export function stringifyCss(registry: Registry): string {
     // 文アットルールはプリアンブル直後にまとめる（@layer の順序宣言などが規則より先に来るように）。
     let statements = "";
     let rules = "";
-    for (const nodes of registry.values()) {
+    for (const nodes of registry.style.values()) {
         for (const node of nodes) {
             if (node.type === "at-statement") {
                 validateAtPrelude(node.statement);
@@ -179,16 +179,17 @@ function stringifyRuleNode(node: RuleNode): string {
     return `${node.prelude} { ${node.children.map(stringifyRuleNode).join(" ")} }`;
 }
 
-// "$"（自クラス参照）を機械的に全置換する。引用符やエスケープの解釈は行わない。
-// $= の混入や不正な位置の $ / & は resolveSelectorsInNode が登録時に拒否する。
+// "$"（自クラス参照）を機械的に置換する。引用符やエスケープの解釈は行わない。
+// ただし属性後方一致マッチャー "$=" の "$" は演算子の一部なので置換しない。
+// 不正な位置の $ / & は resolveSelectorsInNode が登録時に拒否する。
 // 引用文字列内に $ を書けない制約は doc に明記済み（将来セレクタパーサー導入時に緩和予定）。
 function resolveSelector(selector: string, self: string): string {
-    return selector.replaceAll("$", self);
+    return selector.replace(/\$(?!=)/g, self);
 }
 
 // $ と & は使える位置が異なるため、スタイルルールへの入れ子か否か（insideStyle）で検証を分ける。
-// - 入れ子でないセレクタ: $ を置換する。& は親が存在せず :scope 扱いになり意図とズレるためエラー。
-//   $= は機械置換で属性後方一致が壊れるためエラー。
+// - 入れ子でないセレクタ: $ を置換する（属性後方一致マッチャー $= の $ は除く）。& は親が存在せず
+//   :scope 扱いになり意図とズレるためエラー。
 // - 入れ子のセレクタ: & はブラウザの CSS ネストに委ねてそのまま通す。$ は置換結果が & を含まず
 //   暗黙の子孫結合が働き「ルート参照のつもりが子孫セレクタ」という無言のズレになるためエラー。
 // 検証を stringify 時でなく登録時に行うことで、エラーの stack が登録元（コンポーネント）を指す。
@@ -196,7 +197,8 @@ function resolveSelectorsInNode(node: RuleNode, designator: string, insideStyle:
     switch (node.type) {
         case "style": {
             if (insideStyle) {
-                if (node.selector.includes("$")) {
+                // $= は属性後方一致マッチャーなので許容し、それ以外の $（自クラス参照）だけを拒否する。
+                if (/\$(?!=)/.test(node.selector)) {
                     throw new Error(
                         `cirro: "$" is not allowed in a nested selector ("${node.selector}"). ` +
                             `Specify the selector explicitly and use "&" to refer to the parent inside nested rules.`,
@@ -207,12 +209,6 @@ function resolveSelectorsInNode(node: RuleNode, designator: string, insideStyle:
                     throw new Error(
                         `cirro: "&" is not allowed in a non-nested selector ("${node.selector}"). ` +
                             `"&" is the CSS Nesting parent reference; use "$" to refer to the generated class itself.`,
-                    );
-                }
-                if (node.selector.includes("$=")) {
-                    throw new Error(
-                        `cirro: the attribute suffix matcher ("$=") is not supported in "${node.selector}" ` +
-                            `because every "$" is replaced with the generated class name`,
                     );
                 }
             }

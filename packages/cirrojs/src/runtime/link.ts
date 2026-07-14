@@ -1,6 +1,7 @@
 import { existsSync, readdirSync } from "node:fs";
 import { basename, dirname, extname, join } from "node:path/posix";
-import type { ResolvedPath } from "../router";
+import type { BrokenLink } from "../registry/registry.common";
+import type { ResolvedPath } from "./router";
 
 export function collectLinks(paths: string[], initialLinks?: Set<string>): Set<string> {
     const links = initialLinks ?? new Set<string>();
@@ -45,4 +46,17 @@ export function collectSiteLinks(pages: ResolvedPath[], publicPath: false | stri
         }
     }
     return links;
+}
+
+export function reportBrokenLink(brokenLinks: BrokenLink[]) {
+    for (const link of brokenLinks) {
+        switch (link.type) {
+            case "malformed":
+                console.log(`Link is malformed: "${link.link}". to property of Link must begin with "/" or "#". "//" or "/\\" are not allowed.`);
+                break;
+            case "not-found":
+                console.log(`Link is not found: "${link.link}".`);
+                break;
+        }
+    }
 }
