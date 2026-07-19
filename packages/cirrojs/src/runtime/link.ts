@@ -1,6 +1,5 @@
 import { existsSync, readdirSync } from "node:fs";
 import { basename, dirname, extname, join } from "node:path/posix";
-import type { BrokenLink, MissingSite } from "../registry/registry.common";
 import type { ResolvedPath } from "./router";
 
 // 出力 path のクリーン URL 正規形（09_LINK_SAFETY.md 4.4 の表のクリーン URL 側）。
@@ -64,23 +63,4 @@ export function collectSiteLinks(pages: ResolvedPath[], publicPath: false | stri
         }
     }
     return links;
-}
-
-export function reportMissingSite(missingSite: MissingSite[]) {
-    for (const m of missingSite) {
-        console.log(`Site metadata is required by ${m.feature} but is not declared. ` + "Declare it with defineSite() and pass it to createRouteFn({ site }).");
-    }
-}
-
-export function reportBrokenLink(brokenLinks: BrokenLink[]) {
-    for (const link of brokenLinks) {
-        switch (link.type) {
-            case "malformed":
-                console.log(`Link is malformed: "${link.link}". to property of Link must begin with "/" or "#". "//" or "/\\" are not allowed.`);
-                break;
-            case "not-found":
-                console.log(`Link is not found: "${link.link}".`);
-                break;
-        }
-    }
 }

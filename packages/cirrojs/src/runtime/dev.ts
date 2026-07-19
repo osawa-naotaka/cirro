@@ -4,8 +4,8 @@ import { createServer as createViteServer, type ViteDevServer } from "vite";
 import { stringifyCss } from "../lib/css.ts";
 import { createRegistry } from "../registry/registry.common.ts";
 import { contentType } from "./contentType.ts";
-import { reportBrokenImageSrc } from "./image.ts";
-import { cleanUrlPath, collectSiteLinks, reportBrokenLink, reportMissingSite } from "./link.ts";
+import { cleanUrlPath, collectSiteLinks } from "./link.ts";
+import { reportErrors } from "./report.ts";
 import { expandRoutes } from "./router.ts";
 import { appendClientScriptAndCss, setupCirro } from "./setup.ts";
 
@@ -95,12 +95,7 @@ export async function runDev(port = 5173) {
                             vite.config.publicDir,
                         );
 
-                        const {
-                            result: html,
-                            brokenLinks,
-                            brokenImageSrc,
-                            missingSite,
-                        } = runWithRegistry(
+                        const { result: html, errors } = runWithRegistry(
                             () => {
                                 const tree = appendClientScriptAndCss(page.render(), CLIENT_DEV_URL, `${page.path}.css`);
                                 return `<!DOCTYPE html>${renderToStaticMarkup(tree)}`;
@@ -110,9 +105,7 @@ export async function runDev(port = 5173) {
                             { site, pagePath: cleanUrlPath(page.path), htmlPaths },
                         );
 
-                        reportBrokenLink(brokenLinks);
-                        reportBrokenImageSrc(brokenImageSrc);
-                        reportMissingSite(missingSite);
+                        reportErrors(errors);
 
                         const transformed = await vite.transformIndexHtml(rawUrl, html);
                         successResp(".html", transformed);
@@ -136,18 +129,13 @@ export async function runDev(port = 5173) {
                             vite.config.publicDir,
                         );
 
-                        const {
-                            result: file,
-                            brokenLinks,
-                            missingSite,
-                        } = runWithRegistry(() => page.render(), createRegistry(), links, {
+                        const { result: file, errors } = runWithRegistry(() => page.render(), createRegistry(), links, {
                             site,
                             pagePath: page.path,
                             htmlPaths,
                         });
 
-                        reportBrokenLink(brokenLinks);
-                        reportMissingSite(missingSite);
+                        reportErrors(errors);
 
                         successResp(page.ext, file);
                         break;

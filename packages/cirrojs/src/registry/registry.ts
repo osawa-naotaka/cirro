@@ -4,15 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import type { FaIcon } from "../lib/fontawesome.ts";
 import { allowed_icon_names } from "../lib/fontawesome.ts";
 import type { Site } from "../lib/site.ts";
-import {
-    type BrokenImageSrc,
-    type BrokenLink,
-    createRegistry,
-    type MissingSite,
-    type Registry,
-    type RenderSiteContext,
-    type RuleNode,
-} from "./registry.common.ts";
+import { createRegistry, type ErrorInfo, type Registry, type RenderSiteContext, type RuleNode } from "./registry.common.ts";
 
 // 型は registry.common.ts に集約したが、公開 API としての所在（cirrojs/registry）は維持する。
 // registry.browser.ts と同一の型を再 export すること。
@@ -37,12 +29,8 @@ type Store = {
     globalRuleDesignators: Set<string>;
     samples: ReactNode[];
     links?: Set<string>;
-    brokenLinks: BrokenLink[];
-    brokenImageSrc: BrokenImageSrc[];
-    site?: Site;
-    pagePath?: string;
-    htmlPaths?: string[];
-    missingSite: MissingSite[];
+    errors: ErrorInfo[];
+    siteContext?: RenderSiteContext;
 };
 
 // レンダリング 1 回ごとに専用のストアを割り当て、AsyncLocalStorage で暗黙に引き継ぐ。
@@ -82,12 +70,12 @@ export function checkLink(link: string) {
         const decodedLink = decodeURIComponent(link);
 
         if (decodedLink.startsWith("//") || decodedLink.startsWith("/\\")) {
-            store.brokenLinks.push({ type: "malformed", link });
+            store.errors.push({ cause: "broken-link", type: "malformed", link });
             return;
         }
 
         if (!decodedLink.startsWith("/") && !decodedLink.startsWith("#")) {
-            store.brokenLinks.push({ type: "malformed", link });
+            store.errors.push({ cause: "broken-link", type: "malformed", link });
             return;
         }
 
@@ -98,12 +86,12 @@ export function checkLink(link: string) {
         const normalizedLink = decodedLink.replace(/#.*$/, "").replace(/\?.*$/, "");
 
         if (store.links && !store.links.has(normalizedLink)) {
-            store.brokenLinks.push({ type: "not-found", link });
+            store.errors.push({ cause: "broken-link", type: "not-found", link });
             return;
         }
     } catch (e) {
         if (e instanceof URIError) {
-            store.brokenLinks.push({ type: "malformed", link });
+            store.errors.push({ cause: "broken-link", type: "malformed", link });
         } else {
             throw e;
         }
@@ -120,27 +108,27 @@ export function checkImage(from: string): string | null {
 
         if (decodedFrom.startsWith("/")) {
             if (store.links && !store.links.has(normalizedFrom)) {
-                store.brokenImageSrc.push({ type: "not-found", from });
+                store.errors.push({ cause: "broken-image-src", type: "not-found", from });
                 return null;
             }
             return from;
         }
 
         if (decodedFrom.startsWith(":")) {
-            store.brokenImageSrc.push({ type: "unsupported", from });
+            store.errors.push({ cause: "broken-image-src", type: "unsupported", from });
             return null;
         }
 
         if (/^(@[a-z0-9~][\w.~-]*\/)?[a-z0-9~][\w.~-]*:\/(?!\/)/.test(decodedFrom)) {
-            store.brokenImageSrc.push({ type: "unsupported", from });
+            store.errors.push({ cause: "broken-image-src", type: "unsupported", from });
             return null;
         }
 
-        store.brokenImageSrc.push({ type: "malformed", from });
+        store.errors.push({ cause: "broken-image-src", type: "malformed", from });
         return null;
     } catch (e) {
         if (e instanceof URIError) {
-            store.brokenImageSrc.push({ type: "malformed", from });
+            store.errors.push({ cause: "broken-image-src", type: "malformed", from });
             return null;
         } else {
             throw e;
@@ -153,32 +141,32 @@ export function checkImage(from: string): string | null {
 export function requireSite(feature: string): Site | null {
     const store = als.getStore();
     if (!store) throw new Error(`cirro: ${feature} was called outside of a render context`);
-    if (!store.site) {
-        store.missingSite.push({ feature });
+    if (!store.siteContext?.site) {
+        store.errors.push({ cause: "missing-site", feature });
         return null;
     }
-    return store.site;
+    return store.siteContext.site;
 }
 
 // site 由来の設定が解決できない違反（channel description 欠落等）を同じレールへ積む。
 export function reportMissingSiteConfig(feature: string): void {
     const store = als.getStore();
     if (!store) throw new Error(`cirro: ${feature} was called outside of a render context`);
-    store.missingSite.push({ feature });
+    store.errors.push({ cause: "missing-site", feature });
 }
 
 // 現在レンダリング中ページのクリーン URL 正規形（ランタイムが渡す）。
 export function currentPagePath(): string | undefined {
     const store = als.getStore();
     if (!store) throw new Error("cirro: currentPagePath() was called outside of a render context");
-    return store.pagePath;
+    return store.siteContext?.pagePath;
 }
 
 // 全 html ページのクリーン URL 一覧（sitemap 生成用。ランタイムが渡す）。
 export function htmlPagePaths(): string[] {
     const store = als.getStore();
     if (!store) throw new Error("cirro: htmlPagePaths() was called outside of a render context");
-    return store.htmlPaths ?? [];
+    return store.siteContext?.htmlPaths ?? [];
 }
 
 // ルート相対 path を origin で絶対 URL 化する。path は Link と同じ検証レールに乗るため、
@@ -187,23 +175,23 @@ export function absoluteUrl(path: string): string {
     const store = als.getStore();
     if (!store) throw new Error("cirro: absoluteUrl() was called outside of a render context");
     checkLink(path);
-    if (!store.site) {
-        store.missingSite.push({ feature: "absoluteUrl()" });
+    if (!store.siteContext?.site?.origin) {
+        store.errors.push({ cause: "missing-site", feature: "absoluteUrl()" });
         return path;
     }
-    return store.site.origin + path;
+    return store.siteContext.site.origin + path;
 }
 
 // 現在レンダリング中ページの絶対 URL（クリーン形）を返す。
 export function pageUrl(): string {
     const store = als.getStore();
     if (!store) throw new Error("cirro: pageUrl() was called outside of a render context");
-    const path = store.pagePath ?? "";
-    if (!store.site) {
-        store.missingSite.push({ feature: "pageUrl()" });
+    const path = store.siteContext?.pagePath ?? "";
+    if (!store.siteContext?.site?.origin) {
+        store.errors.push({ cause: "missing-site", feature: "pageUrl()" });
         return path;
     }
-    return store.site.origin + path;
+    return store.siteContext.site.origin + path;
 }
 
 export function registerIcon(icon: FaIcon) {
@@ -213,12 +201,12 @@ export function registerIcon(icon: FaIcon) {
     const iconId = `${icon.type}/${icon.name}`;
     const icons = allowed_icon_names[icon.type];
     if (icons === undefined) {
-        store.brokenImageSrc.push({ type: "not-exist", from: iconId });
+        store.errors.push({ cause: "broken-image-src", type: "not-exist", from: iconId });
         return;
     }
 
     if (!icons.has(icon.name)) {
-        store.brokenImageSrc.push({ type: "not-exist", from: iconId });
+        store.errors.push({ cause: "broken-image-src", type: "not-exist", from: iconId });
         return;
     }
 
@@ -243,21 +231,15 @@ export function runWithRegistry<T>(
     result: T;
     registry: Registry;
     globalRuleDesignators: Set<string>;
-    brokenLinks: BrokenLink[];
-    brokenImageSrc: BrokenImageSrc[];
-    missingSite: MissingSite[];
+    errors: ErrorInfo[];
 } {
     const store: Store = {
         registry: init ?? createRegistry(),
         globalRuleDesignators: new Set(),
         samples: [],
         links,
-        brokenLinks: [],
-        brokenImageSrc: [],
-        site: siteContext?.site,
-        pagePath: siteContext?.pagePath,
-        htmlPaths: siteContext?.htmlPaths,
-        missingSite: [],
+        errors: [],
+        siteContext,
     };
     const result = als.run(store, fn);
     als.run(store, () => {
@@ -276,8 +258,6 @@ export function runWithRegistry<T>(
         result,
         registry: store.registry,
         globalRuleDesignators: store.globalRuleDesignators,
-        brokenLinks: store.brokenLinks,
-        brokenImageSrc: store.brokenImageSrc,
-        missingSite: store.missingSite,
+        errors: store.errors,
     };
 }

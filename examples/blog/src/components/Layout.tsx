@@ -38,7 +38,7 @@ export function Layout({ title, description, children, island = true }: LayoutPr
                 <title>{title}</title>
                 {description ? <meta name="description" content={description} /> : null}
                 {/* OGP メタタグ一式。og:url は現在ページから自動で決まる */}
-                <Ogp title={title} description={description} />
+                <Ogp title={title} description={description} twitterCard="summary" />
                 {process.env.CIRRO_COMMAND === "build" && <meta httpEquiv="Content-Security-Policy" content="default-src 'self';" />}
             </head>
             <body>

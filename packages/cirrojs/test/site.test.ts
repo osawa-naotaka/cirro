@@ -49,26 +49,26 @@ describe("defineSite", () => {
 
 describe("absoluteUrl / pageUrl", () => {
     test("absoluteUrl joins origin and validates against the link store", () => {
-        const { result, brokenLinks } = inContext(() => absoluteUrl("/about"), { links: new Set(["/about"]) });
+        const { result, errors } = inContext(() => absoluteUrl("/about"), { links: new Set(["/about"]) });
         expect(result).toBe("https://example.com/about");
-        expect(brokenLinks).toEqual([]);
+        expect(errors).toEqual([]);
     });
 
     test("absoluteUrl collects a not-found violation for unknown paths", () => {
-        const { brokenLinks } = inContext(() => absoluteUrl("/missing"), { links: new Set(["/about"]) });
-        expect(brokenLinks).toEqual([{ type: "not-found", link: "/missing" }]);
+        const { errors } = inContext(() => absoluteUrl("/missing"), { links: new Set(["/about"]) });
+        expect(errors).toEqual([{ cause: "broken-link", type: "not-found", link: "/missing" }]);
     });
 
     test("absoluteUrl without site collects missingSite and returns the path as-is", () => {
-        const { result, missingSite } = inContext(() => absoluteUrl("/about"), { noSite: true });
+        const { result, errors } = inContext(() => absoluteUrl("/about"), { noSite: true });
         expect(result).toBe("/about");
-        expect(missingSite).toEqual([{ feature: "absoluteUrl()" }]);
+        expect(errors).toEqual([{ cause: "missing-site", feature: "absoluteUrl()" }]);
     });
 
     test("pageUrl returns the absolute clean URL of the current page", () => {
-        const { result, missingSite } = inContext(() => pageUrl(), { pagePath: "/blog/hello" });
+        const { result, errors } = inContext(() => pageUrl(), { pagePath: "/blog/hello" });
         expect(result).toBe("https://example.com/blog/hello");
-        expect(missingSite).toEqual([]);
+        expect(errors).toEqual([]);
     });
 
     test("helpers throw outside of a render context", () => {
@@ -95,9 +95,9 @@ describe("sitemapXml", () => {
     });
 
     test("without site collects missingSite and emits nothing", () => {
-        const { result, missingSite } = inContext(() => sitemapXml()(), { htmlPaths, noSite: true });
+        const { result, errors } = inContext(() => sitemapXml()(), { htmlPaths, noSite: true });
         expect(result).toBe("");
-        expect(missingSite).toEqual([{ feature: "sitemapXml()" }]);
+        expect(errors).toEqual([{ cause: "missing-site", feature: "sitemapXml()" }]);
     });
 });
 
@@ -109,15 +109,14 @@ describe("rssXml", () => {
     const links = new Set(["/blog/new", "/blog/old"]);
 
     test("channel falls back to site metadata and lastBuildDate is the newest item date", () => {
-        const { result, brokenLinks, missingSite } = inContext(() => rssXml({ items }), { links });
+        const { result, errors } = inContext(() => rssXml({ items }), { links });
         expect(result).toContain("<title>Example Site</title>");
         expect(result).toContain("<description>site description</description>");
         expect(result).toContain("<language>ja</language>");
         expect(result).toContain("<lastBuildDate>Wed, 10 Jun 2026 00:00:00 GMT</lastBuildDate>");
         expect(result).toContain("<title>new &amp; shiny</title>");
         expect(result).toContain('<guid isPermaLink="true">https://example.com/blog/new</guid>');
-        expect(brokenLinks).toEqual([]);
-        expect(missingSite).toEqual([]);
+        expect(errors).toEqual([]);
     });
 
     test("channel title / description can be overridden per feed", () => {
@@ -127,15 +126,19 @@ describe("rssXml", () => {
     });
 
     test("item paths are validated against the link store", () => {
-        const { brokenLinks } = inContext(() => rssXml({ items: [{ title: "x", path: "/nope", date: new Date(0) }] }), { links });
-        expect(brokenLinks).toEqual([{ type: "not-found", link: "/nope" }]);
+        const { errors } = inContext(() => rssXml({ items: [{ title: "x", path: "/nope", date: new Date(0) }] }), { links });
+        expect(errors).toEqual([{ cause: "broken-link", type: "not-found", link: "/nope" }]);
     });
 
     test("missing channel description is reported on the missingSite rail", () => {
-        const bare = defineSite({ origin: "https://example.com", title: "t" });
-        const { missingSite } = runWithRegistry(() => rssXml({ items }), undefined, links, { site: bare });
-        expect(missingSite).toHaveLength(1);
-        expect(missingSite[0]?.feature).toContain("channel description");
+        const bare = defineSite({
+            origin: "https://example.com",
+            title: "t",
+        });
+        const { errors } = runWithRegistry(() => rssXml({ items }), undefined, links, { site: bare });
+        expect(errors).toHaveLength(1);
+
+        if (errors[0].cause === "missing-site") expect(errors[0].feature).toContain("channel description");
     });
 });
 
@@ -154,27 +157,27 @@ describe("Ogp", () => {
     });
 
     test("emits og:image as an absolute URL when the image exists", () => {
-        const { result, brokenImageSrc } = inContext(
+        const { result, errors } = inContext(
             () => renderToStaticMarkup(createElement(Ogp, { title: "t", image: "/images/ogp.png", twitterCard: "summary_large_image" })),
             { pagePath: "/", links: new Set(["/images/ogp.png"]) },
         );
         expect(result).toContain('<meta property="og:image" content="https://example.com/images/ogp.png"/>');
         expect(result).toContain('<meta name="twitter:card" content="summary_large_image"/>');
-        expect(brokenImageSrc).toEqual([]);
+        expect(errors).toEqual([]);
     });
 
     test("collects a violation and omits og:image when the image is missing", () => {
-        const { result, brokenImageSrc } = inContext(() => renderToStaticMarkup(createElement(Ogp, { title: "t", image: "/images/nope.png" })), {
+        const { result, errors } = inContext(() => renderToStaticMarkup(createElement(Ogp, { title: "t", image: "/images/nope.png" })), {
             pagePath: "/",
             links: new Set([]),
         });
         expect(result).not.toContain("og:image");
-        expect(brokenImageSrc).toEqual([{ type: "not-found", from: "/images/nope.png" }]);
+        expect(errors).toEqual([{ cause: "broken-image-src", type: "not-found", from: "/images/nope.png" }]);
     });
 
     test("without site renders nothing and collects missingSite", () => {
-        const { result, missingSite } = inContext(() => renderToStaticMarkup(createElement(Ogp, { title: "t" })), { noSite: true });
+        const { result, errors } = inContext(() => renderToStaticMarkup(createElement(Ogp, { title: "t" })), { noSite: true });
         expect(result).toBe("");
-        expect(missingSite).toEqual([{ feature: "<Ogp>" }]);
+        expect(errors).toEqual([{ cause: "missing-site", feature: "<Ogp>" }]);
     });
 });

@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import type { FaIcon } from "../lib";
 import type { Site } from "../lib/site.ts";
-import type { BrokenImageSrc, BrokenLink, MissingSite, Registry, RuleNode } from "./registry.common";
+import type { ErrorInfo, Registry, RuleNode } from "./registry.common";
 
 // 型は registry.common.ts に集約したが、公開 API としての所在（cirrojs/registry）は維持する。
 // registry.ts と同一の型を再 export すること。
@@ -66,9 +66,7 @@ export function runWithRegistry<T>(_fn: () => T): {
     result: T;
     registry: Registry;
     globalRuleDesignators: Set<string>;
-    brokenLinks: BrokenLink[];
-    brokenImageSrc: BrokenImageSrc[];
-    missingSite: MissingSite[];
+    errors: ErrorInfo[];
 } {
     throw new Error("cirro: runWithRegistry is server-only and must not be called on the client");
 }

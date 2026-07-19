@@ -39,19 +39,24 @@ export type Registry = {
 };
 
 export type BrokenLink = {
+    cause: "broken-link";
     type: "not-found" | "malformed";
     link: string;
 };
 
 export type BrokenImageSrc = {
+    cause: "broken-image-src";
     type: "not-found" | "unsupported" | "malformed" | "not-exist";
     from: string;
 };
 
 // site が未宣言のままサイトメタデータを必要とする機能を使った違反（12_SITE_METADATA.md 4.7）。
 export type MissingSite = {
+    cause: "missing-site";
     feature: string;
 };
+
+export type ErrorInfo = BrokenLink | BrokenImageSrc | MissingSite;
 
 // レンダリング 1 回分のサイトコンテキスト。ランタイム（dev / build）が構築して渡す。
 // pagePath は現在レンダリング中ページのクリーン URL 正規形、htmlPaths は全 html ページの
@@ -71,9 +76,7 @@ export type RunWithRegistry<T> = (
     result: T;
     registry: Registry;
     globalRuleDesignators: Set<string>;
-    brokenLinks: BrokenLink[];
-    brokenImageSrc: BrokenImageSrc[];
-    missingSite: MissingSite[];
+    errors: ErrorInfo[];
 };
 
 export function createRegistry(): Registry {
