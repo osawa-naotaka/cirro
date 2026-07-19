@@ -3,6 +3,7 @@ import { createElement, Fragment, type ReactElement } from "react";
 import { createServerModuleRunner, type ResolvedConfig, type ViteDevServer } from "vite";
 import type { ContentHandler } from "../lib/content.ts";
 import type { AnyRoute } from "../lib/route.ts";
+import type { Site } from "../lib/site.ts";
 import type { RunWithRegistry } from "../registry/registry.common.ts";
 import type { CirroOptions } from "../vite/vite.ts";
 
@@ -10,6 +11,7 @@ import type { CirroOptions } from "../vite/vite.ts";
 export type CirroRoutesModule = {
     runWithRegistry: RunWithRegistry<string>;
     contentHandler?: ContentHandler<unknown>;
+    site?: Site;
     routes: AnyRoute<unknown>[];
 };
 
@@ -45,10 +47,14 @@ export function setupCirro(server: ViteDevServer): setupCirroResult {
         if (typeof obj.default !== "object") throw new Error("cirro: you must export routes.");
         if (!Array.isArray(obj.default.routes)) throw new Error("cirro: you must define routes and export it as `default`");
         if (obj.default.content && typeof obj.default.content.loader !== "function") throw new Error("you must define a valid content loader function");
+        if (obj.default.site && (typeof obj.default.site.origin !== "string" || typeof obj.default.site.title !== "string")) {
+            throw new Error("cirro: site must be created with defineSite() and passed to createRouteFn({ site })");
+        }
 
         return {
             runWithRegistry: obj.runWithRegistry,
             contentHandler: obj.default.content,
+            site: obj.default.site,
             routes: obj.default.routes,
         };
     };

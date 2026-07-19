@@ -13,6 +13,19 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- `defineSite(config)` and the `Site` / `SiteConfig` types, exported from the package entry point. It declares site metadata (`origin`, `title`, optional `description` and `lang`) used by the sitemap, RSS, and OGP helpers. `origin` must be scheme + host (+ port) only — paths, trailing slashes, queries, and fragments are rejected at declaration time (subpath deployments are not supported), and only the `https`/`http` schemes are accepted. The returned object is frozen and can be imported directly by pages for typed access.
+- `sitemapXml(opt?)` and the `SitemapOpt` type. It returns a component for a file route (`route({ type: "file", path: "/sitemap.xml", component: sitemapXml() })`) that emits a sitemap-protocol XML listing every static and dynamic route as an absolute clean URL, in route-expansion order. File routes, synthetic routes, and `public/` files are not listed. An optional `filter` callback excludes pages. `lastmod`, `changefreq`, and `priority` are not emitted.
+- `rssXml(opt)` and the `RssItem` / `RssOpt` types. Called inside a file-route component, it returns an RSS 2.0 document. Channel `title` / `description` / `language` default to the site declaration and can be overridden per feed. Each item's `path` is root-relative, validated against the site's URL set like `<Link>` (broken paths fail the build), and emitted as an absolute `link` and permalink `guid`. `lastBuildDate` is the newest item date, keeping builds deterministic.
+- `Ogp` component and `OgpProps` type. It renders Open Graph meta tags (hoisted into `<head>` by React 19): `og:title`, `og:type` (default `website`), `og:site_name` from the site title, `og:description` falling back to the site description, and an automatic `og:url` derived from the page currently being rendered. The optional `image` prop is a root-relative path validated against `public/` and emitted as an absolute `og:image`; `twitterCard` emits `twitter:card` when given. Server-rendering only — it must not be used inside islands.
+- `absoluteUrl(path)` and `pageUrl()`, exported from the package entry point (and `cirrojs/registry`). `absoluteUrl` joins the declared origin with a root-relative path and validates the path against the site's URL set; `pageUrl` returns the absolute clean URL of the page currently being rendered. Both are server-only.
+- Using any of these helpers without declaring a site is collected as a violation: the dev server warns, and `cirro build` reports every violation with the page it occurred on and exits with a non-zero code.
+
+### Changed
+- **Breaking**: `createRouteFn(content)` now takes an options object: `createRouteFn({ content })`. The `site` handle is passed the same way (`createRouteFn({ content, site })`), and `defineRoutes()` bundles both into the default export for the runtime. Passing a content handler positionally throws an error with migration instructions.
+- `runWithRegistry` (exported from `cirrojs/registry`) accepts an optional fourth argument carrying the render's site context, and its result gained a `missingSite` array. File routes are now rendered inside the registry context in both dev and build, so `<Link>`-style validation (e.g. RSS item paths) works and is reported for file routes as well.
+- The bundled Font Awesome sprites are no longer copied byte-for-byte: the `style="display: none;"` attribute on the sprite's root `<svg>` element is removed when the sprite is served (dev) or copied to `dist/fa/` (build), so the generated output contains no inline styles. Icon rendering via `<use>` is unaffected because only `<symbol>` content is cloned.
+
 ## [0.0.29] - 2026-07-15
 
 ### Fixed

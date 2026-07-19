@@ -1,4 +1,4 @@
-import { Link } from "cirrojs";
+import { Link, Ogp } from "cirrojs";
 import type { ReactNode } from "react";
 import { Island } from "../islands/Island";
 import { center } from "../styles/layout";
@@ -37,6 +37,8 @@ export function Layout({ title, description, children, island = true }: LayoutPr
                 <meta name="viewport" content="width=device-width, initial-scale=1" />
                 <title>{title}</title>
                 {description ? <meta name="description" content={description} /> : null}
+                {/* OGP メタタグ一式。og:url は現在ページから自動で決まる */}
+                <Ogp title={title} description={description} />
                 {process.env.CIRRO_COMMAND === "build" && <meta httpEquiv="Content-Security-Policy" content="default-src 'self';" />}
             </head>
             <body>

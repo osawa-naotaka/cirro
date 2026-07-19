@@ -3,10 +3,10 @@ import { dirname, join } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createServer as createViteServer, build as viteBuild } from "vite";
 import { stringifyCss } from "../lib/css.ts";
-import { type BrokenImageSrc, type BrokenLink, createRegistry, type Registry, type RuleNode } from "../registry/registry.common.ts";
+import { type BrokenImageSrc, type BrokenLink, createRegistry, type MissingSite, type Registry, type RuleNode } from "../registry/registry.common.ts";
 import { bundleIcon } from "./icon.ts";
 import { reportBrokenImageSrc } from "./image.ts";
-import { collectSiteLinks, reportBrokenLink } from "./link.ts";
+import { cleanUrlPath, collectSiteLinks, reportBrokenLink, reportMissingSite } from "./link.ts";
 import { expandRoutes } from "./router.ts";
 import { appendClientScriptAndCss, setupCirro } from "./setup.ts";
 
@@ -24,7 +24,7 @@ export async function runBuild() {
     try {
         const startTime = Date.now();
         const { loadRoutesModule, outDir, cssUrl } = setupCirro(server);
-        const { runWithRegistry, contentHandler, routes } = await loadRoutesModule();
+        const { runWithRegistry, contentHandler, site, routes } = await loadRoutesModule();
 
         const scriptSrc = await getScriptSrc(outDir);
 
@@ -33,6 +33,7 @@ export async function runBuild() {
         const globalRulePages = new Map<string, string[]>();
         const brokenLinksWithPagePaths: { path: string; brokenLinks: BrokenLink[] }[] = [];
         const brokenImageSrcWithPagePaths: { path: string; brokenImageSrc: BrokenImageSrc[] }[] = [];
+        const missingSiteWithPagePaths: { path: string; missingSite: MissingSite[] }[] = [];
 
         const content = contentHandler && (await contentHandler.loader());
         const pages = expandRoutes(routes, content);
@@ -40,6 +41,8 @@ export async function runBuild() {
             pages.filter((x) => x.type !== "css" && x.type !== "fontawesome"),
             server.config.publicDir,
         );
+        // サイトメタデータ系ヘルパーが Store から引くコンテキスト（12_SITE_METADATA.md 4.3）。
+        const htmlPaths = pages.filter((p) => p.type === "html").map((p) => cleanUrlPath(p.path));
 
         for (const page of pages) {
             switch (page.type) {
@@ -52,6 +55,7 @@ export async function runBuild() {
                         globalRuleDesignators,
                         brokenLinks,
                         brokenImageSrc,
+                        missingSite,
                     } = runWithRegistry(
                         () => {
                             const tree = appendClientScriptAndCss(page.render(), scriptSrc, cssUrl);
@@ -59,6 +63,7 @@ export async function runBuild() {
                         },
                         rootRegistry,
                         links,
+                        { site, pagePath: cleanUrlPath(page.path), htmlPaths },
                     );
 
                     if (brokenLinks.length > 0) {
@@ -67,6 +72,10 @@ export async function runBuild() {
 
                     if (brokenImageSrc.length > 0) {
                         brokenImageSrcWithPagePaths.push({ path: page.path, brokenImageSrc });
+                    }
+
+                    if (missingSite.length > 0) {
+                        missingSiteWithPagePaths.push({ path: page.path, missingSite });
                     }
 
                     htmlPagePaths.push(page.path);
@@ -80,7 +89,26 @@ export async function runBuild() {
                     break;
                 }
                 case "file": {
-                    const file = page.render();
+                    // sitemap / RSS 等のヘルパーが Store を参照するため、file ルートも
+                    // レンダリングコンテキストで包む（レジストリは CSS 汚染を避けて独立させる）。
+                    const {
+                        result: file,
+                        brokenLinks,
+                        missingSite,
+                    } = runWithRegistry(() => page.render(), createRegistry(), links, {
+                        site,
+                        pagePath: page.path,
+                        htmlPaths,
+                    });
+
+                    if (brokenLinks.length > 0) {
+                        brokenLinksWithPagePaths.push({ path: page.path, brokenLinks });
+                    }
+
+                    if (missingSite.length > 0) {
+                        missingSiteWithPagePaths.push({ path: page.path, missingSite });
+                    }
+
                     await writeToFile(page.path, outDir, file);
                     break;
                 }
@@ -103,6 +131,7 @@ export async function runBuild() {
         reportGlobalRuleMismatch(globalRulePages, htmlPagePaths, rootRegistry);
         reportBrokenLinks(brokenLinksWithPagePaths);
         reportBrokenImageSrcs(brokenImageSrcWithPagePaths);
+        reportMissingSites(missingSiteWithPagePaths);
 
         if (brokenLinksWithPagePaths.length === 0) {
             console.log("no broken links found");
@@ -113,6 +142,10 @@ export async function runBuild() {
         if (brokenImageSrcWithPagePaths.length === 0) {
             console.log("no broken image sources found");
         } else {
+            process.exitCode = 1;
+        }
+
+        if (missingSiteWithPagePaths.length > 0) {
             process.exitCode = 1;
         }
 
@@ -165,6 +198,13 @@ function reportBrokenImageSrcs(brokenImageSrcWithPagePaths: { path: string; brok
     for (const { path, brokenImageSrc } of brokenImageSrcWithPagePaths) {
         console.warn(`Warning: broken image sources in "${path}":`);
         reportBrokenImageSrc(brokenImageSrc);
+    }
+}
+
+function reportMissingSites(missingSiteWithPagePaths: { path: string; missingSite: MissingSite[] }[]): void {
+    for (const { path, missingSite } of missingSiteWithPagePaths) {
+        console.warn(`Warning: site metadata is required in "${path}":`);
+        reportMissingSite(missingSite);
     }
 }
 

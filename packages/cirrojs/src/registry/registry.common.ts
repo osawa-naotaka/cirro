@@ -1,4 +1,5 @@
 import type { Properties } from "../lib/properties";
+import type { Site } from "../lib/site.ts";
 
 export type Declarations = Partial<Properties>;
 
@@ -47,11 +48,33 @@ export type BrokenImageSrc = {
     from: string;
 };
 
+// site が未宣言のままサイトメタデータを必要とする機能を使った違反（12_SITE_METADATA.md 4.7）。
+export type MissingSite = {
+    feature: string;
+};
+
+// レンダリング 1 回分のサイトコンテキスト。ランタイム（dev / build）が構築して渡す。
+// pagePath は現在レンダリング中ページのクリーン URL 正規形、htmlPaths は全 html ページの
+// クリーン URL 一覧（sitemap 生成用）。
+export type RenderSiteContext = {
+    site?: Site;
+    pagePath?: string;
+    htmlPaths?: string[];
+};
+
 export type RunWithRegistry<T> = (
     fn: () => T,
     init?: Registry,
     links?: Set<string>,
-) => { result: T; registry: Registry; globalRuleDesignators: Set<string>; brokenLinks: BrokenLink[]; brokenImageSrc: BrokenImageSrc[] };
+    siteContext?: RenderSiteContext,
+) => {
+    result: T;
+    registry: Registry;
+    globalRuleDesignators: Set<string>;
+    brokenLinks: BrokenLink[];
+    brokenImageSrc: BrokenImageSrc[];
+    missingSite: MissingSite[];
+};
 
 export function createRegistry(): Registry {
     return {

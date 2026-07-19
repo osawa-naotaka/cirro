@@ -1,7 +1,25 @@
 import { existsSync, readdirSync } from "node:fs";
 import { basename, dirname, extname, join } from "node:path/posix";
-import type { BrokenLink } from "../registry/registry.common";
+import type { BrokenLink, MissingSite } from "../registry/registry.common";
 import type { ResolvedPath } from "./router";
+
+// 出力 path のクリーン URL 正規形（09_LINK_SAFETY.md 4.4 の表のクリーン URL 側）。
+// collectLinks が登録する複数綴りのうちの正規の 1 つで、pageUrl() / og:url / sitemap が使う。
+// - /index.html → /
+// - /path/to/index.html → /path/to/
+// - /path/about.html → /path/about
+// - それ以外（ファイルルート等）はそのまま
+export function cleanUrlPath(path: string): string {
+    if (path.endsWith("/index.html") || path.endsWith("/index.htm")) {
+        const dir = dirname(path);
+        return dir === "/" ? "/" : `${dir}/`;
+    }
+    const ext = extname(path);
+    if (ext === ".html" || ext === ".htm") {
+        return join(dirname(path), basename(path, ext));
+    }
+    return path;
+}
 
 export function collectLinks(paths: string[], initialLinks?: Set<string>): Set<string> {
     const links = initialLinks ?? new Set<string>();
@@ -46,6 +64,12 @@ export function collectSiteLinks(pages: ResolvedPath[], publicPath: false | stri
         }
     }
     return links;
+}
+
+export function reportMissingSite(missingSite: MissingSite[]) {
+    for (const m of missingSite) {
+        console.log(`Site metadata is required by ${m.feature} but is not declared. ` + "Declare it with defineSite() and pass it to createRouteFn({ site }).");
+    }
 }
 
 export function reportBrokenLink(brokenLinks: BrokenLink[]) {

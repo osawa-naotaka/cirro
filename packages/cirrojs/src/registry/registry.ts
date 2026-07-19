@@ -3,7 +3,16 @@ import type { ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { FaIcon } from "../lib/fontawesome.ts";
 import { allowed_icon_names } from "../lib/fontawesome.ts";
-import { type BrokenImageSrc, type BrokenLink, createRegistry, type Registry, type RuleNode } from "./registry.common.ts";
+import type { Site } from "../lib/site.ts";
+import {
+    type BrokenImageSrc,
+    type BrokenLink,
+    createRegistry,
+    type MissingSite,
+    type Registry,
+    type RenderSiteContext,
+    type RuleNode,
+} from "./registry.common.ts";
 
 // 型は registry.common.ts に集約したが、公開 API としての所在（cirrojs/registry）は維持する。
 // registry.browser.ts と同一の型を再 export すること。
@@ -13,7 +22,9 @@ export type {
     BrokenImageSrc,
     BrokenLink,
     Declarations,
+    MissingSite,
     Registry,
+    RenderSiteContext,
     RuleNode,
     RunWithRegistry,
     StyleRule,
@@ -28,6 +39,10 @@ type Store = {
     links?: Set<string>;
     brokenLinks: BrokenLink[];
     brokenImageSrc: BrokenImageSrc[];
+    site?: Site;
+    pagePath?: string;
+    htmlPaths?: string[];
+    missingSite: MissingSite[];
 };
 
 // レンダリング 1 回ごとに専用のストアを割り当て、AsyncLocalStorage で暗黙に引き継ぐ。
@@ -133,6 +148,64 @@ export function checkImage(from: string): string | null {
     }
 }
 
+// site を要求する機能の共通入口（12_SITE_METADATA.md 4.7）。site が未宣言なら violation を
+// 収集して null を返す（throw しない。dev は警告・build はまとめて報告して非ゼロ終了）。
+export function requireSite(feature: string): Site | null {
+    const store = als.getStore();
+    if (!store) throw new Error(`cirro: ${feature} was called outside of a render context`);
+    if (!store.site) {
+        store.missingSite.push({ feature });
+        return null;
+    }
+    return store.site;
+}
+
+// site 由来の設定が解決できない違反（channel description 欠落等）を同じレールへ積む。
+export function reportMissingSiteConfig(feature: string): void {
+    const store = als.getStore();
+    if (!store) throw new Error(`cirro: ${feature} was called outside of a render context`);
+    store.missingSite.push({ feature });
+}
+
+// 現在レンダリング中ページのクリーン URL 正規形（ランタイムが渡す）。
+export function currentPagePath(): string | undefined {
+    const store = als.getStore();
+    if (!store) throw new Error("cirro: currentPagePath() was called outside of a render context");
+    return store.pagePath;
+}
+
+// 全 html ページのクリーン URL 一覧（sitemap 生成用。ランタイムが渡す）。
+export function htmlPagePaths(): string[] {
+    const store = als.getStore();
+    if (!store) throw new Error("cirro: htmlPagePaths() was called outside of a render context");
+    return store.htmlPaths ?? [];
+}
+
+// ルート相対 path を origin で絶対 URL 化する。path は Link と同じ検証レールに乗るため、
+// 存在しないパスの絶対 URL 化はビルドで検出される（12_SITE_METADATA.md 4.3）。
+export function absoluteUrl(path: string): string {
+    const store = als.getStore();
+    if (!store) throw new Error("cirro: absoluteUrl() was called outside of a render context");
+    checkLink(path);
+    if (!store.site) {
+        store.missingSite.push({ feature: "absoluteUrl()" });
+        return path;
+    }
+    return store.site.origin + path;
+}
+
+// 現在レンダリング中ページの絶対 URL（クリーン形）を返す。
+export function pageUrl(): string {
+    const store = als.getStore();
+    if (!store) throw new Error("cirro: pageUrl() was called outside of a render context");
+    const path = store.pagePath ?? "";
+    if (!store.site) {
+        store.missingSite.push({ feature: "pageUrl()" });
+        return path;
+    }
+    return store.site.origin + path;
+}
+
 export function registerIcon(icon: FaIcon) {
     const store = als.getStore();
     if (!store) throw new Error("cirro: registerIcon() was called outside of a render context");
@@ -165,7 +238,15 @@ export function runWithRegistry<T>(
     fn: () => T,
     init?: Registry,
     links?: Set<string>,
-): { result: T; registry: Registry; globalRuleDesignators: Set<string>; brokenLinks: BrokenLink[]; brokenImageSrc: BrokenImageSrc[] } {
+    siteContext?: RenderSiteContext,
+): {
+    result: T;
+    registry: Registry;
+    globalRuleDesignators: Set<string>;
+    brokenLinks: BrokenLink[];
+    brokenImageSrc: BrokenImageSrc[];
+    missingSite: MissingSite[];
+} {
     const store: Store = {
         registry: init ?? createRegistry(),
         globalRuleDesignators: new Set(),
@@ -173,6 +254,10 @@ export function runWithRegistry<T>(
         links,
         brokenLinks: [],
         brokenImageSrc: [],
+        site: siteContext?.site,
+        pagePath: siteContext?.pagePath,
+        htmlPaths: siteContext?.htmlPaths,
+        missingSite: [],
     };
     const result = als.run(store, fn);
     als.run(store, () => {
@@ -193,5 +278,6 @@ export function runWithRegistry<T>(
         globalRuleDesignators: store.globalRuleDesignators,
         brokenLinks: store.brokenLinks,
         brokenImageSrc: store.brokenImageSrc,
+        missingSite: store.missingSite,
     };
 }

@@ -21,24 +21,15 @@
 
 ---
 
-## 2. sitemap / RSS / OGP ヘルパー【仕様確定・実装待ち】
+## 2. sitemap / RSS / OGP ヘルパー【完了 2026-07-19】
 
-### 背景
+完了済み。仕様は `12_SITE_METADATA.md`、使い方は `04_USAGE.md` 5.7、実例は `examples/blog`。
 
-対象領域（ブログ・ポートフォリオ）では実質必須の機能。Phase 2 として憲章に挙げられている。
-
-### 仕様
-
-**`12_SITE_METADATA.md` として確定済み**。要点: サイトメタデータは `defineSite()` で宣言し、
-`defineContent` と同じ二重チャネルで配線する。`createRouteFn` はオブジェクト形式
-（`createRouteFn({ content, site })`）へ破壊的変更する。sitemap / RSS / OGP は
-ALS Store（origin + 現在ページ path）の上の薄いヘルパーとして提供し、出力するサイト内 URL は
-Link と同じレールでビルド時に存在検証する。
-
-### 作業項目
-
-- [x] 仕様を検討し、設計ドキュメントを作成する（→ `12_SITE_METADATA.md`）
-- [ ] 実装（実装順序は `12_SITE_METADATA.md` 6 章を参照）
+- `defineSite()` / `createRouteFn({ content, site })`（破壊的変更・CHANGELOG 記載）
+- `absoluteUrl()` / `pageUrl()` + Store 拡張（site・現在ページ path・html ページ一覧・
+  site-required 違反の収集と報告レール。file ルートもレンダリングコンテキストで包むようになり、
+  RSS item のリンク検証が乗る）
+- `sitemapXml()` / `rssXml()` / `<Ogp>`（ユニットテスト `test/site.test.ts` 25 件）
 
 ---
 

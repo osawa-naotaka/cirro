@@ -2,11 +2,15 @@
 
 本ドキュメントは、サイトメタデータ（`defineSite`）と、それを土台とする sitemap / RSS / OGP
 ヘルパーの**設計判断とその理由**を記録するものである。`11_TODO.md` の課題 2 の設計にあたる。
-本書は設計段階のドキュメントであり、実装後に使い方を `04_USAGE.md` へ追記する。
 
-関連実装（予定）: `packages/cirrojs/src/site.ts`（defineSite）/ `route.ts`（createRouteFn の
-シグネチャ変更）/ `registry/registry.ts`（Store への site・現在ページ path の追加）/
-`lib/Ogp.tsx` / `lib/sitemap.ts` / `lib/rss.ts` / `runtime/dev.ts`・`runtime/build.ts`。
+**実装状況**: 6 章の 1〜6 すべて 2026-07 に実装済み。使い方は `04_USAGE.md` 5.7、実例は
+`examples/blog`（`src/site.ts` / `src/pages/rss.ts` / `components/Layout.tsx` の `<Ogp>`）を参照。
+
+関連実装: `packages/cirrojs/src/lib/site.ts`（defineSite）/ `lib/route.ts`（createRouteFn の
+シグネチャ変更）/ `registry/registry.ts`（Store への site・現在ページ path の追加と
+`absoluteUrl` / `pageUrl`）/ `lib/Ogp.tsx` / `lib/sitemap.ts` / `lib/rss.ts` /
+`runtime/link.ts`（`cleanUrlPath`）/ `runtime/dev.ts`・`runtime/build.ts`。
+テスト: `packages/cirrojs/test/site.test.ts`。
 
 ---
 

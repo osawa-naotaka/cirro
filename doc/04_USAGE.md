@@ -166,7 +166,7 @@ bun run preview  # 生成物の確認
 
 ルートビルダーは `createRouteFn()` ファクトリから取得する。`route()` に **静的ルート（`type: "static"`）・
 動的ルート（`type: "dynamic"`）・ファイルルート（`type: "file"`）**の定義オブジェクトを渡して宣言し、
-`defineRoutes()` で束ねて default export する。コンテンツ層（5.5）を使う場合は `createRouteFn(content)` と
+`defineRoutes()` で束ねて default export する。コンテンツ層（5.5）を使う場合は `createRouteFn({ content })` と
 ハンドルを渡す。これにより `getStaticPaths` と各ページコンポーネントへ型付きの `content` が配られる。
 
 ```ts
@@ -180,7 +180,7 @@ import { generateSearchIndex } from "./pages/search-index";
 // 自前 CSS のレジストリ関数を再 export する（必須・05_STYLING.md 7.2 参照）
 export { runWithRegistry } from "cirrojs";
 
-// コンテンツ層を使う場合は createRouteFn(content) と渡す（5.5 参照）
+// コンテンツ層を使う場合は createRouteFn({ content }) と渡す（5.5 参照）
 const { defineRoutes, route } = createRouteFn();
 
 export default defineRoutes(
@@ -215,8 +215,8 @@ export default defineRoutes(
   （`src/pages/search-index.ts`）。
 - CSS の URL をルート定義に書く必要はない。ルート単位の CSS はレンダリング結果から自動生成され、
   `<link>` もランタイムが自動挿入する（5.4 と `05_STYLING.md` 7.1 参照）。
-- `defineRoutes()` はルート配列とコンテンツハンドルを束ねたオブジェクトを返す。ランタイム（dev / build）は
-  この default export からルートと content の loader を取得する。
+- `defineRoutes()` はルート配列とコンテンツハンドル・サイトメタデータ（5.7）を束ねたオブジェクトを
+  返す。ランタイム（dev / build）はこの default export からルート・content の loader・site を取得する。
 
 ### 5.2 ページコンポーネント
 
@@ -286,7 +286,7 @@ DB・CMS・ファイルシステムなどからの非同期なコンテンツ取
 この「取得（非同期）と描画（同期）の分離」を担うのがコンテンツ層である。
 設計判断の背景（検討した代替案と不採用理由）は `08_CONTENT_LAYER.md` を参照。
 
-`defineContent()` に async な `loader` を渡してハンドルを作り、`createRouteFn(content)` に渡す。
+`defineContent()` に async な `loader` を渡してハンドルを作り、`createRouteFn({ content })` に渡す。
 
 ```ts
 // src/content.ts
@@ -305,7 +305,7 @@ export const content = defineContent({
 import { createRouteFn } from "cirrojs";
 import { content } from "./content";
 
-const { defineRoutes, route } = createRouteFn(content);
+const { defineRoutes, route } = createRouteFn({ content });
 
 export default defineRoutes(
     route({
@@ -320,7 +320,7 @@ export default defineRoutes(
 
 ランタイムはレンダリング前に `loader()` を一度だけ await し、結果を `getStaticPaths` の引数と
 全ルートコンポーネント（ファイルルート含む）の `content` prop へ配る。`loader` の戻り値の型は
-`createRouteFn(content)` を通じて `getStaticPaths` と `component` の型チェックに伝播する。
+`createRouteFn({ content })` を通じて `getStaticPaths` と `component` の型チェックに伝播する。
 
 ページ側は `PageProps` で型付けする。第 2 型引数は動的ルートの params。
 
@@ -372,6 +372,78 @@ import { Link } from "cirrojs";
 - リンク切れ・不正な `to` は、**dev サーバーではコンソール警告**、**`cirro build` では全ページ分を
   ページ path 付きでまとめて報告して非ゼロ終了**（CI で止まる）。
 - Markdown 本文中のリンクと素の `<a href>` は検証対象外（検証は Link を使うことによる opt-in）。
+
+### 5.7 サイトメタデータ（defineSite）と sitemap / RSS / OGP
+
+sitemap / RSS / OGP は絶対 URL を必要とするため、サイトメタデータを `defineSite()` で宣言する
+（設計判断の背景は `12_SITE_METADATA.md` を参照）。宣言は任意で、これらの機能を使わないサイトでは
+不要。site が未宣言のままヘルパーを使うと、dev は警告・build はページ path 付きで報告して非ゼロ
+終了する。
+
+```ts
+// src/site.ts
+import { defineSite } from "cirrojs";
+
+export const site = defineSite({
+    origin: "https://example.com", // スキーム + ホストのみ（パス・末尾スラッシュ不可。宣言時に検証）
+    title: "サイトのタイトル",       // RSS channel title / og:site_name
+    description: "サイトの説明",     // RSS channel description / og:description の既定
+    lang: "ja",                     // RSS <language>
+});
+```
+
+```ts
+// src/routes.ts — createRouteFn にオブジェクトで渡す（content と同じ二重チャネル配線）
+const { defineRoutes, route } = createRouteFn({ content, site });
+```
+
+**sitemap** はファイルルート 1 行で宣言する。静的・動的ルートの全展開 URL がクリーン URL 正規形で
+収録される（ファイルルート・public は含まない）。`sitemapXml({ filter })` でページを除外できる。
+
+```ts
+route({ type: "file", path: "/sitemap.xml", component: sitemapXml() }),
+```
+
+**RSS** は `rssXml()` をファイルルートのコンポーネント内で呼ぶ。channel の title / description /
+language は site から補われ、引数で上書きもできる（タグ別フィード等）。item の `path` は Link と
+同じレールで**存在がビルド時に検証される**。`lastBuildDate` は items の date の最大値。
+
+```ts
+// src/pages/rss.ts
+import { type PageProps, rssXml } from "cirrojs";
+import type { content } from "../content";
+
+export function rssFeed(props: PageProps<typeof content>): string {
+    return rssXml({
+        items: props.content.posts.map((post) => ({
+            title: post.title,
+            path: `/blog/${post.slug}`, // ルート相対。存在検証される
+            date: new Date(post.date),
+            description: post.description,
+        })),
+    });
+}
+
+// routes.ts: route({ type: "file", path: "/rss.xml", component: rssFeed }),
+```
+
+**OGP** は `<Ogp>` コンポーネントをページ（レイアウト）に置く。React 19 の巻き上げで `<head>` へ
+入るため、置く場所は問わない。**`og:url` は現在レンダリング中のページから自動で決まる**ので
+ページごとの URL は書かない。`image` はルート相対パスで、public 配下との照合で存在検証される。
+
+```tsx
+<Ogp title={title} description={description} type="article" image="/images/ogp.png" />
+```
+
+低レベルヘルパーとして `absoluteUrl(path)`（ルート相対 path の絶対 URL 化 + 存在検証）と
+`pageUrl()`（現在ページの絶対 URL）も使える（JSON-LD 等の自作メタデータ向け）。
+
+制約:
+
+- ヘルパーが受けるのは**ルート相対パスのみ**。外部 URL の OGP 画像等は素の `<meta>` で書く。
+- `<Ogp>` / `absoluteUrl()` / `pageUrl()` は **SSR 専用**。島（クライアント）内では使えない。
+- origin は**ルート配信のみ**（サブパス配下のデプロイは非対応）。
+- フィードは RSS 2.0 のみ。
 
 ---
 

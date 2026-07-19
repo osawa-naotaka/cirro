@@ -5,7 +5,7 @@ import { stringifyCss } from "../lib/css.ts";
 import { createRegistry } from "../registry/registry.common.ts";
 import { contentType } from "./contentType.ts";
 import { reportBrokenImageSrc } from "./image.ts";
-import { collectSiteLinks, reportBrokenLink } from "./link.ts";
+import { cleanUrlPath, collectSiteLinks, reportBrokenLink, reportMissingSite } from "./link.ts";
 import { expandRoutes } from "./router.ts";
 import { appendClientScriptAndCss, setupCirro } from "./setup.ts";
 
@@ -73,7 +73,7 @@ export async function runDev(port = 5173) {
                 // routes は Module Runner で毎リクエスト読み直す。ファイル変更時に onWatchEvent が
                 // モジュールグラフを無効化しているので、変更後の最初のリクエストで再評価され、
                 // 最新のページ定義で描画される（無効化されていなければキャッシュが返るだけ）。
-                const { runWithRegistry, contentHandler, routes } = await loadRoutesModule();
+                const { runWithRegistry, contentHandler, site, routes } = await loadRoutesModule();
 
                 contentPromise ??= contentHandler?.loader() || null;
                 const content = await contentPromise;
@@ -83,6 +83,10 @@ export async function runDev(port = 5173) {
                     errorResp(".html", `no route found for the requested path: ${rawUrl}`);
                     return;
                 }
+
+                // サイトメタデータ系ヘルパー（pageUrl / Ogp / sitemapXml 等）が Store から引く
+                // コンテキスト（12_SITE_METADATA.md 4.3）。html ページ一覧はクリーン URL 正規形。
+                const htmlPaths = pages.filter((p) => p.type === "html").map((p) => cleanUrlPath(p.path));
 
                 switch (page.type) {
                     case "html": {
@@ -95,6 +99,7 @@ export async function runDev(port = 5173) {
                             result: html,
                             brokenLinks,
                             brokenImageSrc,
+                            missingSite,
                         } = runWithRegistry(
                             () => {
                                 const tree = appendClientScriptAndCss(page.render(), CLIENT_DEV_URL, `${page.path}.css`);
@@ -102,23 +107,48 @@ export async function runDev(port = 5173) {
                             },
                             createRegistry(),
                             links,
+                            { site, pagePath: cleanUrlPath(page.path), htmlPaths },
                         );
 
                         reportBrokenLink(brokenLinks);
                         reportBrokenImageSrc(brokenImageSrc);
+                        reportMissingSite(missingSite);
 
                         const transformed = await vite.transformIndexHtml(rawUrl, html);
                         successResp(".html", transformed);
                         break;
                     }
                     case "css": {
-                        const { registry } = runWithRegistry(() => renderToStaticMarkup(page.render()));
+                        // CSS 生成でも同じページを完全描画するため、site コンテキストを渡して
+                        // ヘルパーの違反が重複報告されないようにする（違反の報告は html 側が担う）。
+                        const { registry } = runWithRegistry(() => renderToStaticMarkup(page.render()), createRegistry(), undefined, {
+                            site,
+                            pagePath: cleanUrlPath(page.path.replace(/\.css$/, "")),
+                            htmlPaths,
+                        });
                         const css = stringifyCss(registry);
                         successResp(".css", css);
                         break;
                     }
                     case "file": {
-                        const file = page.render();
+                        const links = collectSiteLinks(
+                            pages.filter((p) => p.type !== "css" && p.type !== "fontawesome"),
+                            vite.config.publicDir,
+                        );
+
+                        const {
+                            result: file,
+                            brokenLinks,
+                            missingSite,
+                        } = runWithRegistry(() => page.render(), createRegistry(), links, {
+                            site,
+                            pagePath: page.path,
+                            htmlPaths,
+                        });
+
+                        reportBrokenLink(brokenLinks);
+                        reportMissingSite(missingSite);
+
                         successResp(page.ext, file);
                         break;
                     }
