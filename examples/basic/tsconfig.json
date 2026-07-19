@@ -12,7 +12,7 @@
         // 拡張子付き import (.ts/.tsx) を許可する。
         "allowImportingTsExtensions": true,
         "lib": ["ESNext", "DOM", "DOM.Iterable"],
-        "types": ["bun", "vite/client"]
+        "types": ["vite/client"]
     },
     "include": ["src", "scripts", "vite.config.ts"]
 }

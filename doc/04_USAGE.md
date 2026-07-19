@@ -401,7 +401,51 @@ import { Link } from "cirrojs";
 ページでは `<Island name="counter" props={{ initial: 3 }} />` のように使う。`name` と `props` は
 レジストリに対して型チェックされる。
 
-現時点では、全てのページにおいて同一のJSを読み込む。例え島が使われていないページにおいてもJSが読み込まれ、tree-shaking されることはない。
+### 6.1 クライアント JS は全ページ共有の単一バンドル（設計）
+
+全ページが、島マウンタと全島のコードを束ねた**同一の JS ファイル**を読み込む。島を使わない
+ページも同じである。これは制限ではなく設計判断であり、ページ単位の JS 分割（島ゼロページの
+JS ゼロ化を含む）はスコープ外とした（背景と理由は `01_CHARTER.md` 2.3 参照。要約: 対象領域では
+JS が小さい・MPA では共有 1 ファイルがページ間でキャッシュされ 2 ページ目以降の転送がゼロになる・
+実サイトではヘッダー島により島ゼロページは稀）。
+
+**トレードオフ**: 特定ページでしか使わない重い島（チャート描画ライブラリ等）を registry に
+登録すると、そのコードが共有バンドルに乗り全ページの初回ロードが重くなる。
+
+**逃げ道**: 重い部分は島の内部で `React.lazy` + dynamic import に切り出す。Rollup が動的 import を
+自動で別チャンクに分割し、実際に必要になったときだけ取得される（ビルド成果物で検証済み: 分割
+チャンクはハッシュ名の別ファイルになり、共有バンドルには含まれず、HTML の `<script>` は 1 本の
+まま。動的 import は許可済み外部スクリプトからのモジュール取得なので `script-src 'self'` も維持
+される）。
+
+```tsx
+// 島の内部で重い部分を遅延させる（島そのものは registry に通常どおり登録する）
+import { lazy, Suspense, useState } from "react";
+
+const HeavyChart = lazy(() => import("./HeavyChart"));
+
+export function ChartIsland() {
+    const [open, setOpen] = useState(false);
+    return (
+        <div>
+            <button type="button" onClick={() => setOpen(true)}>show chart</button>
+            {open && (
+                <Suspense fallback={<p>loading...</p>}>
+                    <HeavyChart />
+                </Suspense>
+            )}
+        </div>
+    );
+}
+```
+
+注意点:
+
+- 遅延部分が初期表示に含まれる場合（クリック後ではなく最初から表示される場合）、SSR は
+  Suspense の fallback を出力し、クライアントで取得完了後に本体へ置き換わる。初期表示に必要な
+  ものは遅延させず、ユーザー操作の先にあるものだけを遅延させるのがよい。
+- 遅延コンポーネント内のスタイル登録は初期 SSR 描画で実行されないため、`styleSample()` で
+  サンプルを申告する（`05_STYLING.md` 7.3 の既存の制約と同じレール）。
 
 ---
 
