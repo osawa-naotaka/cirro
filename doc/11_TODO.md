@@ -109,7 +109,9 @@ rehype プラグインを置き、`a href` と `img src` を既存の `checkLink
 ### 作業項目
 
 - [x] テストランナーの選定と保証テストの仕様確定（→ `15_TESTING.md`）
-- [ ] インラインゼロ保証テストの実装（実装順序は `15_TESTING.md` 6 章を参照）
+- [x] インラインゼロ保証テストの実装（`packages/cirrojs/test/`。ルート `pnpm test` で実行）。
+      初回実行で FA スプライトのルート `style="display: none;"` を検出し、配信時に除去する
+      よう修正した（`runtime/icon.ts` の `loadSprite`・`10_IMAGE_ASSETS.md` 5.7 に反映）
 - [ ] 各機能のテストの段階的追加（`15_TESTING.md` 7 章の候補から）
 
 ---
