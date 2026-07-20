@@ -35,6 +35,9 @@ export function checkImage(from: string): string | null {
 
 export function registerIcon(_icon: FaIcon): void {}
 
+// クライアントでは no-op。島の照合は初期 SSR 描画で収集済み。
+export function registerIslandUsage(_name: string, _props: unknown): void {}
+
 // サイトメタデータ系は SSR 専用（12_SITE_METADATA.md 5 章。島内では使わない契約）。
 // no-op で誤魔化すと hydration mismatch や空 URL の silent failure になるため、明示的に失敗させる。
 export function requireSite(feature: string): Site | null {

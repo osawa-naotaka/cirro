@@ -55,29 +55,18 @@ rehype プラグインを置き、`a href` と `img src` を既存の `checkLink
 
 ---
 
-## 4. スキャフォールディングとビルド時チェック【チェックは仕様確定・雛形生成は未着手】
+## 4. スキャフォールディングとビルド時チェック【完了 2026-07-20】
 
-### 背景
+完了済み。仕様は `14_CONFIG_VALIDATION.md`（チェック）と `16_SCAFFOLDING.md`（雛形生成）。
 
-手で組むと間違えやすい定型が多く、設定ミスが silent failure（エラーが出ず遠くで壊れる）に
-なる箇所が残っている。なお当初挙げていた「`runWithRegistry` 再 export 忘れ = silent failure」は
-**実装調査の結果、既に fail-loud であることが判明した**（`setup.ts` が throw する。
-`05_STYLING.md` 7.2 の記述の方が実装より古い）。
-
-### 仕様（ビルド時チェック）
-
-**`14_CONFIG_VALIDATION.md` として確定済み**。実装調査で silent failure を 10 件洗い出し
-（島が静かに死ぬ S1/S1'・出力パス重複 S2・public 衝突 S3・パス形式 S4・props 直列化不能 S5 ほか）、
-検査点を 4 つ（設定解決時 / ルート展開後 / レンダリング中 ALS / レンダリング後）に整理した。
-報告は既存レール（設定起因は即 throw、コンテンツ起因は全件収集 → build 一括エラー / dev 警告）。
-
-### 作業項目
-
-- [x] silent failure になりうる設定ミスの洗い出しとチェック方法の確立（→ `14_CONFIG_VALIDATION.md`）
-- [ ] ビルド時チェックの実装（実装順序は `14_CONFIG_VALIDATION.md` 6 章を参照）
-- [ ] `05_STYLING.md` 7.2 等の実装より古い記述の修正（`14_CONFIG_VALIDATION.md` 6 章）
-- [ ] スキャフォールディングの形式（create パッケージ / CLI サブコマンド）の検討と実装
-      （チェック群の導入後に着手）
+- **ビルド時チェック**: 検査点①〜④をすべて実装（設定解決時の fail-loud・ルート展開後の
+  重複/パス形式/public 衝突・島の使用照合と props 直列化検証・@layer 宣言漏れ警告）。
+  報告は ErrorInfo の統合レールに乗せた。調査項目（S3 勝者・S10 react 順序）の結果は
+  `14_CONFIG_VALIDATION.md` 冒頭に記録。`05_STYLING.md` 7.2 / `04_USAGE.md` 3.1 の
+  実装より古い記述も修正済み。テスト: `test/validate.test.ts`（36 件）。
+- **スキャフォールディング**: `packages/create-cirro`（`pnpm create cirro <dir>`）。
+  examples/basic 由来のテンプレートを同梱した依存ゼロの CLI。cirrojs リリース時に
+  テンプレートの依存バージョンを更新する（`16_SCAFFOLDING.md` 4.1）。
 
 ---
 

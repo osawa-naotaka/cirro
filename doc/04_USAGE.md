@@ -110,11 +110,12 @@ export default defineConfig({
 });
 ```
 
-### 3.1 react() を先に置く理由
+### 3.1 react() プラグインについて
 
 Cirro は `@vitejs/plugin-react` を**内包しない**（RSC 系プラグインと同じ作法で、利用者が明示的に追加する）。
 `cirro()` は `configResolved` フックで React プラグインの有無を検出し、見つからなければ
-**ビルド時にエラーで知らせる**。`react()` を `cirro()` より前に置くこと。
+**ビルド時にエラーで知らせる**。登録順は実測上どちらでも動作する（cirro は JSX 変換を行わないため
+順序依存がない。2026-07 に build / dev で確認）が、慣例として `react()` を先に書くことを推奨する。
 
 ### 3.2 CirroOptions
 

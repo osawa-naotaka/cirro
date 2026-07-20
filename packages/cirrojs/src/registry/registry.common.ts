@@ -56,15 +56,36 @@ export type MissingSite = {
     feature: string;
 };
 
-export type ErrorInfo = BrokenLink | BrokenImageSrc | MissingSite;
+// 島の設定不整合（14_CONFIG_VALIDATION.md 4.3 / S1・S1'）。
+// - not-configured: <Island> が描画されたのに cirro({ islands }) が未設定（ハイドレーションが走らない）
+// - unknown-name: 描画された島名が、設定されたレジストリのキーに存在しない（マウンタが黙ってスキップする）
+export type IslandError = {
+    cause: "island";
+    type: "not-configured" | "unknown-name";
+    island: string;
+};
 
-// レンダリング 1 回分のサイトコンテキスト。ランタイム（dev / build）が構築して渡す。
+// <Island> の props が JSON ラウンドトリップで同値に戻らない違反（14_CONFIG_VALIDATION.md 4.4 / S5）。
+// data-props 経由でクライアントへ渡る際に黙って欠落・変質し、hydration mismatch の原因になる。
+export type IslandPropsError = {
+    cause: "island-props";
+    island: string;
+    // props 内のキーパス（例 "props.onClick"・"props.items[0].date"）
+    path: string;
+    kind: string;
+};
+
+export type ErrorInfo = BrokenLink | BrokenImageSrc | MissingSite | IslandError | IslandPropsError;
+
+// レンダリング 1 回分のコンテキスト。ランタイム（dev / build）が構築して渡す。
 // pagePath は現在レンダリング中ページのクリーン URL 正規形、htmlPaths は全 html ページの
-// クリーン URL 一覧（sitemap 生成用）。
+// クリーン URL 一覧（sitemap 生成用）。islandNames は設定された島レジストリのキー集合
+// （islands オプション未設定なら undefined。島の使用照合に使う）。
 export type RenderSiteContext = {
     site?: Site;
     pagePath?: string;
     htmlPaths?: string[];
+    islandNames?: Set<string>;
 };
 
 export type RunWithRegistry<T> = (

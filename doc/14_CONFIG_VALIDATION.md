@@ -3,7 +3,17 @@
 本ドキュメントは、silent failure（設定を間違えてもエラーが出ず、遠くで静かに壊れる）に
 なりうる設定ミスの洗い出しと、それらをビルド時・開発時に検出する仕組みの**設計判断とその理由**を
 記録するものである。`11_TODO.md` の課題 4 の前半（ビルド時チェック）の設計にあたる。
-スキャフォールディング（雛形生成）は本書のスコープ外とし、チェック群の導入後に別途検討する。
+スキャフォールディング（雛形生成）は本書のスコープ外とし、`16_SCAFFOLDING.md` で扱う。
+
+**実装状況**: 検査点①〜④すべて 2026-07 に実装済み（`runtime/setup.ts` / `runtime/validate.ts` /
+`registry/registry.ts` の `registerIslandUsage` / `runtime/build.ts` の `reportUndeclaredLayers`。
+テスト: `test/validate.test.ts`）。調査項目の結果は次のとおり。
+
+- **S10（react() の順序）**: `react()` を `cirro()` の後に置いても build / dev とも正常動作する
+  ことを実測した（cirro は JSX 変換を行わないため順序依存がない）。順序チェックは実装せず、
+  `04_USAGE.md` 3.1 の「必ず前に置く」を「慣例として推奨」に緩めた。
+- **S3（public 衝突の勝者）**: 衝突は②の検査がエラーにするため、勝者がどちらかという問題自体が
+  発生しなくなった。実測による勝者の特定は行っていない。
 
 関連実装（予定）: `packages/cirrojs/src/vite/vite.ts` / `runtime/setup.ts` / `runtime/router.ts` /
 `runtime/dev.ts`・`runtime/build.ts` / `registry/registry.common.ts`・`registry.ts` /

@@ -194,6 +194,77 @@ export function pageUrl(): string {
     return store.siteContext.site.origin + path;
 }
 
+// <Island> の描画を照合する（14_CONFIG_VALIDATION.md 4.3・4.4）。
+// - islands オプション未設定なら not-configured（マウンタが空でハイドレーションが走らない）
+// - 設定されたレジストリのキーに無い名前なら unknown-name（マウンタが黙ってスキップする）
+// - props が JSON ラウンドトリップで同値に戻らない値を含むなら island-props
+// いずれも throw せず errors へ収集する（dev は警告・build はまとめて報告して非ゼロ終了）。
+export function registerIslandUsage(name: string, props: unknown): void {
+    const store = als.getStore();
+    if (!store) throw new Error("cirro: <Island> was rendered outside of a render context");
+
+    const islandNames = store.siteContext?.islandNames;
+    if (islandNames === undefined) {
+        store.errors.push({ cause: "island", type: "not-configured", island: name });
+    } else if (!islandNames.has(name)) {
+        store.errors.push({ cause: "island", type: "unknown-name", island: name });
+    }
+
+    const issues: PropIssue[] = [];
+    findNonSerializable(props, "props", issues, new Set());
+    for (const issue of issues) {
+        store.errors.push({ cause: "island-props", island: name, path: issue.path, kind: issue.kind });
+    }
+}
+
+type PropIssue = { path: string; kind: string };
+
+// 判定基準は「JSON ラウンドトリップで同値に戻るか」。JSON.stringify が黙って落とす値
+// （function / symbol / undefined）、落とせない値（bigint / 循環参照）、型が変わる値
+// （非有限数 → null、prototype が素の Object / Array でないオブジェクト: Date / Map /
+// React 要素等）をすべて違反として列挙する。
+function findNonSerializable(value: unknown, path: string, issues: PropIssue[], seen: Set<object>): void {
+    switch (typeof value) {
+        case "function":
+        case "symbol":
+        case "bigint":
+        case "undefined":
+            issues.push({ path, kind: typeof value });
+            return;
+        case "number":
+            if (!Number.isFinite(value)) issues.push({ path, kind: "non-finite number" });
+            return;
+        case "object":
+            break;
+        default:
+            return; // string / boolean
+    }
+    if (value === null) return;
+    // seen は祖先集合。真の循環だけを検出する（同一オブジェクトを複数 prop で共有する DAG は
+    // JSON では複製されるだけなので違反にしない）。
+    if (seen.has(value)) {
+        issues.push({ path, kind: "circular reference" });
+        return;
+    }
+    seen.add(value);
+
+    if (Array.isArray(value)) {
+        value.forEach((v, i) => findNonSerializable(v, `${path}[${i}]`, issues, seen));
+        seen.delete(value);
+        return;
+    }
+    const proto = Object.getPrototypeOf(value);
+    if (proto !== Object.prototype && proto !== null) {
+        issues.push({ path, kind: `non-plain object (${value.constructor?.name ?? "unknown"})` });
+        seen.delete(value);
+        return;
+    }
+    for (const [k, v] of Object.entries(value)) {
+        findNonSerializable(v, `${path}.${k}`, issues, seen);
+    }
+    seen.delete(value);
+}
+
 export function registerIcon(icon: FaIcon) {
     const store = als.getStore();
     if (!store) throw new Error("cirro: registerIcon() was called outside of a render context");

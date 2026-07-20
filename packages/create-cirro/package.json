@@ -1,0 +1,25 @@
+{
+    "name": "create-cirro",
+    "version": "0.0.1",
+    "description": "Scaffold a new Cirro site (React islands SSG with strict CSP)",
+    "license": "MIT",
+    "type": "module",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/osawa-naotaka/cirro.git"
+    },
+    "bin": {
+        "create-cirro": "./bin/create-cirro.js"
+    },
+    "files": [
+        "bin",
+        "src",
+        "template"
+    ],
+    "scripts": {
+        "test": "vitest run"
+    },
+    "devDependencies": {
+        "vitest": "^4.1.10"
+    }
+}

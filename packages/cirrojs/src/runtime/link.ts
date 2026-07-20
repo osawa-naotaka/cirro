@@ -51,16 +51,15 @@ export function collectLinks(paths: string[], initialLinks?: Set<string>): Set<s
     return links;
 }
 
+// publicDir 配下のファイルをルート相対パス（配信 URL）として列挙する。
+// リンク照合（collectSiteLinks）とルート衝突検査（validate.ts）で共有する。
+export function listPublicFiles(publicPath: false | string): string[] {
+    if (publicPath === false || publicPath === "" || !existsSync(publicPath)) return [];
+    const entries = readdirSync(publicPath, { recursive: true, withFileTypes: true });
+    return entries.filter((x) => x.isFile()).map((x) => join(x.parentPath.replaceAll("\\", "/"), x.name).replace(publicPath, ""));
+}
+
 export function collectSiteLinks(pages: ResolvedPath[], publicPath: false | string): Set<string> {
-    let links = collectLinks(pages.map((p) => p.path));
-    if (publicPath !== false && publicPath !== "") {
-        if (existsSync(publicPath)) {
-            const publicFiles = readdirSync(publicPath, { recursive: true, withFileTypes: true });
-            links = collectLinks(
-                publicFiles.filter((x) => x.isFile()).map((x) => join(x.parentPath.replaceAll("\\", "/"), x.name).replace(publicPath, "")),
-                links,
-            );
-        }
-    }
-    return links;
+    const links = collectLinks(pages.map((p) => p.path));
+    return collectLinks(listPublicFiles(publicPath), links);
 }

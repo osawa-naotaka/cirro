@@ -1,4 +1,28 @@
-import type { BrokenImageSrc, BrokenLink, ErrorInfo, MissingSite } from "../registry/registry.common";
+import type { BrokenImageSrc, BrokenLink, ErrorInfo, IslandError, IslandPropsError, MissingSite } from "../registry/registry.common";
+
+function reportIslandError(e: IslandError) {
+    switch (e.type) {
+        case "not-configured":
+            console.log(
+                `Island "${e.island}" was rendered but the islands option is not set; nothing will hydrate. ` +
+                    'Add cirro({ islands: "./src/islands/registry.ts" }) to vite.config.',
+            );
+            break;
+        case "unknown-name":
+            console.log(
+                `Island "${e.island}" is not a key of the islands registry configured in cirro({ islands }); ` +
+                    "the client mounter will silently skip it. The registry passed to createIsland() and the one in vite.config must be the same module.",
+            );
+            break;
+    }
+}
+
+function reportIslandPropsError(e: IslandPropsError) {
+    console.log(
+        `Island "${e.island}": ${e.path} is not JSON-serializable (${e.kind}); ` +
+            "it will be lost or altered when passed to the client via data-props and can break hydration.",
+    );
+}
 
 function reportMissingSite(m: MissingSite) {
     console.log(
@@ -46,6 +70,12 @@ export function reportErrors(errors: ErrorInfo[]): void {
                 break;
             case "missing-site":
                 reportMissingSite(error);
+                break;
+            case "island":
+                reportIslandError(error);
+                break;
+            case "island-props":
+                reportIslandPropsError(error);
                 break;
         }
     }

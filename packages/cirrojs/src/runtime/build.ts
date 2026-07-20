@@ -5,10 +5,11 @@ import { createServer as createViteServer, build as viteBuild } from "vite";
 import { stringifyCss } from "../lib/css.ts";
 import { createRegistry, type ErrorInfo, type Registry, type RuleNode } from "../registry/registry.common.ts";
 import { bundleIcon } from "./icon.ts";
-import { cleanUrlPath, collectSiteLinks } from "./link.ts";
+import { cleanUrlPath, collectSiteLinks, listPublicFiles } from "./link.ts";
 import { reportErrors } from "./report.ts";
 import { expandRoutes } from "./router.ts";
 import { appendClientScriptAndCss, setupCirro } from "./setup.ts";
+import { reportRouteErrors, validateRoutes } from "./validate.ts";
 
 // `cirro build`: クライアントバンドルを作り、各ルートを静的 HTML として書き出す（node:fs のみ、bun 非依存）。
 export async function runBuild() {
@@ -23,8 +24,9 @@ export async function runBuild() {
     const server = await createViteServer({ server: { middlewareMode: true, hmr: false }, appType: "custom" });
     try {
         const startTime = Date.now();
-        const { loadRoutesModule, outDir, cssUrl } = setupCirro(server);
+        const { loadRoutesModule, loadIslandNames, outDir, cssUrl } = setupCirro(server);
         const { runWithRegistry, contentHandler, site, routes } = await loadRoutesModule();
+        const islandNames = await loadIslandNames();
 
         const scriptSrc = await getScriptSrc(outDir);
 
@@ -41,6 +43,10 @@ export async function runBuild() {
         );
         // サイトメタデータ系ヘルパーが Store から引くコンテキスト（12_SITE_METADATA.md 4.3）。
         const htmlPaths = pages.filter((p) => p.type === "html").map((p) => cleanUrlPath(p.path));
+
+        // ルート展開後の検査（重複・パス形式・public 衝突）。全件収集して最後にまとめて報告し、
+        // 非ゼロ終了する（14_CONFIG_VALIDATION.md 4.2。成果物の書き出し自体は行う）。
+        const routeErrors = validateRoutes(pages, listPublicFiles(server.config.publicDir));
 
         for (const page of pages) {
             switch (page.type) {
@@ -59,7 +65,7 @@ export async function runBuild() {
                         },
                         rootRegistry,
                         links,
-                        { site, pagePath: cleanUrlPath(page.path), htmlPaths },
+                        { site, pagePath: cleanUrlPath(page.path), htmlPaths, islandNames },
                     );
 
                     if (errors.length > 0) {
@@ -83,6 +89,7 @@ export async function runBuild() {
                         site,
                         pagePath: page.path,
                         htmlPaths,
+                        islandNames,
                     });
 
                     if (errors.length > 0) {
@@ -109,13 +116,15 @@ export async function runBuild() {
         console.log(`global rule set: ${globalRulePages.size} rules`);
 
         reportGlobalRuleMismatch(globalRulePages, htmlPagePaths, rootRegistry);
+        reportUndeclaredLayers(rootRegistry);
+        reportRouteErrors(routeErrors);
         for (const error of errorsWithPagePaths) {
             console.log(`errors in ${error.path}:`);
             reportErrors(error.errors);
         }
 
-        if (errorsWithPagePaths.length === 0) {
-            console.log("no broken links, broken image source, or missing sites found");
+        if (routeErrors.length === 0 && errorsWithPagePaths.length === 0) {
+            console.log("no route, link, image, island, or site errors found");
         } else {
             process.exitCode = 1;
         }
@@ -155,6 +164,41 @@ function reportGlobalRuleMismatch(globalRulePages: Map<string, string[]>, allPag
         // 少ない側のページ一覧を出す（原因ページを特定しやすくするため）。
         const detail = pages.length <= missing.length ? `registered only on: ${pages.join(", ")}` : `missing on: ${missing.join(", ")}`;
         console.warn(`Warning: global rule ${rules} (${designator}) is not registered on all pages (${detail}); dev and build styles will differ.`);
+    }
+}
+
+// @layer ブロックで使われたレイヤー名が文アットルール（@layer a, b, ...）で宣言されているかを
+// 検査する（14_CONFIG_VALIDATION.md 4.5 / S9）。宣言が無いとレイヤー優先順が「初出順」になり、
+// 意図とズレたカスケードがスタイルの微妙な崩れとして現れる。意図的な未宣言もあり得るため警告のみ。
+function reportUndeclaredLayers(registry: Registry): void {
+    const used = new Set<string>();
+    const declared = new Set<string>();
+    const walk = (node: RuleNode): void => {
+        if (node.type === "at-statement") {
+            const m = node.statement.match(/^@layer\s+(.+)$/);
+            if (m?.[1]) {
+                for (const name of m[1].split(",")) declared.add(name.trim());
+            }
+        } else if (node.type === "at-block") {
+            const m = node.prelude.match(/^@layer\s+(.+)$/);
+            if (m?.[1]) used.add(m[1].trim());
+            node.children.forEach(walk);
+        } else if (node.children) {
+            node.children.forEach(walk);
+        }
+    };
+    for (const nodes of registry.style.values()) {
+        nodes.forEach(walk);
+    }
+    for (const name of used) {
+        // ネスト名（@layer a.b）は先頭セグメントの宣言で順序が決まる
+        const top = name.split(".")[0] ?? name;
+        if (!declared.has(top)) {
+            console.warn(
+                `Warning: @layer "${name}" is used but never declared in a "@layer a, b, ..." statement ` +
+                    "(e.g. defineCascadeLayer()); layer priority falls back to first-use order and may differ from your intent.",
+            );
+        }
     }
 }
 

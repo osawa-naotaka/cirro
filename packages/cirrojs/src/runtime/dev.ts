@@ -4,10 +4,11 @@ import { createServer as createViteServer, type ViteDevServer } from "vite";
 import { stringifyCss } from "../lib/css.ts";
 import { createRegistry } from "../registry/registry.common.ts";
 import { contentType } from "./contentType.ts";
-import { cleanUrlPath, collectSiteLinks } from "./link.ts";
+import { cleanUrlPath, collectSiteLinks, listPublicFiles } from "./link.ts";
 import { reportErrors } from "./report.ts";
 import { expandRoutes } from "./router.ts";
 import { appendClientScriptAndCss, setupCirro } from "./setup.ts";
+import { reportRouteErrors, validateRoutes } from "./validate.ts";
 
 // 仮想島マウンタ（virtual:cirro/client）の dev 配信 URL。
 const CLIENT_DEV_URL = "/@id/__x00__virtual:cirro/client";
@@ -43,7 +44,7 @@ export async function runDev(port = 5173) {
     process.env.CIRRO_COMMAND = "dev";
 
     const vite = await createViteServer({ server: { middlewareMode: true }, appType: "custom" });
-    const { loadRoutesModule, islandsDir, watchDir } = setupCirro(vite);
+    const { loadRoutesModule, loadIslandNames, islandsDir, watchDir } = setupCirro(vite);
 
     let contentPromise: Promise<unknown> | null = null;
 
@@ -74,10 +75,16 @@ export async function runDev(port = 5173) {
                 // モジュールグラフを無効化しているので、変更後の最初のリクエストで再評価され、
                 // 最新のページ定義で描画される（無効化されていなければキャッシュが返るだけ）。
                 const { runWithRegistry, contentHandler, site, routes } = await loadRoutesModule();
+                const islandNames = await loadIslandNames();
 
                 contentPromise ??= contentHandler?.loader() || null;
                 const content = await contentPromise;
                 const pages = expandRoutes(routes, content);
+
+                // ルート展開後の検査（重複・パス形式・public 衝突）。dev は警告のみで描画は続ける
+                // （14_CONFIG_VALIDATION.md 4.2）。
+                reportRouteErrors(validateRoutes(pages, listPublicFiles(vite.config.publicDir)));
+
                 const page = pages.find((p) => candidate.has(p.path));
                 if (page === undefined) {
                     errorResp(".html", `no route found for the requested path: ${rawUrl}`);
@@ -102,7 +109,7 @@ export async function runDev(port = 5173) {
                             },
                             createRegistry(),
                             links,
-                            { site, pagePath: cleanUrlPath(page.path), htmlPaths },
+                            { site, pagePath: cleanUrlPath(page.path), htmlPaths, islandNames },
                         );
 
                         reportErrors(errors);
@@ -118,6 +125,7 @@ export async function runDev(port = 5173) {
                             site,
                             pagePath: cleanUrlPath(page.path.replace(/\.css$/, "")),
                             htmlPaths,
+                            islandNames,
                         });
                         const css = stringifyCss(registry);
                         successResp(".css", css);
@@ -133,6 +141,7 @@ export async function runDev(port = 5173) {
                             site,
                             pagePath: page.path,
                             htmlPaths,
+                            islandNames,
                         });
 
                         reportErrors(errors);
