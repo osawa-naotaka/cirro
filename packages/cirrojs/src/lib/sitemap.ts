@@ -1,5 +1,5 @@
 import { htmlPagePaths, requireSite } from "cirrojs/registry";
-import { escapeXml } from "./xml.ts";
+import { escapeXml, join } from "./misc.ts";
 
 export type SitemapOpt = {
     // クリーン URL の path を受け取り、false を返したページを sitemap から除外する。
@@ -22,7 +22,7 @@ export function sitemapXml(opt?: SitemapOpt): () => string {
             return "";
         }
 
-        const urls = paths.map((p) => `    <url><loc>${escapeXml(site.origin + p)}</loc></url>`);
+        const urls = paths.map((p) => `    <url><loc>${escapeXml(join(site.origin + p))}</loc></url>`);
         return [`<?xml version="1.0" encoding="UTF-8"?>`, `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">`, ...urls, `</urlset>`, ``].join("\n");
     };
 }

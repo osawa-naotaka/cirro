@@ -37,10 +37,7 @@ export async function runBuild() {
 
         const content = contentHandler && (await contentHandler.loader());
         const pages = expandRoutes(routes, content);
-        const links = collectSiteLinks(
-            pages.filter((x) => x.type !== "css" && x.type !== "fontawesome"),
-            server.config.publicDir,
-        );
+        const links = collectSiteLinks(pages, server.config.publicDir);
         // サイトメタデータ系ヘルパーが Store から引くコンテキスト（12_SITE_METADATA.md 4.3）。
         const htmlPaths = pages.filter((p) => p.type === "html").map((p) => cleanUrlPath(p.path));
 
@@ -50,9 +47,6 @@ export async function runBuild() {
 
         for (const page of pages) {
             switch (page.type) {
-                case "css": {
-                    break;
-                }
                 case "html": {
                     const {
                         result: html,
@@ -97,9 +91,6 @@ export async function runBuild() {
                     }
 
                     await writeToFile(page.path, outDir, file);
-                    break;
-                }
-                case "fontawesome": {
                     break;
                 }
                 default: {

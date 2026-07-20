@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { FaIcon } from "../lib/fontawesome.ts";
 import { allowed_icon_names } from "../lib/fontawesome.ts";
+import { join } from "../lib/misc.ts";
 import type { Site } from "../lib/site.ts";
 import { createRegistry, type ErrorInfo, type Registry, type RenderContext, type RuleNode } from "./registry.common.ts";
 
@@ -196,7 +197,7 @@ export function absoluteUrl(path: string): string {
         store.errors.push({ cause: "missing-site", feature: "absoluteUrl()" });
         return path;
     }
-    return store.renderContext.site.origin + path;
+    return join(store.renderContext.site.origin, path);
 }
 
 // 現在レンダリング中ページの絶対 URL（クリーン形）を返す。
@@ -208,7 +209,7 @@ export function pageUrl(): string {
         store.errors.push({ cause: "missing-site", feature: "pageUrl()" });
         return path;
     }
-    return store.renderContext.site.origin + path;
+    return join(store.renderContext.site.origin, path);
 }
 
 // <Island> の描画を照合する（14_CONFIG_VALIDATION.md 4.3・4.4）。
