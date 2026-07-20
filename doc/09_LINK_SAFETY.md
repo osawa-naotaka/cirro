@@ -226,8 +226,9 @@ Warning: broken links in "/about.html": "/aboot" (not-found), "//evil.example.co
 ## 5. 制約と非目標
 
 - **素の `<a href>` は検証しない**。Link を使うことによる opt-in の検証である（強制しない）。
-- **Markdown 本文中のリンクは現時点では検証しない**。ブログでは内部リンクの大半が本文にあるため
-  重要な穴だが、rehype プラグインで後付けできる設計にしてある（6 章）。
+- **Markdown 本文中のリンクは検証される**（2026-07 実装）。本書と同じ `checkLink` の分類を
+  markdown パイプラインの信頼済み層から呼ぶ。設計は `13_MARKDOWN_REF_CHECK.md`、使い方は
+  `04_USAGE.md` 7.5 を参照。
 - **外部リンクの死活確認はしない**（1 章）。
 - **fragment の存在検証はしない**。`/about#section` の `#section` が見出し id として存在するかは
   照合しない（toc が id を生成しているため将来は可能だが、スコープ外）。
@@ -238,9 +239,7 @@ Warning: broken links in "/about.html": "/aboot" (not-found), "//evil.example.co
 
 いずれも「同じ Store・同じ正規化関数に乗せる」前提を守れば後方互換に追加できる。
 
-- **Markdown 内リンクの検証**: markdown パイプラインの信頼済み層（sanitize 後）に rehype
-  プラグインを追加し、`<a>` の内部 href を同じ `checkLink()` に通す。`renderMarkdown()` は
-  コンポーネント内＝ALS コンテキスト内で実行されるため、そのまま乗る。作る方向で検討中。
+- ~~**Markdown 内リンクの検証**~~: **実装済み**（`13_MARKDOWN_REF_CHECK.md`）。
 - **`aria-current="page"` の自動付与**: Store が現在レンダリング中のページ path を持つため、
   `to` の正規形が現在ページと一致したら自動で付与できる。ナビの現在地表示が JS ゼロで正しくなる、
   ビルド時に決定できる SSG ならではの機能。

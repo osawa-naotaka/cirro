@@ -75,7 +75,17 @@ export type IslandPropsError = {
     kind: string;
 };
 
-export type ErrorInfo = BrokenLink | BrokenImageSrc | MissingSite | IslandError | IslandPropsError;
+// Markdown 本文中の参照（a href / img src）の違反（13_MARKDOWN_REF_CHECK.md 4.1・4.3）。
+// JSX の <Link> / <Image> 起因（broken-link / broken-image-src）と区別できるよう、
+// Markdown 由来であることと属性の別をレコードに含める（grep の当たり先が .md になるため）。
+export type MarkdownRef = {
+    cause: "markdown-ref";
+    attr: "href" | "src";
+    type: "not-found" | "malformed";
+    ref: string;
+};
+
+export type ErrorInfo = BrokenLink | BrokenImageSrc | MissingSite | IslandError | IslandPropsError | MarkdownRef;
 
 // レンダリング 1 回分のコンテキスト。ランタイム（dev / build）が構築して渡す。
 // pagePath は現在レンダリング中ページのクリーン URL 正規形、htmlPaths は全 html ページの

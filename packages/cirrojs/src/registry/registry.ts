@@ -62,39 +62,56 @@ export function registerStyleSample(element: ReactNode) {
     store.samples.push(element);
 }
 
-export function checkLink(link: string) {
-    const store = als.getStore();
-    if (!store) throw new Error("cirro: checkLink() was called outside of a render context");
-
+// リンクの分類（09_LINK_SAFETY.md 4.2）。違反なら種別を、問題なければ null を返す。
+// checkLink（JSX の <Link>）と checkMarkdownRef（Markdown 本文）で共有する。
+function classifyLink(link: string, links: Set<string> | undefined): "not-found" | "malformed" | null {
     try {
         const decodedLink = decodeURIComponent(link);
 
         if (decodedLink.startsWith("//") || decodedLink.startsWith("/\\")) {
-            store.errors.push({ cause: "broken-link", type: "malformed", link });
-            return;
+            return "malformed";
         }
-
         if (!decodedLink.startsWith("/") && !decodedLink.startsWith("#")) {
-            store.errors.push({ cause: "broken-link", type: "malformed", link });
-            return;
+            return "malformed";
         }
-
         if (decodedLink.startsWith("#")) {
-            return;
+            return null;
         }
 
         const normalizedLink = decodedLink.replace(/#.*$/, "").replace(/\?.*$/, "");
-
-        if (store.links && !store.links.has(normalizedLink)) {
-            store.errors.push({ cause: "broken-link", type: "not-found", link });
-            return;
+        if (links && !links.has(normalizedLink)) {
+            return "not-found";
         }
+        return null;
     } catch (e) {
         if (e instanceof URIError) {
-            store.errors.push({ cause: "broken-link", type: "malformed", link });
-        } else {
-            throw e;
+            return "malformed";
         }
+        throw e;
+    }
+}
+
+export function checkLink(link: string) {
+    const store = als.getStore();
+    if (!store) throw new Error("cirro: checkLink() was called outside of a render context");
+
+    const type = classifyLink(link, store.links);
+    if (type !== null) {
+        store.errors.push({ cause: "broken-link", type, link });
+    }
+}
+
+// Markdown 本文中の参照（a href / img src）の検証（13_MARKDOWN_REF_CHECK.md 4.1）。
+// checkLink と違い、レンダリングコンテキスト外（loader 内での事前レンダリング等）では
+// throw せず検証をスキップする（同 4.5。検証はページ描画時に行われる）。
+// スキーム付き URL（外部リンク・外部画像）のスキップは呼び出し側（markdown パイプライン）が行う。
+export function checkMarkdownRef(attr: "href" | "src", ref: string): void {
+    const store = als.getStore();
+    if (!store) return;
+
+    const type = classifyLink(ref, store.links);
+    if (type !== null) {
+        store.errors.push({ cause: "markdown-ref", attr, type, ref });
     }
 }
 

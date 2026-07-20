@@ -1,3 +1,4 @@
+import { checkMarkdownRef } from "cirrojs/registry";
 import type { Schema } from "hast-util-sanitize";
 import { fromMarkdown } from "mdast-util-from-markdown";
 import { toString as markdowToString } from "mdast-util-to-string";
@@ -30,6 +31,10 @@ export interface MarkdownConfig {
     // rehype-prism によるシンタックスハイライト。インラインスタイルを生成せず
     // クラスベースで色付けするため、style-src 'self' の厳格 CSP と両立する。
     highlight?: boolean;
+    // 本文中の a href / img src をビルド時に検証する（既定 true。13_MARKDOWN_REF_CHECK.md）。
+    // ルート相対はサイトの URL 集合と照合、# アンカーとスキーム付き URL（外部）は素通し、
+    // 相対パス・プロトコル相対は malformed。dev は警告、build はまとめて報告して非ゼロ終了。
+    checkRefs?: boolean;
 }
 
 export interface RenderResult {
@@ -66,7 +71,9 @@ export function createMarkdownProcessor(config: MarkdownConfig = {}) {
         .use(remarkRehype) // raw HTML は通さない（allowDangerousHtml を渡さない）
         .use(config.rehypePlugins ?? []) // ── ユーザー層（sanitize の上流） ──
         .use(rehypeSanitize, schema) // ★ 固定の防衛線。ユーザーは越えられない
-        .use(config.highlight ? [rehypePrism] : []) // ── 信頼済み層（sanitize の下流・安全な構造だけ追加） ──
+        // ── 信頼済み層（sanitize の下流） ── 検証対象を「実際に出力されるツリー」と一致させる
+        .use(config.checkRefs !== false ? [rehypeCheckRefs] : [])
+        .use(config.highlight ? [rehypePrism] : [])
         .use(rehypeStringify)
         .freeze();
 
@@ -100,4 +107,46 @@ export function markdownToText(md: string) {
     return fromMarkdown(md)
         .children.map((x) => markdowToString(x))
         .join("\n");
+}
+
+// hast の最小構造型（依存を増やさないための構造的部分型）。
+type HastNode = {
+    type: string;
+    tagName?: string;
+    properties?: Record<string, unknown>;
+    children?: HastNode[];
+};
+
+// スキーム付き URL（https: / mailto: 等）は外部参照として検証対象外（13_MARKDOWN_REF_CHECK.md 4.1）。
+const SCHEME_RE = /^[a-z][a-z0-9+.-]*:/i;
+
+// 本文中の a href / img src を checkLink と同じレールで検証する組み込み rehype プラグイン
+// （13_MARKDOWN_REF_CHECK.md 4.2）。sanitize 後の信頼済み層に置くため、ユーザープラグインが
+// 生成したリンクも検証され、sanitize が落とした属性を誤検証することもない。
+// 公開 API にはしない（利用者が sanitize より前に配線すると検証対象が最終ツリーとズレるため）。
+function rehypeCheckRefs() {
+    return (tree: HastNode): void => {
+        walkRefs(tree);
+    };
+}
+
+function walkRefs(node: HastNode): void {
+    if (node.type === "element") {
+        if (node.tagName === "a") {
+            const href = node.properties?.href;
+            if (typeof href === "string" && !SCHEME_RE.test(href)) {
+                checkMarkdownRef("href", href);
+            }
+        } else if (node.tagName === "img") {
+            const src = node.properties?.src;
+            if (typeof src === "string" && !SCHEME_RE.test(src)) {
+                checkMarkdownRef("src", src);
+            }
+        }
+    }
+    if (node.children) {
+        for (const child of node.children) {
+            walkRefs(child);
+        }
+    }
 }

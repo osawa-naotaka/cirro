@@ -29,6 +29,8 @@ export function registerStyleSample(_element: ReactNode): void {}
 
 export function checkLink(_link: string): void {}
 
+export function checkMarkdownRef(_attr: "href" | "src", _ref: string): void {}
+
 export function checkImage(from: string): string | null {
     return from;
 }

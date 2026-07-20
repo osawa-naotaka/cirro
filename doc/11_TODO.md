@@ -33,25 +33,15 @@
 
 ---
 
-## 3. Markdown 本文中の参照検証【仕様確定・実装待ち】
+## 3. Markdown 本文中の参照検証【完了 2026-07-20】
 
-### 背景
+完了済み。仕様は `13_MARKDOWN_REF_CHECK.md`、使い方は `04_USAGE.md` 7.5。
 
-`09_LINK_SAFETY.md` 5 章で自認している「重要な穴」。ブログでは内部リンクの大半が
-Markdown 本文にあるのに、現状の検証対象は JSX の `<Link>` のみ。
-
-### 仕様
-
-**`13_MARKDOWN_REF_CHECK.md` として確定済み**。要点: sanitize 後の信頼済み層に組み込みの
-rehype プラグインを置き、`a href` と `img src` を既存の `checkLink()` レールで検証する。
-`<Link>` との規則の差分は「スキーム付き URL は素通し」の 1 点のみ。既定オンで
-`MarkdownConfig.checkRefs: false` により無効化できる。レンダリングコンテキスト外
-（loader 内等）では検証をスキップする。
-
-### 作業項目
-
-- [x] 仕様を検討し、設計ドキュメントを作成する（→ `13_MARKDOWN_REF_CHECK.md`）
-- [ ] 実装（実装順序は `13_MARKDOWN_REF_CHECK.md` 6 章を参照）
+- sanitize 後の信頼済み層に組み込みプラグイン `rehypeCheckRefs` を配置し、`a href` / `img src` を
+  `checkLink` と共有の分類（`classifyLink`）で検証。violation は `markdown-ref` variant として
+  ErrorInfo レールに乗る（既定オン・`checkRefs: false` で無効化・コンテキスト外はスキップ）。
+- `09_LINK_SAFETY.md` / `10_IMAGE_ASSETS.md` の「検証しない」記述を更新済み。
+  テスト: `test/markdown-ref.test.ts`（18 件。ユーザープラグインが生成したリンクの検証を含む）。
 
 ---
 

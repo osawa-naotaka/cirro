@@ -1,4 +1,18 @@
-import type { BrokenImageSrc, BrokenLink, ErrorInfo, IslandError, IslandPropsError, MissingSite } from "../registry/registry.common";
+import type { BrokenImageSrc, BrokenLink, ErrorInfo, IslandError, IslandPropsError, MarkdownRef, MissingSite } from "../registry/registry.common";
+
+function reportMarkdownRef(e: MarkdownRef) {
+    switch (e.type) {
+        case "malformed":
+            console.log(
+                `Markdown ${e.attr}="${e.ref}" is malformed. In-site references must be root-relative ("/...") or an anchor ("#..."); ` +
+                    "relative paths are not supported because content location is decoupled from the URL structure.",
+            );
+            break;
+        case "not-found":
+            console.log(`Markdown ${e.attr}="${e.ref}" is not found on this site.`);
+            break;
+    }
+}
 
 function reportIslandError(e: IslandError) {
     switch (e.type) {
@@ -76,6 +90,9 @@ export function reportErrors(errors: ErrorInfo[]): void {
                 break;
             case "island-props":
                 reportIslandPropsError(error);
+                break;
+            case "markdown-ref":
+                reportMarkdownRef(error);
                 break;
         }
     }

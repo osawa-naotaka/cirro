@@ -2,11 +2,14 @@
 
 本ドキュメントは、Markdown 本文中のリンク（`a href`）と画像（`img src`）をビルド時に検証する
 機能の**設計判断とその理由**を記録するものである。`09_LINK_SAFETY.md` 5 章で「重要な穴」と
-自認していた、`11_TODO.md` の課題 3 の設計にあたる。本書は設計段階のドキュメントであり、
-実装後に使い方を `04_USAGE.md` へ追記する。
+自認していた、`11_TODO.md` の課題 3 の設計にあたる。
 
-関連実装（予定）: `packages/cirrojs/src/markdown.tsx`（`createMarkdownProcessor` への組み込みと
-`MarkdownConfig.checkRefs`）/ `registry/registry.ts`（`checkLink` / violation ストアの既存レール）。
+**実装状況**: 2026-07 に実装済み。使い方は `04_USAGE.md` 7.5 を参照。violation は
+`ErrorInfo` の `markdown-ref` variant（`cause` / `attr` / `type` / `ref`）として収集される。
+
+関連実装: `packages/cirrojs/src/server/markdown.tsx`（組み込みプラグイン `rehypeCheckRefs` と
+`MarkdownConfig.checkRefs`）/ `registry/registry.ts`（`classifyLink` の共有と `checkMarkdownRef`）/
+`runtime/report.ts`。テスト: `test/markdown-ref.test.ts`。
 
 ---
 

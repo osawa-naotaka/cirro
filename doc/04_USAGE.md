@@ -551,6 +551,7 @@ export const { render: renderMarkdown } = createMarkdownProcessor({
 | `sanitizeSchema` | 既定スキーマを受け取り拡張して返す（サニタイズ自体は無効化できない） |
 | `toc` | 目次抽出の有効化（`{ prefix, startLevel }` で調整可） |
 | `highlight` | `rehype-prism` によるハイライト。インラインスタイルを生成せずクラスで色付け |
+| `checkRefs` | 本文中の `a href` / `img src` のビルド時検証（**既定 true**。7.5 参照） |
 
 ### 7.2 サニタイズは固定で強制される
 
@@ -604,6 +605,25 @@ return (
 
 `className` に渡したクラスで本文コンテナを装飾できる（見出し・コードブロック・Prism トークン配色などは
 子孫セレクタでスタイルする。`05_STYLING.md` 参照）。
+
+### 7.5 本文中のリンク・画像の検証（checkRefs）
+
+Markdown 本文中の `a href` と `img src` は、`<Link>` / `<Image>` と同じレールで**ビルド時に
+検証される**（既定オン。設計判断は `13_MARKDOWN_REF_CHECK.md`）。規則は次のとおり。
+
+| 参照の形 | 扱い |
+| --- | --- |
+| `/about` などルート相対 | サイトの URL 集合（全ルート + `public/`）と照合。無ければ not-found |
+| `#section` アンカー | 素通し |
+| `https://...` 等スキーム付き | 素通し（外部リンク・外部画像。死活確認はしない） |
+| `./foo` 等の相対パス・`//host` | malformed（コンテンツの置き場所と URL 構造は独立のため、相対は書けない） |
+
+- 違反は dev ではコンソール警告、`cirro build` ではページ path 付きでまとめて報告して非ゼロ終了。
+- 検証はページ描画時に行われる。loader 内での事前レンダリングでは検証されない。
+- `checkRefs: false` で無効化できる（ルート表にない同一ドメイン URL へ意図的にリンクする場合の
+  逃げ道は、自サイトの絶対 URL をベタ書きすること。スキーム付きなので素通しになる）。
+- 外部画像は推奨 CSP（`default-src 'self'`）ではブロックされるため、使う場合は `img-src` を
+  緩める必要がある。
 
 ---
 
