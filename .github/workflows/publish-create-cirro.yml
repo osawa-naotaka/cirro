@@ -1,0 +1,87 @@
+# create-cirro パッケージ（packages/create-cirro）を npm へ publish する。
+#
+# 認証は publish-main.yml と同じ npm Trusted Publishers（GitHub Actions OIDC）を使う。
+# 事前に npmjs.com 側で設定が必要:
+#   create-cirro のパッケージ設定 → Trusted Publisher → GitHub Actions を追加し、
+#   - Repository: osawa-naotaka/cirro
+#   - Workflow filename: publish-create-cirro.yml
+#   - Environment: npm
+#   を登録しておく（このワークフローの environment / ファイル名と一致させること）。
+#
+# 注意（初回公開）: Trusted Publisher の設定はパッケージが npm 上に存在してからでないと
+# 行えないため、create-cirro の最初の 1 回だけは手元から token 認証で
+# `pnpm publish --access public`（packages/create-cirro 内）を実行して作成する必要がある。
+# 2 回目以降はこのワークフローが publish する。
+#
+# publish 方式について:
+#   create-cirro に publishConfig の差し替えは無いが、publish-main.yml と構成を揃えて
+#   `pnpm pack` → `npm publish <tarball>` の 2 段とする（pnpm 11 の OIDC 不具合回避も同じ）。
+#   ビルドステップは無い（プレーンな Node ESM。16_SCAFFOLDING.md 3.4）。
+#
+# 注意: push のたびに publish を試みるため、公開前に packages/create-cirro/package.json の
+# version を上げておくこと（同一バージョンの再 publish は npm 側でエラーになる）。
+# cirrojs のリリース時は template/_package.json の dependencies.cirrojs の更新も忘れない
+# （CLAUDE.md リリース準備手順 4）。
+
+name: Publish create-cirro to npm
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    # Trusted Publisher 側で指定する environment と一致させる。
+    environment: npm
+    permissions:
+      contents: read
+      id-token: write # OIDC トークン発行に必須
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.5.2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          registry-url: "https://registry.npmjs.org"
+          # リリースビルドでは npm のパッケージキャッシュを無効化する（trusted publishing の推奨）。
+          package-manager-cache: false
+
+      # Trusted Publishing は npm CLI 11.5.1 以上 / Node 22.14 以上を要求する。
+      # Node 24 同梱の npm がこれに満たない場合に備え、最新へ更新する。
+      - name: Update npm
+        run: npm install -g npm@latest
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # ビルドは無いので、雛形生成のユニットテストをゲートにする。
+      - name: Test
+        run: pnpm --filter create-cirro run test
+
+      # files フィールド（bin / src / template）を適用した tarball を作る。
+      - name: Pack
+        working-directory: packages/create-cirro
+        run: pnpm pack --pack-destination "$RUNNER_TEMP"
+
+      # OIDC により認証され、provenance も自動付与される（--provenance は不要）。
+      - name: Publish to npm
+        run: npm publish "$RUNNER_TEMP"/create-cirro-*.tgz --access public --tag latest
+
+      - name: Publish Success
+        if: success()
+        run: echo "✅ create-cirro published successfully"
+
+      - name: Publish Failure
+        if: failure()
+        run: echo "❌ create-cirro publish failed"
