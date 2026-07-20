@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import type { FaIcon } from "../lib/fontawesome.ts";
 import { allowed_icon_names } from "../lib/fontawesome.ts";
 import type { Site } from "../lib/site.ts";
-import { createRegistry, type ErrorInfo, type Registry, type RenderSiteContext, type RuleNode } from "./registry.common.ts";
+import { createRegistry, type ErrorInfo, type Registry, type RenderContext, type RuleNode } from "./registry.common.ts";
 
 // 型は registry.common.ts に集約したが、公開 API としての所在（cirrojs/registry）は維持する。
 // registry.browser.ts と同一の型を再 export すること。
@@ -16,7 +16,7 @@ export type {
     Declarations,
     MissingSite,
     Registry,
-    RenderSiteContext,
+    RenderContext,
     RuleNode,
     RunWithRegistry,
     StyleRule,
@@ -30,7 +30,7 @@ type Store = {
     samples: ReactNode[];
     links?: Set<string>;
     errors: ErrorInfo[];
-    siteContext?: RenderSiteContext;
+    renderContext?: RenderContext;
 };
 
 // レンダリング 1 回ごとに専用のストアを割り当て、AsyncLocalStorage で暗黙に引き継ぐ。
@@ -158,11 +158,11 @@ export function checkImage(from: string): string | null {
 export function requireSite(feature: string): Site | null {
     const store = als.getStore();
     if (!store) throw new Error(`cirro: ${feature} was called outside of a render context`);
-    if (!store.siteContext?.site) {
+    if (!store.renderContext?.site) {
         store.errors.push({ cause: "missing-site", feature });
         return null;
     }
-    return store.siteContext.site;
+    return store.renderContext.site;
 }
 
 // site 由来の設定が解決できない違反（channel description 欠落等）を同じレールへ積む。
@@ -176,14 +176,14 @@ export function reportMissingSiteConfig(feature: string): void {
 export function currentPagePath(): string | undefined {
     const store = als.getStore();
     if (!store) throw new Error("cirro: currentPagePath() was called outside of a render context");
-    return store.siteContext?.pagePath;
+    return store.renderContext?.pagePath;
 }
 
 // 全 html ページのクリーン URL 一覧（sitemap 生成用。ランタイムが渡す）。
 export function htmlPagePaths(): string[] {
     const store = als.getStore();
     if (!store) throw new Error("cirro: htmlPagePaths() was called outside of a render context");
-    return store.siteContext?.htmlPaths ?? [];
+    return store.renderContext?.htmlPaths ?? [];
 }
 
 // ルート相対 path を origin で絶対 URL 化する。path は Link と同じ検証レールに乗るため、
@@ -192,23 +192,23 @@ export function absoluteUrl(path: string): string {
     const store = als.getStore();
     if (!store) throw new Error("cirro: absoluteUrl() was called outside of a render context");
     checkLink(path);
-    if (!store.siteContext?.site?.origin) {
+    if (!store.renderContext?.site?.origin) {
         store.errors.push({ cause: "missing-site", feature: "absoluteUrl()" });
         return path;
     }
-    return store.siteContext.site.origin + path;
+    return store.renderContext.site.origin + path;
 }
 
 // 現在レンダリング中ページの絶対 URL（クリーン形）を返す。
 export function pageUrl(): string {
     const store = als.getStore();
     if (!store) throw new Error("cirro: pageUrl() was called outside of a render context");
-    const path = store.siteContext?.pagePath ?? "";
-    if (!store.siteContext?.site?.origin) {
+    const path = store.renderContext?.pagePath ?? "";
+    if (!store.renderContext?.site?.origin) {
         store.errors.push({ cause: "missing-site", feature: "pageUrl()" });
         return path;
     }
-    return store.siteContext.site.origin + path;
+    return store.renderContext.site.origin + path;
 }
 
 // <Island> の描画を照合する（14_CONFIG_VALIDATION.md 4.3・4.4）。
@@ -220,7 +220,7 @@ export function registerIslandUsage(name: string, props: unknown): void {
     const store = als.getStore();
     if (!store) throw new Error("cirro: <Island> was rendered outside of a render context");
 
-    const islandNames = store.siteContext?.islandNames;
+    const islandNames = store.renderContext?.islandNames;
     if (islandNames === undefined) {
         store.errors.push({ cause: "island", type: "not-configured", island: name });
     } else if (!islandNames.has(name)) {
@@ -266,7 +266,9 @@ function findNonSerializable(value: unknown, path: string, issues: PropIssue[], 
     seen.add(value);
 
     if (Array.isArray(value)) {
-        value.forEach((v, i) => findNonSerializable(v, `${path}[${i}]`, issues, seen));
+        for (let i = 0; i < value.length; i++) {
+            findNonSerializable(value[i], `${path}[${i}]`, issues, seen);
+        }
         seen.delete(value);
         return;
     }
@@ -314,7 +316,7 @@ export function runWithRegistry<T>(
     fn: () => T,
     init?: Registry,
     links?: Set<string>,
-    siteContext?: RenderSiteContext,
+    renderContext?: RenderContext,
 ): {
     result: T;
     registry: Registry;
@@ -327,7 +329,7 @@ export function runWithRegistry<T>(
         samples: [],
         links,
         errors: [],
-        siteContext,
+        renderContext,
     };
     const result = als.run(store, fn);
     als.run(store, () => {

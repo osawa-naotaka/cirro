@@ -13,7 +13,7 @@ export type {
     Declarations,
     MissingSite,
     Registry,
-    RenderSiteContext,
+    RenderContext,
     RuleNode,
     RunWithRegistry,
     StyleRule,
