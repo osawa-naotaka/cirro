@@ -110,11 +110,12 @@ export default defineConfig({
 });
 ```
 
-### 3.1 react() を先に置く理由
+### 3.1 react() プラグインについて
 
 Cirro は `@vitejs/plugin-react` を**内包しない**（RSC 系プラグインと同じ作法で、利用者が明示的に追加する）。
 `cirro()` は `configResolved` フックで React プラグインの有無を検出し、見つからなければ
-**ビルド時にエラーで知らせる**。`react()` を `cirro()` より前に置くこと。
+**ビルド時にエラーで知らせる**。登録順は実測上どちらでも動作する（cirro は JSX 変換を行わないため
+順序依存がない。2026-07 に build / dev で確認）が、慣例として `react()` を先に書くことを推奨する。
 
 ### 3.2 CirroOptions
 
@@ -166,7 +167,7 @@ bun run preview  # 生成物の確認
 
 ルートビルダーは `createRouteFn()` ファクトリから取得する。`route()` に **静的ルート（`type: "static"`）・
 動的ルート（`type: "dynamic"`）・ファイルルート（`type: "file"`）**の定義オブジェクトを渡して宣言し、
-`defineRoutes()` で束ねて default export する。コンテンツ層（5.5）を使う場合は `createRouteFn(content)` と
+`defineRoutes()` で束ねて default export する。コンテンツ層（5.5）を使う場合は `createRouteFn({ content })` と
 ハンドルを渡す。これにより `getStaticPaths` と各ページコンポーネントへ型付きの `content` が配られる。
 
 ```ts
@@ -180,7 +181,7 @@ import { generateSearchIndex } from "./pages/search-index";
 // 自前 CSS のレジストリ関数を再 export する（必須・05_STYLING.md 7.2 参照）
 export { runWithRegistry } from "cirrojs";
 
-// コンテンツ層を使う場合は createRouteFn(content) と渡す（5.5 参照）
+// コンテンツ層を使う場合は createRouteFn({ content }) と渡す（5.5 参照）
 const { defineRoutes, route } = createRouteFn();
 
 export default defineRoutes(
@@ -215,8 +216,8 @@ export default defineRoutes(
   （`src/pages/search-index.ts`）。
 - CSS の URL をルート定義に書く必要はない。ルート単位の CSS はレンダリング結果から自動生成され、
   `<link>` もランタイムが自動挿入する（5.4 と `05_STYLING.md` 7.1 参照）。
-- `defineRoutes()` はルート配列とコンテンツハンドルを束ねたオブジェクトを返す。ランタイム（dev / build）は
-  この default export からルートと content の loader を取得する。
+- `defineRoutes()` はルート配列とコンテンツハンドル・サイトメタデータ（5.7）を束ねたオブジェクトを
+  返す。ランタイム（dev / build）はこの default export からルート・content の loader・site を取得する。
 
 ### 5.2 ページコンポーネント
 
@@ -286,7 +287,7 @@ DB・CMS・ファイルシステムなどからの非同期なコンテンツ取
 この「取得（非同期）と描画（同期）の分離」を担うのがコンテンツ層である。
 設計判断の背景（検討した代替案と不採用理由）は `08_CONTENT_LAYER.md` を参照。
 
-`defineContent()` に async な `loader` を渡してハンドルを作り、`createRouteFn(content)` に渡す。
+`defineContent()` に async な `loader` を渡してハンドルを作り、`createRouteFn({ content })` に渡す。
 
 ```ts
 // src/content.ts
@@ -305,7 +306,7 @@ export const content = defineContent({
 import { createRouteFn } from "cirrojs";
 import { content } from "./content";
 
-const { defineRoutes, route } = createRouteFn(content);
+const { defineRoutes, route } = createRouteFn({ content });
 
 export default defineRoutes(
     route({
@@ -320,7 +321,7 @@ export default defineRoutes(
 
 ランタイムはレンダリング前に `loader()` を一度だけ await し、結果を `getStaticPaths` の引数と
 全ルートコンポーネント（ファイルルート含む）の `content` prop へ配る。`loader` の戻り値の型は
-`createRouteFn(content)` を通じて `getStaticPaths` と `component` の型チェックに伝播する。
+`createRouteFn({ content })` を通じて `getStaticPaths` と `component` の型チェックに伝播する。
 
 ページ側は `PageProps` で型付けする。第 2 型引数は動的ルートの params。
 
@@ -373,6 +374,78 @@ import { Link } from "cirrojs";
   ページ path 付きでまとめて報告して非ゼロ終了**（CI で止まる）。
 - Markdown 本文中のリンクと素の `<a href>` は検証対象外（検証は Link を使うことによる opt-in）。
 
+### 5.7 サイトメタデータ（defineSite）と sitemap / RSS / OGP
+
+sitemap / RSS / OGP は絶対 URL を必要とするため、サイトメタデータを `defineSite()` で宣言する
+（設計判断の背景は `12_SITE_METADATA.md` を参照）。宣言は任意で、これらの機能を使わないサイトでは
+不要。site が未宣言のままヘルパーを使うと、dev は警告・build はページ path 付きで報告して非ゼロ
+終了する。
+
+```ts
+// src/site.ts
+import { defineSite } from "cirrojs";
+
+export const site = defineSite({
+    origin: "https://example.com", // スキーム + ホストのみ（パス・末尾スラッシュ不可。宣言時に検証）
+    title: "サイトのタイトル",       // RSS channel title / og:site_name
+    description: "サイトの説明",     // RSS channel description / og:description の既定
+    lang: "ja",                     // RSS <language>
+});
+```
+
+```ts
+// src/routes.ts — createRouteFn にオブジェクトで渡す（content と同じ二重チャネル配線）
+const { defineRoutes, route } = createRouteFn({ content, site });
+```
+
+**sitemap** はファイルルート 1 行で宣言する。静的・動的ルートの全展開 URL がクリーン URL 正規形で
+収録される（ファイルルート・public は含まない）。`sitemapXml({ filter })` でページを除外できる。
+
+```ts
+route({ type: "file", path: "/sitemap.xml", component: sitemapXml() }),
+```
+
+**RSS** は `rssXml()` をファイルルートのコンポーネント内で呼ぶ。channel の title / description /
+language は site から補われ、引数で上書きもできる（タグ別フィード等）。item の `path` は Link と
+同じレールで**存在がビルド時に検証される**。`lastBuildDate` は items の date の最大値。
+
+```ts
+// src/pages/rss.ts
+import { type PageProps, rssXml } from "cirrojs";
+import type { content } from "../content";
+
+export function rssFeed(props: PageProps<typeof content>): string {
+    return rssXml({
+        items: props.content.posts.map((post) => ({
+            title: post.title,
+            path: `/blog/${post.slug}`, // ルート相対。存在検証される
+            date: new Date(post.date),
+            description: post.description,
+        })),
+    });
+}
+
+// routes.ts: route({ type: "file", path: "/rss.xml", component: rssFeed }),
+```
+
+**OGP** は `<Ogp>` コンポーネントをページ（レイアウト）に置く。React 19 の巻き上げで `<head>` へ
+入るため、置く場所は問わない。**`og:url` は現在レンダリング中のページから自動で決まる**ので
+ページごとの URL は書かない。`image` はルート相対パスで、public 配下との照合で存在検証される。
+
+```tsx
+<Ogp title={title} description={description} type="article" image="/images/ogp.png" />
+```
+
+低レベルヘルパーとして `absoluteUrl(path)`（ルート相対 path の絶対 URL 化 + 存在検証）と
+`pageUrl()`（現在ページの絶対 URL）も使える（JSON-LD 等の自作メタデータ向け）。
+
+制約:
+
+- ヘルパーが受けるのは**ルート相対パスのみ**。外部 URL の OGP 画像等は素の `<meta>` で書く。
+- `<Ogp>` / `absoluteUrl()` / `pageUrl()` は **SSR 専用**。島（クライアント）内では使えない。
+- origin は**ルート配信のみ**（サブパス配下のデプロイは非対応）。
+- フィードは RSS 2.0 のみ。
+
 ---
 
 ## 6. 島（islands）システム
@@ -401,7 +474,51 @@ import { Link } from "cirrojs";
 ページでは `<Island name="counter" props={{ initial: 3 }} />` のように使う。`name` と `props` は
 レジストリに対して型チェックされる。
 
-現時点では、全てのページにおいて同一のJSを読み込む。例え島が使われていないページにおいてもJSが読み込まれ、tree-shaking されることはない。
+### 6.1 クライアント JS は全ページ共有の単一バンドル（設計）
+
+全ページが、島マウンタと全島のコードを束ねた**同一の JS ファイル**を読み込む。島を使わない
+ページも同じである。これは制限ではなく設計判断であり、ページ単位の JS 分割（島ゼロページの
+JS ゼロ化を含む）はスコープ外とした（背景と理由は `01_CHARTER.md` 2.3 参照。要約: 対象領域では
+JS が小さい・MPA では共有 1 ファイルがページ間でキャッシュされ 2 ページ目以降の転送がゼロになる・
+実サイトではヘッダー島により島ゼロページは稀）。
+
+**トレードオフ**: 特定ページでしか使わない重い島（チャート描画ライブラリ等）を registry に
+登録すると、そのコードが共有バンドルに乗り全ページの初回ロードが重くなる。
+
+**逃げ道**: 重い部分は島の内部で `React.lazy` + dynamic import に切り出す。Rollup が動的 import を
+自動で別チャンクに分割し、実際に必要になったときだけ取得される（ビルド成果物で検証済み: 分割
+チャンクはハッシュ名の別ファイルになり、共有バンドルには含まれず、HTML の `<script>` は 1 本の
+まま。動的 import は許可済み外部スクリプトからのモジュール取得なので `script-src 'self'` も維持
+される）。
+
+```tsx
+// 島の内部で重い部分を遅延させる（島そのものは registry に通常どおり登録する）
+import { lazy, Suspense, useState } from "react";
+
+const HeavyChart = lazy(() => import("./HeavyChart"));
+
+export function ChartIsland() {
+    const [open, setOpen] = useState(false);
+    return (
+        <div>
+            <button type="button" onClick={() => setOpen(true)}>show chart</button>
+            {open && (
+                <Suspense fallback={<p>loading...</p>}>
+                    <HeavyChart />
+                </Suspense>
+            )}
+        </div>
+    );
+}
+```
+
+注意点:
+
+- 遅延部分が初期表示に含まれる場合（クリック後ではなく最初から表示される場合）、SSR は
+  Suspense の fallback を出力し、クライアントで取得完了後に本体へ置き換わる。初期表示に必要な
+  ものは遅延させず、ユーザー操作の先にあるものだけを遅延させるのがよい。
+- 遅延コンポーネント内のスタイル登録は初期 SSR 描画で実行されないため、`styleSample()` で
+  サンプルを申告する（`05_STYLING.md` 7.3 の既存の制約と同じレール）。
 
 ---
 
@@ -434,6 +551,7 @@ export const { render: renderMarkdown } = createMarkdownProcessor({
 | `sanitizeSchema` | 既定スキーマを受け取り拡張して返す（サニタイズ自体は無効化できない） |
 | `toc` | 目次抽出の有効化（`{ prefix, startLevel }` で調整可） |
 | `highlight` | `rehype-prism` によるハイライト。インラインスタイルを生成せずクラスで色付け |
+| `checkRefs` | 本文中の `a href` / `img src` のビルド時検証（**既定 true**。7.5 参照） |
 
 ### 7.2 サニタイズは固定で強制される
 
@@ -487,6 +605,25 @@ return (
 
 `className` に渡したクラスで本文コンテナを装飾できる（見出し・コードブロック・Prism トークン配色などは
 子孫セレクタでスタイルする。`05_STYLING.md` 参照）。
+
+### 7.5 本文中のリンク・画像の検証（checkRefs）
+
+Markdown 本文中の `a href` と `img src` は、`<Link>` / `<Image>` と同じレールで**ビルド時に
+検証される**（既定オン。設計判断は `13_MARKDOWN_REF_CHECK.md`）。規則は次のとおり。
+
+| 参照の形 | 扱い |
+| --- | --- |
+| `/about` などルート相対 | サイトの URL 集合（全ルート + `public/`）と照合。無ければ not-found |
+| `#section` アンカー | 素通し |
+| `https://...` 等スキーム付き | 素通し（外部リンク・外部画像。死活確認はしない） |
+| `./foo` 等の相対パス・`//host` | malformed（コンテンツの置き場所と URL 構造は独立のため、相対は書けない） |
+
+- 違反は dev ではコンソール警告、`cirro build` ではページ path 付きでまとめて報告して非ゼロ終了。
+- 検証はページ描画時に行われる。loader 内での事前レンダリングでは検証されない。
+- `checkRefs: false` で無効化できる（ルート表にない同一ドメイン URL へ意図的にリンクする場合の
+  逃げ道は、自サイトの絶対 URL をベタ書きすること。スキーム付きなので素通しになる）。
+- 外部画像は推奨 CSP（`default-src 'self'`）ではブロックされるため、使う場合は `img-src` を
+  緩める必要がある。
 
 ---
 

@@ -1,7 +1,24 @@
 import { existsSync, readdirSync } from "node:fs";
 import { basename, dirname, extname, join } from "node:path/posix";
-import type { BrokenLink } from "../registry/registry.common";
 import type { ResolvedPath } from "./router";
+
+// 出力 path のクリーン URL 正規形（09_LINK_SAFETY.md 4.4 の表のクリーン URL 側）。
+// collectLinks が登録する複数綴りのうちの正規の 1 つで、pageUrl() / og:url / sitemap が使う。
+// - /index.html → /
+// - /path/to/index.html → /path/to/
+// - /path/about.html → /path/about
+// - それ以外（ファイルルート等）はそのまま
+export function cleanUrlPath(path: string): string {
+    if (path.endsWith("/index.html") || path.endsWith("/index.htm")) {
+        const dir = dirname(path);
+        return dir === "/" ? "/" : `${dir}/`;
+    }
+    const ext = extname(path);
+    if (ext === ".html" || ext === ".htm") {
+        return join(dirname(path), basename(path, ext));
+    }
+    return path;
+}
 
 export function collectLinks(paths: string[], initialLinks?: Set<string>): Set<string> {
     const links = initialLinks ?? new Set<string>();
@@ -34,29 +51,15 @@ export function collectLinks(paths: string[], initialLinks?: Set<string>): Set<s
     return links;
 }
 
-export function collectSiteLinks(pages: ResolvedPath[], publicPath: false | string): Set<string> {
-    let links = collectLinks(pages.map((p) => p.path));
-    if (publicPath !== false && publicPath !== "") {
-        if (existsSync(publicPath)) {
-            const publicFiles = readdirSync(publicPath, { recursive: true, withFileTypes: true });
-            links = collectLinks(
-                publicFiles.filter((x) => x.isFile()).map((x) => join(x.parentPath.replaceAll("\\", "/"), x.name).replace(publicPath, "")),
-                links,
-            );
-        }
-    }
-    return links;
+// publicDir 配下のファイルをルート相対パス（配信 URL）として列挙する。
+// リンク照合（collectSiteLinks）とルート衝突検査（validate.ts）で共有する。
+export function listPublicFiles(publicPath: false | string): string[] {
+    if (publicPath === false || publicPath === "" || !existsSync(publicPath)) return [];
+    const entries = readdirSync(publicPath, { recursive: true, withFileTypes: true });
+    return entries.filter((x) => x.isFile()).map((x) => join(x.parentPath.replaceAll("\\", "/"), x.name).replace(publicPath, ""));
 }
 
-export function reportBrokenLink(brokenLinks: BrokenLink[]) {
-    for (const link of brokenLinks) {
-        switch (link.type) {
-            case "malformed":
-                console.log(`Link is malformed: "${link.link}". to property of Link must begin with "/" or "#". "//" or "/\\" are not allowed.`);
-                break;
-            case "not-found":
-                console.log(`Link is not found: "${link.link}".`);
-                break;
-        }
-    }
+export function collectSiteLinks(pages: ResolvedPath[], publicPath: false | string): Set<string> {
+    const links = collectLinks(pages.map((p) => p.path));
+    return collectLinks(listPublicFiles(publicPath), links);
 }

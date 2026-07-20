@@ -1,3 +1,4 @@
+import { registerIslandUsage } from "cirrojs/registry";
 import { type ComponentProps, type ComponentType, createElement } from "react";
 import { renderToString } from "react-dom/server";
 
@@ -11,6 +12,8 @@ type IslandRegistry = Record<string, ComponentType<any>>;
 // 純データの registry のみを import するため、クライアントバンドルには混入しない。
 export function createIsland<R extends IslandRegistry>(islands: R) {
     return function Island<K extends keyof R & string>({ name, props, className }: { name: K; props: ComponentProps<R[K]>; className?: string }) {
+        // 設定された islands レジストリとの照合と props の直列化検証（14_CONFIG_VALIDATION.md 4.3・4.4）
+        registerIslandUsage(name, props);
         const html = renderToString(createElement(islands[name], props));
         return createElement("div", {
             className,

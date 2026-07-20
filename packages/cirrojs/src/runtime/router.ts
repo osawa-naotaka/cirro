@@ -1,8 +1,7 @@
-import { readFileSync } from "node:fs";
-import { createRequire } from "node:module";
 import type { ReactElement } from "react";
 import { faDir } from "../lib/fontawesome.ts";
 import type { AnyRoute } from "../lib/route";
+import { loadSprite } from "./icon.ts";
 
 export type ResolvedPath =
     | {
@@ -72,18 +71,13 @@ export function expandRoutes<T>(routes: AnyRoute<T>[], content: T): ResolvedPath
         }
     }
 
-    // fontawesome スプライトの合成ルート
+    // fontawesome スプライトの合成ルート（ルート style 属性の除去は loadSprite が行う）
     for (const t of ["brands", "regular", "solid"]) {
         pages.push({
             type: "fontawesome",
             path: `${faDir}/${t}.svg`,
             ext: ".svg",
-            render: () => {
-                const require = createRequire(import.meta.url);
-                const path = require.resolve(`@fortawesome/fontawesome-free/sprites/${t}.svg`);
-                const svg = readFileSync(path, "utf-8");
-                return svg;
-            },
+            render: () => loadSprite(t),
         });
     }
     return pages;

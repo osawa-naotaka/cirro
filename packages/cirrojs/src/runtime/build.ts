@@ -3,12 +3,13 @@ import { dirname, join } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createServer as createViteServer, build as viteBuild } from "vite";
 import { stringifyCss } from "../lib/css.ts";
-import { type BrokenImageSrc, type BrokenLink, createRegistry, type Registry, type RuleNode } from "../registry/registry.common.ts";
+import { createRegistry, type ErrorInfo, type Registry, type RuleNode } from "../registry/registry.common.ts";
 import { bundleIcon } from "./icon.ts";
-import { reportBrokenImageSrc } from "./image.ts";
-import { collectSiteLinks, reportBrokenLink } from "./link.ts";
+import { cleanUrlPath, collectSiteLinks, listPublicFiles } from "./link.ts";
+import { reportErrors } from "./report.ts";
 import { expandRoutes } from "./router.ts";
 import { appendClientScriptAndCss, setupCirro } from "./setup.ts";
+import { reportRouteErrors, validateRoutes } from "./validate.ts";
 
 // `cirro build`: クライアントバンドルを作り、各ルートを静的 HTML として書き出す（node:fs のみ、bun 非依存）。
 export async function runBuild() {
@@ -23,16 +24,16 @@ export async function runBuild() {
     const server = await createViteServer({ server: { middlewareMode: true, hmr: false }, appType: "custom" });
     try {
         const startTime = Date.now();
-        const { loadRoutesModule, outDir, cssUrl } = setupCirro(server);
-        const { runWithRegistry, contentHandler, routes } = await loadRoutesModule();
+        const { loadRoutesModule, loadIslandNames, outDir, cssUrl } = setupCirro(server);
+        const { runWithRegistry, contentHandler, site, routes } = await loadRoutesModule();
+        const islandNames = await loadIslandNames();
 
         const scriptSrc = await getScriptSrc(outDir);
 
         const rootRegistry: Registry = createRegistry();
         const htmlPagePaths: string[] = [];
         const globalRulePages = new Map<string, string[]>();
-        const brokenLinksWithPagePaths: { path: string; brokenLinks: BrokenLink[] }[] = [];
-        const brokenImageSrcWithPagePaths: { path: string; brokenImageSrc: BrokenImageSrc[] }[] = [];
+        const errorsWithPagePaths: { path: string; errors: ErrorInfo[] }[] = [];
 
         const content = contentHandler && (await contentHandler.loader());
         const pages = expandRoutes(routes, content);
@@ -40,6 +41,12 @@ export async function runBuild() {
             pages.filter((x) => x.type !== "css" && x.type !== "fontawesome"),
             server.config.publicDir,
         );
+        // サイトメタデータ系ヘルパーが Store から引くコンテキスト（12_SITE_METADATA.md 4.3）。
+        const htmlPaths = pages.filter((p) => p.type === "html").map((p) => cleanUrlPath(p.path));
+
+        // ルート展開後の検査（重複・パス形式・public 衝突）。全件収集して最後にまとめて報告し、
+        // 非ゼロ終了する（14_CONFIG_VALIDATION.md 4.2。成果物の書き出し自体は行う）。
+        const routeErrors = validateRoutes(pages, listPublicFiles(server.config.publicDir));
 
         for (const page of pages) {
             switch (page.type) {
@@ -50,8 +57,7 @@ export async function runBuild() {
                     const {
                         result: html,
                         globalRuleDesignators,
-                        brokenLinks,
-                        brokenImageSrc,
+                        errors,
                     } = runWithRegistry(
                         () => {
                             const tree = appendClientScriptAndCss(page.render(), scriptSrc, cssUrl);
@@ -59,14 +65,11 @@ export async function runBuild() {
                         },
                         rootRegistry,
                         links,
+                        { site, pagePath: cleanUrlPath(page.path), htmlPaths, islandNames },
                     );
 
-                    if (brokenLinks.length > 0) {
-                        brokenLinksWithPagePaths.push({ path: page.path, brokenLinks });
-                    }
-
-                    if (brokenImageSrc.length > 0) {
-                        brokenImageSrcWithPagePaths.push({ path: page.path, brokenImageSrc });
+                    if (errors.length > 0) {
+                        errorsWithPagePaths.push({ path: page.path, errors });
                     }
 
                     htmlPagePaths.push(page.path);
@@ -80,7 +83,19 @@ export async function runBuild() {
                     break;
                 }
                 case "file": {
-                    const file = page.render();
+                    // sitemap / RSS 等のヘルパーが Store を参照するため、file ルートも
+                    // レンダリングコンテキストで包む（レジストリは CSS 汚染を避けて独立させる）。
+                    const { result: file, errors } = runWithRegistry(() => page.render(), createRegistry(), links, {
+                        site,
+                        pagePath: page.path,
+                        htmlPaths,
+                        islandNames,
+                    });
+
+                    if (errors.length > 0) {
+                        errorsWithPagePaths.push({ path: page.path, errors });
+                    }
+
                     await writeToFile(page.path, outDir, file);
                     break;
                 }
@@ -101,17 +116,15 @@ export async function runBuild() {
         console.log(`global rule set: ${globalRulePages.size} rules`);
 
         reportGlobalRuleMismatch(globalRulePages, htmlPagePaths, rootRegistry);
-        reportBrokenLinks(brokenLinksWithPagePaths);
-        reportBrokenImageSrcs(brokenImageSrcWithPagePaths);
-
-        if (brokenLinksWithPagePaths.length === 0) {
-            console.log("no broken links found");
-        } else {
-            process.exitCode = 1;
+        reportUndeclaredLayers(rootRegistry);
+        reportRouteErrors(routeErrors);
+        for (const error of errorsWithPagePaths) {
+            console.log(`errors in ${error.path}:`);
+            reportErrors(error.errors);
         }
 
-        if (brokenImageSrcWithPagePaths.length === 0) {
-            console.log("no broken image sources found");
+        if (routeErrors.length === 0 && errorsWithPagePaths.length === 0) {
+            console.log("no route, link, image, island, or site errors found");
         } else {
             process.exitCode = 1;
         }
@@ -154,17 +167,38 @@ function reportGlobalRuleMismatch(globalRulePages: Map<string, string[]>, allPag
     }
 }
 
-function reportBrokenLinks(brokenLinksWithPagePaths: { path: string; brokenLinks: BrokenLink[] }[]): void {
-    for (const { path, brokenLinks } of brokenLinksWithPagePaths) {
-        console.warn(`Warning: broken links in "${path}":`);
-        reportBrokenLink(brokenLinks);
+// @layer ブロックで使われたレイヤー名が文アットルール（@layer a, b, ...）で宣言されているかを
+// 検査する（14_CONFIG_VALIDATION.md 4.5 / S9）。宣言が無いとレイヤー優先順が「初出順」になり、
+// 意図とズレたカスケードがスタイルの微妙な崩れとして現れる。意図的な未宣言もあり得るため警告のみ。
+function reportUndeclaredLayers(registry: Registry): void {
+    const used = new Set<string>();
+    const declared = new Set<string>();
+    const walk = (node: RuleNode): void => {
+        if (node.type === "at-statement") {
+            const m = node.statement.match(/^@layer\s+(.+)$/);
+            if (m?.[1]) {
+                for (const name of m[1].split(",")) declared.add(name.trim());
+            }
+        } else if (node.type === "at-block") {
+            const m = node.prelude.match(/^@layer\s+(.+)$/);
+            if (m?.[1]) used.add(m[1].trim());
+            node.children.forEach(walk);
+        } else if (node.children) {
+            node.children.forEach(walk);
+        }
+    };
+    for (const nodes of registry.style.values()) {
+        nodes.forEach(walk);
     }
-}
-
-function reportBrokenImageSrcs(brokenImageSrcWithPagePaths: { path: string; brokenImageSrc: BrokenImageSrc[] }[]): void {
-    for (const { path, brokenImageSrc } of brokenImageSrcWithPagePaths) {
-        console.warn(`Warning: broken image sources in "${path}":`);
-        reportBrokenImageSrc(brokenImageSrc);
+    for (const name of used) {
+        // ネスト名（@layer a.b）は先頭セグメントの宣言で順序が決まる
+        const top = name.split(".")[0] ?? name;
+        if (!declared.has(top)) {
+            console.warn(
+                `Warning: @layer "${name}" is used but never declared in a "@layer a, b, ..." statement ` +
+                    "(e.g. defineCascadeLayer()); layer priority falls back to first-use order and may differ from your intent.",
+            );
+        }
     }
 }
 

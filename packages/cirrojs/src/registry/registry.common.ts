@@ -1,4 +1,5 @@
 import type { Properties } from "../lib/properties";
+import type { Site } from "../lib/site.ts";
 
 export type Declarations = Partial<Properties>;
 
@@ -38,20 +39,76 @@ export type Registry = {
 };
 
 export type BrokenLink = {
+    cause: "broken-link";
     type: "not-found" | "malformed";
     link: string;
 };
 
 export type BrokenImageSrc = {
+    cause: "broken-image-src";
     type: "not-found" | "unsupported" | "malformed" | "not-exist";
     from: string;
+};
+
+// site が未宣言のままサイトメタデータを必要とする機能を使った違反（12_SITE_METADATA.md 4.7）。
+export type MissingSite = {
+    cause: "missing-site";
+    feature: string;
+};
+
+// 島の設定不整合（14_CONFIG_VALIDATION.md 4.3 / S1・S1'）。
+// - not-configured: <Island> が描画されたのに cirro({ islands }) が未設定（ハイドレーションが走らない）
+// - unknown-name: 描画された島名が、設定されたレジストリのキーに存在しない（マウンタが黙ってスキップする）
+export type IslandError = {
+    cause: "island";
+    type: "not-configured" | "unknown-name";
+    island: string;
+};
+
+// <Island> の props が JSON ラウンドトリップで同値に戻らない違反（14_CONFIG_VALIDATION.md 4.4 / S5）。
+// data-props 経由でクライアントへ渡る際に黙って欠落・変質し、hydration mismatch の原因になる。
+export type IslandPropsError = {
+    cause: "island-props";
+    island: string;
+    // props 内のキーパス（例 "props.onClick"・"props.items[0].date"）
+    path: string;
+    kind: string;
+};
+
+// Markdown 本文中の参照（a href / img src）の違反（13_MARKDOWN_REF_CHECK.md 4.1・4.3）。
+// JSX の <Link> / <Image> 起因（broken-link / broken-image-src）と区別できるよう、
+// Markdown 由来であることと属性の別をレコードに含める（grep の当たり先が .md になるため）。
+export type MarkdownRef = {
+    cause: "markdown-ref";
+    attr: "href" | "src";
+    type: "not-found" | "malformed";
+    ref: string;
+};
+
+export type ErrorInfo = BrokenLink | BrokenImageSrc | MissingSite | IslandError | IslandPropsError | MarkdownRef;
+
+// レンダリング 1 回分のコンテキスト。ランタイム（dev / build）が構築して渡す。
+// pagePath は現在レンダリング中ページのクリーン URL 正規形、htmlPaths は全 html ページの
+// クリーン URL 一覧（sitemap 生成用）。islandNames は設定された島レジストリのキー集合
+// （islands オプション未設定なら undefined。島の使用照合に使う）。
+export type RenderSiteContext = {
+    site?: Site;
+    pagePath?: string;
+    htmlPaths?: string[];
+    islandNames?: Set<string>;
 };
 
 export type RunWithRegistry<T> = (
     fn: () => T,
     init?: Registry,
     links?: Set<string>,
-) => { result: T; registry: Registry; globalRuleDesignators: Set<string>; brokenLinks: BrokenLink[]; brokenImageSrc: BrokenImageSrc[] };
+    siteContext?: RenderSiteContext,
+) => {
+    result: T;
+    registry: Registry;
+    globalRuleDesignators: Set<string>;
+    errors: ErrorInfo[];
+};
 
 export function createRegistry(): Registry {
     return {

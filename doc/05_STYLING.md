@@ -387,7 +387,7 @@ CSS の URL をルート定義で指定する必要はない。dev ではルー�
 // src/routes.ts
 import { createRouteFn } from "cirrojs";
 
-// ↓ これを書かないと CSS が生成されない
+// ↓ これを書き忘れるとビルドがエラーで停止する（setup.ts が検出して知らせる）
 export { runWithRegistry } from "cirrojs";
 
 const { defineRoutes, route } = createRouteFn();

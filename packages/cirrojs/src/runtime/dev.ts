@@ -4,10 +4,11 @@ import { createServer as createViteServer, type ViteDevServer } from "vite";
 import { stringifyCss } from "../lib/css.ts";
 import { createRegistry } from "../registry/registry.common.ts";
 import { contentType } from "./contentType.ts";
-import { reportBrokenImageSrc } from "./image.ts";
-import { collectSiteLinks, reportBrokenLink } from "./link.ts";
+import { cleanUrlPath, collectSiteLinks, listPublicFiles } from "./link.ts";
+import { reportErrors } from "./report.ts";
 import { expandRoutes } from "./router.ts";
 import { appendClientScriptAndCss, setupCirro } from "./setup.ts";
+import { reportRouteErrors, validateRoutes } from "./validate.ts";
 
 // 仮想島マウンタ（virtual:cirro/client）の dev 配信 URL。
 const CLIENT_DEV_URL = "/@id/__x00__virtual:cirro/client";
@@ -43,7 +44,7 @@ export async function runDev(port = 5173) {
     process.env.CIRRO_COMMAND = "dev";
 
     const vite = await createViteServer({ server: { middlewareMode: true }, appType: "custom" });
-    const { loadRoutesModule, islandsDir, watchDir } = setupCirro(vite);
+    const { loadRoutesModule, loadIslandNames, islandsDir, watchDir } = setupCirro(vite);
 
     let contentPromise: Promise<unknown> | null = null;
 
@@ -73,16 +74,26 @@ export async function runDev(port = 5173) {
                 // routes は Module Runner で毎リクエスト読み直す。ファイル変更時に onWatchEvent が
                 // モジュールグラフを無効化しているので、変更後の最初のリクエストで再評価され、
                 // 最新のページ定義で描画される（無効化されていなければキャッシュが返るだけ）。
-                const { runWithRegistry, contentHandler, routes } = await loadRoutesModule();
+                const { runWithRegistry, contentHandler, site, routes } = await loadRoutesModule();
+                const islandNames = await loadIslandNames();
 
                 contentPromise ??= contentHandler?.loader() || null;
                 const content = await contentPromise;
                 const pages = expandRoutes(routes, content);
+
+                // ルート展開後の検査（重複・パス形式・public 衝突）。dev は警告のみで描画は続ける
+                // （14_CONFIG_VALIDATION.md 4.2）。
+                reportRouteErrors(validateRoutes(pages, listPublicFiles(vite.config.publicDir)));
+
                 const page = pages.find((p) => candidate.has(p.path));
                 if (page === undefined) {
                     errorResp(".html", `no route found for the requested path: ${rawUrl}`);
                     return;
                 }
+
+                // サイトメタデータ系ヘルパー（pageUrl / Ogp / sitemapXml 等）が Store から引く
+                // コンテキスト（12_SITE_METADATA.md 4.3）。html ページ一覧はクリーン URL 正規形。
+                const htmlPaths = pages.filter((p) => p.type === "html").map((p) => cleanUrlPath(p.path));
 
                 switch (page.type) {
                     case "html": {
@@ -91,34 +102,50 @@ export async function runDev(port = 5173) {
                             vite.config.publicDir,
                         );
 
-                        const {
-                            result: html,
-                            brokenLinks,
-                            brokenImageSrc,
-                        } = runWithRegistry(
+                        const { result: html, errors } = runWithRegistry(
                             () => {
                                 const tree = appendClientScriptAndCss(page.render(), CLIENT_DEV_URL, `${page.path}.css`);
                                 return `<!DOCTYPE html>${renderToStaticMarkup(tree)}`;
                             },
                             createRegistry(),
                             links,
+                            { site, pagePath: cleanUrlPath(page.path), htmlPaths, islandNames },
                         );
 
-                        reportBrokenLink(brokenLinks);
-                        reportBrokenImageSrc(brokenImageSrc);
+                        reportErrors(errors);
 
                         const transformed = await vite.transformIndexHtml(rawUrl, html);
                         successResp(".html", transformed);
                         break;
                     }
                     case "css": {
-                        const { registry } = runWithRegistry(() => renderToStaticMarkup(page.render()));
+                        // CSS 生成でも同じページを完全描画するため、site コンテキストを渡して
+                        // ヘルパーの違反が重複報告されないようにする（違反の報告は html 側が担う）。
+                        const { registry } = runWithRegistry(() => renderToStaticMarkup(page.render()), createRegistry(), undefined, {
+                            site,
+                            pagePath: cleanUrlPath(page.path.replace(/\.css$/, "")),
+                            htmlPaths,
+                            islandNames,
+                        });
                         const css = stringifyCss(registry);
                         successResp(".css", css);
                         break;
                     }
                     case "file": {
-                        const file = page.render();
+                        const links = collectSiteLinks(
+                            pages.filter((p) => p.type !== "css" && p.type !== "fontawesome"),
+                            vite.config.publicDir,
+                        );
+
+                        const { result: file, errors } = runWithRegistry(() => page.render(), createRegistry(), links, {
+                            site,
+                            pagePath: page.path,
+                            htmlPaths,
+                            islandNames,
+                        });
+
+                        reportErrors(errors);
+
                         successResp(page.ext, file);
                         break;
                     }
