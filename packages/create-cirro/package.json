@@ -1,6 +1,6 @@
 {
     "name": "create-cirro",
-    "version": "0.0.29",
+    "version": "0.0.30",
     "description": "Scaffold a new Cirro site (React islands SSG with strict CSP)",
     "license": "MIT",
     "type": "module",

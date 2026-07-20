@@ -10,7 +10,7 @@
         "typecheck": "tsc"
     },
     "dependencies": {
-        "cirrojs": "^0.0.29",
+        "cirrojs": "^0.0.30",
         "react": "^19.2.7",
         "react-dom": "^19.2.7"
     },
