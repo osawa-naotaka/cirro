@@ -70,7 +70,9 @@ export function toStyle(node: RuleNode, opt?: ToStyleOpt): string {
 // dev と build で CSS が食い違いうる「グローバル規則」かどうかを判定する。
 // - 文アットルール（@layer の順序宣言など）はページ全体へ効くため常にグローバル。
 // - スタイルルールは、セレクタリストをトップレベルのカンマで分割し、$（自クラス参照）を
-//   含まないセレクタが 1 つでもあればグローバル。
+//   含まないセレクタが 1 つでもあればグローバル。属性後方一致マッチャー "$=" の $ は
+//   自クラス参照ではないため（resolveSelector も置換しない）、判定から除外する。
+//   これを数えると a[href$=".pdf"] のようなスコープされないセレクタを取りこぼす。
 // - スタイルルールの children（ネストルール）は親セレクタにスコープされるため見ない。
 function hasGlobalRule(node: RuleNode): boolean {
     switch (node.type) {
@@ -79,7 +81,7 @@ function hasGlobalRule(node: RuleNode): boolean {
         case "at-block":
             return node.children.some(hasGlobalRule);
         case "style":
-            return splitSelectorList(node.selector).some((s) => !s.includes("$"));
+            return splitSelectorList(node.selector).some((s) => !/\$(?!=)/.test(s));
     }
 }
 

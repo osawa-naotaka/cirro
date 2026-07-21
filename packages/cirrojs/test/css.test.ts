@@ -166,6 +166,19 @@ describe("global rule detection", () => {
         expect(globalsOf(ss({ color: "red" }, { selector: '$[data-x="a,b"]' }))).toEqual([]);
     });
 
+    test("does not count the $= attribute matcher as a self reference", () => {
+        // a[href$=".pdf"] は自クラスにスコープされないためグローバル規則である。
+        expect(globalsOf(ss({ color: "red" }, { selector: 'a[href$=".pdf"]' }))).toEqual(["self"]);
+    });
+
+    test("still recognizes a scoped selector that also uses the $= matcher", () => {
+        expect(globalsOf(ss({ color: "red" }, { selector: '$ a[href$=".pdf"]' }))).toEqual([]);
+    });
+
+    test("treats a selector list as global when a $=-only member is scoped nowhere", () => {
+        expect(globalsOf(ss({ color: "red" }, { selector: '$ a, a[href$=".pdf"]' }))).toEqual(["self"]);
+    });
+
     test("ignores nested children (they are scoped to the parent selector)", () => {
         expect(globalsOf(ss({ color: "red" }, { selector: "$" }, ss({ color: "blue" }, { selector: "h1" })))).toEqual([]);
     });

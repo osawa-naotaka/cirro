@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+- Global rule detection no longer mistakes the attribute suffix matcher `$=` for a self-class reference. A selector such as `a[href$=".pdf"]` is scoped to no generated class and is now correctly classified as a global rule, so `cirro build` warns when it is not registered on every page (dev and build styles would otherwise differ silently).
+
 ## [0.0.30] - 2026-07-20
 
 ### Added
