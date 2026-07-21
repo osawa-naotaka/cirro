@@ -49,7 +49,7 @@ describe("scanMarkup detector", () => {
 
 // 本体: examples をビルドし、dist の全 HTML / SVG に V1〜V5 の違反がないことを保証する。
 // 3 つの example でパイプラインの主要な経路（最小・Markdown/ハイライト/FaImage・島なし）を覆う。
-for (const example of ["basic", "blog", "noisland"]) {
+for (const example of ["basic", "blog"]) {
     describe(`examples/${example}`, () => {
         const exampleDir = join(repoRoot, "examples", example);
         const distDir = join(exampleDir, "dist");

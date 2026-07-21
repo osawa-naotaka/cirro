@@ -82,37 +82,6 @@ importers:
         specifier: 8.1.4
         version: 8.1.4(@types/node@26.1.1)(esbuild@0.27.3)
 
-  examples/noisland:
-    dependencies:
-      cirrojs:
-        specifier: workspace:*
-        version: link:../../packages/cirrojs
-      react:
-        specifier: 19.2.7
-        version: 19.2.7
-      react-dom:
-        specifier: 19.2.7
-        version: 19.2.7(react@19.2.7)
-    devDependencies:
-      '@biomejs/biome':
-        specifier: 2.5.3
-        version: 2.5.3
-      '@types/react':
-        specifier: 19.2.17
-        version: 19.2.17
-      '@types/react-dom':
-        specifier: 19.2.3
-        version: 19.2.3(@types/react@19.2.17)
-      '@vitejs/plugin-react':
-        specifier: 6.0.3
-        version: 6.0.3(vite@8.1.4(@types/node@26.1.1)(esbuild@0.27.3))
-      typescript:
-        specifier: 7.0.2
-        version: 7.0.2
-      vite:
-        specifier: 8.1.4
-        version: 8.1.4(@types/node@26.1.1)(esbuild@0.27.3)
-
   packages/cirrojs:
     dependencies:
       '@fortawesome/fontawesome-free':
