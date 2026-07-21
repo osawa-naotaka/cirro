@@ -1,3 +1,4 @@
+import type { Schema } from "hast-util-sanitize";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, test } from "vitest";
 import { runWithRegistry } from "../src/registry/registry.ts";
@@ -103,7 +104,7 @@ describe("markdown sanitize: user plugins cannot cross the defense line", () => 
 
 describe("markdown sanitize: schema extension", () => {
     test("sanitizeSchema can widen the allow list", () => {
-        const withRel = (defaults: Parameters<NonNullable<Parameters<typeof createMarkdownProcessor>[0]>["sanitizeSchema"]>[0]) => ({
+        const withRel = (defaults: Schema): Schema => ({
             ...defaults,
             attributes: { ...defaults.attributes, a: [...(defaults.attributes?.a ?? []), "rel"] },
         });

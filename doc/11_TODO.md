@@ -82,7 +82,19 @@
 - [x] インラインゼロ保証テストの実装（`packages/cirrojs/test/`。ルート `pnpm test` で実行）。
       初回実行で FA スプライトのルート `style="display: none;"` を検出し、配信時に除去する
       よう修正した（`runtime/icon.ts` の `loadSprite`・`10_IMAGE_ASSETS.md` 5.7 に反映）
-- [ ] 各機能のテストの段階的追加（`15_TESTING.md` 7 章の候補から）
+- [x] 機能別テスト P1（憲章の中核）: `css.test.ts`（64）/ `markdown-sanitize.test.ts`（35）/
+      `island.test.ts`（13）/ `vite-plugin.test.ts`（13）/ `icon.test.ts`（11）。
+      「インラインゼロが**なぜ**成立しているか」を名指しで固定する層。`csp.test.ts` が
+      結果を守り、この層がその根拠（CSS 文字列組み立ての注入防御・サニタイズの防衛線の位置・
+      `data-props` のエスケープ・Vite 設定注入・FA スプライトの style 除去）を守る。
+- [x] 機能別テスト P2（silent failure 系）: `router.test.ts`（24）/ `link.test.ts`（29）/
+      `registry.test.ts`（51）/ `report.test.ts`（19）。壊れても緑になる領域
+      （リンク綴りの生成・ルート展開・レンダリングコンテキストの分離・報告の variant 網羅）。
+      あわせて `tsconfig.test.json` を追加し、`pnpm typecheck` が test も検査するようにした
+      （`report.test.ts` の cause 網羅表が型エラーとして効くようにするため）。
+- [ ] 機能別テスト P3（公開 API の振る舞い）: `layout.tsx` のプリミティブ・
+      `Link`/`Image`/`FaImage`・`misc`/`contentType`/`appendClientScriptAndCss`
+- [ ] ビルド失敗系の結合テスト（`15_TESTING.md` 7 章。意図的なリンク切れ等で非ゼロ終了）
 
 ---
 

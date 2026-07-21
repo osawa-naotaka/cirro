@@ -63,7 +63,7 @@
     "scripts": {
         "build": "tsdown",
         "gen": "node script/genFontAwesomeDefs.ts && biome check --write ./src",
-        "typecheck": "tsc -p tsconfig.json --noEmit",
+        "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json --noEmit",
         "format": "biome check --write ./src ./script ./test",
         "test": "vitest run"
     },
