@@ -44,13 +44,6 @@ export function cirro(options: CirroOptions): Plugin {
         configResolved(resolved) {
             if (options.islands !== undefined) {
                 islandsPath = resolve(resolved.root, options.islands);
-                // @vitejs/plugin-react は内部で vite:react-* というプラグインを登録する。未追加なら案内する。
-                const hasReact = resolved.plugins.some((p) => p.name?.startsWith("vite:react"));
-                if (!hasReact) {
-                    throw new Error(
-                        "cirro: React プラグインが見つかりません。vite.config の plugins に react()（@vitejs/plugin-react）を cirro() より前に追加してください。",
-                    );
-                }
             }
         },
         resolveId(id) {
