@@ -60,49 +60,31 @@
 
 ---
 
-## 5. テスト整備【仕様確定・実装待ち】
+## 5. テスト整備【完了 2026-07-21】
 
-### 背景
+完了済み。仕様と実装内容は `15_TESTING.md`（保証テストの設計判断は 1〜6 章、機能別テストと
+結合テストの一覧は 7 章）。
 
-現状テストが存在しない。Cirro の存在意義は「生成物にインラインスクリプト・インライン
-スタイルが一切ない」ことであり、これが回帰で壊れると製品価値の根幹が崩れる。
-機能追加よりも優先度の高い投資である。
+- **インラインゼロ保証テスト**: 3 つの examples を実際に `cirro build` し、`dist/` の全
+  HTML / SVG を parse5 で走査（`test/csp.test.ts`）。初回実行で FA スプライトのルート
+  `style="display: none;"` を検出し、配信時に除去するよう修正した（`runtime/icon.ts` の
+  `loadSprite`・`10_IMAGE_ASSETS.md` 5.7 に反映）。
+- **機能別ユニットテスト**: 12 ファイル。「憲章の裏口になりうるか」「壊れても静かに間違うか」
+  の 2 軸で優先順位を決めた（`15_TESTING.md` 7.1）。`hasGlobalRule` が属性後方一致マッチャー
+  `$=` を自クラス参照と誤認するバグを、テスト作成中に発見して修正済み（CHANGELOG 記載）。
+- **ビルド失敗系の結合テスト**: `test/fixtures/` の 3 フィクスチャを実際の CLI 経路でビルドし、
+  終了コードと報告内容を検証（`15_TESTING.md` 7.2）。違反ゼロの対照群を同時に置いて空振りを防ぐ。
+- **型検査の拡張**: `tsconfig.test.json` を追加し `pnpm typecheck` が `test/` も検査する。
+  `report.test.ts` の cause 網羅表（Record 型）が、`ErrorInfo` に variant を足したときに
+  型エラーとして効くようにするため。
 
-### 仕様
-
-**`15_TESTING.md` として確定済み**。要点: ランナーは Vitest。3 つの examples を実際に
-`cirro build` し、`dist/` の全 HTML / SVG を parse5 で走査して、CSP の意味論に立脚した
-5 種の違反（src なし script・`on*` 属性・`javascript:` URL・style 要素・style 属性）が
-ゼロであることを検証する。空振り防止のメタ検証（html が 1 件以上・島マウンタ script の
-存在等）を同時に行う。
-
-### 作業項目
-
-- [x] テストランナーの選定と保証テストの仕様確定（→ `15_TESTING.md`）
-- [x] インラインゼロ保証テストの実装（`packages/cirrojs/test/`。ルート `pnpm test` で実行）。
-      初回実行で FA スプライトのルート `style="display: none;"` を検出し、配信時に除去する
-      よう修正した（`runtime/icon.ts` の `loadSprite`・`10_IMAGE_ASSETS.md` 5.7 に反映）
-- [x] 機能別テスト P1（憲章の中核）: `css.test.ts`（64）/ `markdown-sanitize.test.ts`（35）/
-      `island.test.ts`（13）/ `vite-plugin.test.ts`（13）/ `icon.test.ts`（11）。
-      「インラインゼロが**なぜ**成立しているか」を名指しで固定する層。`csp.test.ts` が
-      結果を守り、この層がその根拠（CSS 文字列組み立ての注入防御・サニタイズの防衛線の位置・
-      `data-props` のエスケープ・Vite 設定注入・FA スプライトの style 除去）を守る。
-- [x] 機能別テスト P2（silent failure 系）: `router.test.ts`（24）/ `link.test.ts`（29）/
-      `registry.test.ts`（51）/ `report.test.ts`（19）。壊れても緑になる領域
-      （リンク綴りの生成・ルート展開・レンダリングコンテキストの分離・報告の variant 網羅）。
-      あわせて `tsconfig.test.json` を追加し、`pnpm typecheck` が test も検査するようにした
-      （`report.test.ts` の cause 網羅表が型エラーとして効くようにするため）。
-- [x] 機能別テスト P3（公開 API の振る舞い）: `layout.test.ts`（56）/ `components.test.ts`（21）/
-      `misc.test.ts`（33）。レイアウトプリミティブの出力・defaults の DI・決定性、
-      `Link`/`Image`/`FaImage` の描画と違反収集、`join`/`escapeXml`/`contentType`/
-      `appendClientScriptAndCss`/`defineContent`。
-- [ ] ビルド失敗系の結合テスト（`15_TESTING.md` 7 章。意図的なリンク切れ等で非ゼロ終了）
+計 17 ファイル・492 ケース。残る候補（E2E・dev サーバ・CI）は `15_TESTING.md` 8 章。
 
 ---
 
 ## 6. 保留中の小粒課題【未決定】
 
-以下は検討済みだが実施判断をしていないもの。上記 1〜5 の後に再検討する。
+以下は検討済みだが実施判断をしていないもの。上記 1〜5 が完了したため、次はここから選ぶ。
 
 | 課題 | 概要 |
 | --- | --- |
@@ -110,7 +92,7 @@
 | `_headers` の CSP 自動生成 | 現状は利用者が meta タグを手書き。ビルドが推奨 CSP ヘッダを出力するところまで面倒を見るか |
 | `aria-current="page"` の自動付与 | `09_LINK_SAFETY.md` 6 章の将来候補。ナビの現在地表示が JS ゼロで正しくなる |
 | 画像 width / height の自動付与 | `10_IMAGE_ASSETS.md` 7 章の将来候補。CLS をビルド時に潰せる |
-| コンポーネントライブラリ | スタイリング API のドッグフーディングとして有望。本体の土台（特に 1・5）を固めてから着手 |
+| コンポーネントライブラリ | スタイリング API のドッグフーディングとして有望。本体の土台（1〜5）が固まったので着手可能 |
 
 ---
 

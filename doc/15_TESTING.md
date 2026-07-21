@@ -137,15 +137,57 @@ Playwright 等で実ブラウザに CSP ヘッダ付きで読み込ませ、CSP 
 3. ルート package.json への `test` スクリプト追加
 4. `04_USAGE.md` 等への記載は不要（利用者向け機能ではないため）。`11_TODO.md` の課題 5 を更新する
 
-## 7. 将来の拡張候補
+## 7. 機能別テストと結合テスト【実装済み】
 
-- **機能別ユニットテスト**: `expandRoutes` の展開・`checkLink` の正規化と分類・
-  `stringifyCss` の出力・Markdown サニタイズの固定性など、純関数に近い部分から段階的に追加する。
-  ランナーは同じ Vitest に乗せる。
-- **ビルド失敗系の結合テスト**: 意図的なリンク切れ・設定ミス（`14_CONFIG_VALIDATION.md` の
-  チェック群実装後）を含むフィクスチャで `cirro build` が非ゼロ終了することの検証。
+本書の主題であるインラインゼロ保証テストに続けて、機能別テストとビルド失敗系の結合テストを
+追加した。ランナーは同じ Vitest。`pnpm typecheck` は `tsconfig.test.json` 経由で `test/` も
+検査する（テスト側の型レベルの網羅チェックを機能させるため）。
+
+### 7.1 機能別ユニットテスト
+
+優先順位は「憲章（インラインゼロ・サニタイズ）の裏口になりうるか」と「壊れても静かに間違うか」
+の 2 軸で決めた。`csp.test.ts` が「結果としてインラインが無い」ことを守るのに対し、こちらは
+**なぜそれが成立しているのか**を名指しで固定する層である。
+
+| ファイル | 対象 |
+| --- | --- |
+| `css.test.ts` | `stringifyCss` の出力形・`$`/`&` の解決規則・グローバル規則判定・セレクタ/アットルール/宣言への注入防御・`toKeyframes`・ハッシュの決定性 |
+| `markdown-sanitize.test.ts` | 生 HTML の不通過・危険スキームの除去・ユーザー plugin が sanitize を越えられないこと・toc の id・highlight のクラスベース性 |
+| `island.test.ts` | `data-props` のエスケープ往復と CSP 違反ゼロ・レジストリ照合 |
+| `vite-plugin.test.ts` | `assetsInlineLimit: 0` / `modulePreload.polyfill: false` 等の設定注入・島マウンタ仮想モジュール |
+| `icon.test.ts` | `loadSprite` のルート `style` 除去・`bundleIcon` の書き出し |
+| `router.test.ts` | `expandRoutes` / `expandTemporaryRoutes` の展開と遅延評価 |
+| `link.test.ts` | `cleanUrlPath` / `collectLinks` の綴り生成・`listPublicFiles` |
+| `registry.test.ts` | `checkLink` / `checkImage` の分類・コンテキスト分離・`styleSample` |
+| `report.test.ts` | `ErrorInfo` の全 variant にメッセージがあること（Record 型で網羅を型検査） |
+| `layout.test.ts` | レイアウトプリミティブの出力・defaults の DI・決定性・コンポーネント版 |
+| `components.test.ts` | `Link` / `Image` / `FaImage` の描画と違反収集 |
+| `misc.test.ts` | `join` / `escapeXml` / `contentType` / `appendClientScriptAndCss` |
+
+### 7.2 ビルド失敗系の結合テスト
+
+`build-failure.test.ts` が `test/fixtures/` 配下の 3 つのフィクスチャを実際の CLI 経路
+（`cli.sh --node` → runtime）でビルドし、終了コードと報告内容を検証する。
+
+- `valid/` — 違反ゼロ。終了コード 0 と「違反なし」の報告。**空振り防止の対照群**であり、
+  以下の非ゼロが「フィクスチャの配線ミスで落ちているだけ」でないことを保証する。
+- `broken-refs/` — 描画中に収集される 9 種の違反（リンク 2・画像 2・島 2・site・Markdown 参照 2）。
+  非ゼロ終了・違反が起きたページ path の明示・**全件を 1 パスで報告**すること・
+  それでも成果物は書き出すことを検証する。
+- `broken-routes/` — ルート展開後の違反（パス形式・重複・public 衝突）。public 衝突は
+  配信される綴り（`/collide.html` と `/collide`）の両方で報告されることまで見る。
+
+フィクスチャは examples ではなく `packages/cirrojs/test/fixtures/` に置く。意図的に壊した
+サイトを利用者向けの雛形と混ぜないためである。各フィクスチャに package.json は置かない。
+依存（react / vite / @vitejs/plugin-react）は親の `packages/cirrojs/node_modules` から解決され、
+`cirrojs` 自身は package.json の自己参照で解決されるため、`pnpm install` の追加設定は不要。
+
+## 8. 残る拡張候補
+
 - **E2E（ブラウザ）検証**: CSP ヘッダ付き配信での violation 監視と、島のハイドレーション動作
-  （3.4）。
+  （3.4）。静的走査では確認できない「島が実際に動くか」を担保する唯一の手段。
+- **dev サーバの結合テスト**: 現状 `runtime/dev.ts` にテストが無い（4.4 のとおり dev 出力は
+  インラインゼロ保証の対象外だが、ルーティングと full-reload の挙動は検証しうる）。
 - **CI（GitHub Actions）での自動実行**: リリースフロー（タグ打ち）との連携も含めて別途検討。
 
 ## 付録
