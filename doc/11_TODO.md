@@ -92,8 +92,10 @@
       （リンク綴りの生成・ルート展開・レンダリングコンテキストの分離・報告の variant 網羅）。
       あわせて `tsconfig.test.json` を追加し、`pnpm typecheck` が test も検査するようにした
       （`report.test.ts` の cause 網羅表が型エラーとして効くようにするため）。
-- [ ] 機能別テスト P3（公開 API の振る舞い）: `layout.tsx` のプリミティブ・
-      `Link`/`Image`/`FaImage`・`misc`/`contentType`/`appendClientScriptAndCss`
+- [x] 機能別テスト P3（公開 API の振る舞い）: `layout.test.ts`（56）/ `components.test.ts`（21）/
+      `misc.test.ts`（33）。レイアウトプリミティブの出力・defaults の DI・決定性、
+      `Link`/`Image`/`FaImage` の描画と違反収集、`join`/`escapeXml`/`contentType`/
+      `appendClientScriptAndCss`/`defineContent`。
 - [ ] ビルド失敗系の結合テスト（`15_TESTING.md` 7 章。意図的なリンク切れ等で非ゼロ終了）
 
 ---
