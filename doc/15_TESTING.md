@@ -188,7 +188,8 @@ Playwright 等で実ブラウザに CSP ヘッダ付きで読み込ませ、CSP 
   （3.4）。静的走査では確認できない「島が実際に動くか」を担保する唯一の手段。
 - **dev サーバの結合テスト**: 現状 `runtime/dev.ts` にテストが無い（4.4 のとおり dev 出力は
   インラインゼロ保証の対象外だが、ルーティングと full-reload の挙動は検証しうる）。
-- **CI（GitHub Actions）での自動実行**: リリースフロー（タグ打ち）との連携も含めて別途検討。
+
+（当初ここに挙げていた「CI での自動実行」は 10 章で実装済み。）
 
 ## 9. カバレッジ計測【実装済み】
 
@@ -327,6 +328,49 @@ Vitest 自身のワーカーが変換後コードの dump を大量に書き、�
 統合が必要になった場合は、双方が istanbul 形式の `coverage-final.json`（`coverage/` と
 `coverage-runtime/`）を出しているため、`istanbul-lib-coverage` の `createCoverageMap` で
 マージできる。
+
+## 10. CI（GitHub Actions）【実装済み】
+
+### 10.1 検査点は PR の 1 箇所
+
+publish は main への push で走る（`publish-main.yml` / `publish-create-cirro.yml`）。つまり
+**main にマージされた時点でもう公開処理が始まる**ため、実質的な検査点は PR しかない。
+`ci.yml` を `pull_request`（main 宛）と `workflow_dispatch` で走らせ、そこを唯一のゲートとする。
+
+work ブランチへの push では**走らせない**。作業ブランチは部分的に壊れた状態を置ける場所として
+使うためである。CI が守るべきは main の中身であって、作業中のコミットではない。
+
+内容は install → lint → typecheck → test の 4 段。
+
+- テストは `examples/basic` / `examples/blog` と `test/fixtures/` を実際に `cirro build` するため、
+  ワークスペース全体を `pnpm install --frozen-lockfile` で入れる（packages だけでは足りない）。
+- Node は 24。この経路は `node --eval` で `src/runtime/cli.ts` を直接読むため型ストリッピング
+  （22.18 以上）が要る。公開パッケージは `dist` を指すので、これは開発時のみの要件である。
+- 子プロセスの実行 runtime は両テストとも `--node` で固定済みのため（9.5）、runner に bun が
+  無くても結果は変わらない。
+- lint 用に `pnpm --filter cirrojs run lint`（`biome check`、`--write` 無し）を追加した。
+  既存の `format` は `--write` するのでゲートには使えない（勝手に直して緑になる）。
+  あわせて `biome.json` の `files.includes` で `dist` / `coverage` / `coverage-runtime` を
+  除外した。除外しないと `test/fixtures/*/dist` のビルド成果物を lint し、`format` が
+  それを書き換えてしまう。
+
+### 10.2 publish 側にもテストを 1 段置く
+
+`publish-main.yml` の typecheck と build の間に `pnpm --filter cirrojs run test` を追加した。
+通常は `ci.yml` が PR の時点で通しているが、`workflow_dispatch` での手動 publish と、PR を
+経ずに main へ入ったコミットはここでしか止められない。`publish-create-cirro.yml` は元から
+テストをゲートにしており、対称になる。
+
+### 10.3 CI に入れないもの
+
+- **カバレッジ**。閾値を置いていない以上、走らせても合否の信号にならない（9.2）。必要なときに
+  手元で `pnpm test:coverage` を実行する。
+- **層 B（`pnpm test:coverage:runtime`）**。`csp.test.ts` / `build-failure.test.ts` と同じビルドを
+  再実行するため、テスト時間がほぼ二重になる。層 B は「次にどこへテストを足すか」を決める
+  ための道具であり、ゲートではない（9.6）。副作用として `script/coverageRuntime.ts` 自体は
+  CI で叩かれないため、壊れた場合は次に使ったときに気づくことになる。
+- **publish トリガの変更**。`push: main` のままとする。正しく publish された結果に対して
+  タグを打つ運用のため（タグ起動にすると順序が逆になる）。
 
 ## 付録
 

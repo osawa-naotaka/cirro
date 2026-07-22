@@ -77,15 +77,19 @@
 - **型検査の拡張**: `tsconfig.test.json` を追加し `pnpm typecheck` が `test/` も検査する。
   `report.test.ts` の cause 網羅表（Record 型）が、`ErrorInfo` に variant を足したときに
   型エラーとして効くようにするため。
-
 - **カバレッジ計測**: 2 層構成（`15_TESTING.md` 9 章）。層 A は `vitest.config.ts` +
   `@vitest/coverage-v8`（`pnpm test:coverage`）。子プロセスでしか走らない
   `runtime/{build,cli,dev}.ts` は「測れていない」だけなので層 A から外し、層 B が
   `NODE_V8_COVERAGE` + `c8` で測る（`script/coverageRuntime.ts` / `pnpm test:coverage:runtime`）。
   dump のうち Vite が変換したエントリを捨てないと行の帰属が壊れる点が要点（9.4）。
   2 つのレポートは統合しない。別の問いに答えるものだから（9.6）。
+- **CI（GitHub Actions）**: `ci.yml` を追加（`15_TESTING.md` 10 章）。publish が main への
+  push で走る以上、実質的な検査点は PR しかないため、`pull_request`（main 宛）でのみ
+  install → lint → typecheck → test を通す。work ブランチへの push では走らせない
+  （作業ブランチは壊れた状態を置ける場所として使う）。`publish-main.yml` にもテストを
+  1 段追加し、手動 publish と PR を経ない main への push を受ける。
 
-計 17 ファイル・507 ケース。残る候補（E2E・dev サーバ・CI）は `15_TESTING.md` 8 章。
+計 17 ファイル・507 ケース。残る候補（E2E・dev サーバの結合テスト）は `15_TESTING.md` 8 章。
 
 ---
 

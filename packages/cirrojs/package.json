@@ -65,6 +65,7 @@
         "gen": "node script/genFontAwesomeDefs.ts && biome check --write ./src",
         "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json --noEmit",
         "format": "biome check --write ./src ./script ./test",
+        "lint": "biome check ./src ./script ./test",
         "test": "vitest run",
         "test:coverage": "vitest run --coverage",
         "test:coverage:runtime": "node script/coverageRuntime.ts"
