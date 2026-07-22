@@ -195,6 +195,26 @@ describe("createLayout: defaults injection", () => {
         expect(declOf(withoutPadding.css, withoutPadding.result)).toContain("padding: 2rem;");
     });
 
+    test("centerGutters applies to every center() that does not pass gutters", () => {
+        // centerGutters は組み込み既定を持たない（指定した人だけが得る）。テーマで与えると
+        // 呼び出し側が opts を書かなくても gutters クラスが増える。
+        const { result, css } = build((l) => l.center(), { defaults: { centerGutters: "2rem" } });
+        const [, gutters] = classes(result);
+        expect(classes(result)).toHaveLength(2);
+        expect(declOf(css, gutters ?? "")).toBe("padding-inline: 2rem;");
+    });
+
+    test("center() opts win over the centerGutters default", () => {
+        const { result, css } = build((l) => l.center({ gutters: "1rem" }), { defaults: { centerGutters: "2rem" } });
+        expect(classes(result)).toHaveLength(2);
+        expect(declOf(css, classes(result)[1] ?? "")).toBe("padding-inline: 1rem;");
+    });
+
+    test("sidebar side falls back to auto when the default width is cleared", () => {
+        const { result, css } = build((l) => l.sidebar(), { defaults: { sidebarSideWidth: undefined } });
+        expect(declOf(css, result.side)).toBe("flex-grow: 1; flex-basis: auto;");
+    });
+
     test("partial defaults leave the untouched ones at their built-in values", () => {
         const { result, css } = build((l) => l.center(), { defaults: { gap: "2rem" } });
         expect(declOf(css, result)).toContain("max-inline-size: 60ch;");

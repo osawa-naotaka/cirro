@@ -5,6 +5,7 @@ examples/*/public/styles.css
 .wrangler
 .dev.vars*
 dist
+coverage
 wrangler.jsonc
 .claude/agent-memory
 cirrojs-*.tgz

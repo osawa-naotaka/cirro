@@ -154,6 +154,34 @@ describe("expandTemporaryRoutes", () => {
         expect(svg).not.toContain("style=");
     });
 
+    test("passes params and content through to the component of a css route", () => {
+        // css ルートは html ルートと同じ component を描画する（CSS は描画の副作用として
+        // registry に集まるため、同じ引数で呼ばれないと収集内容がページとズレる）。
+        const pages = expandTemporaryRoutes([dynamicRoute, staticRoute], content);
+        const dynamicCss = pages[0];
+        const staticCss = pages[2];
+        if (dynamicCss?.type !== "css" || staticCss?.type !== "css") throw new Error("unexpected page type");
+        expect(childrenOf(dynamicCss.render())).toBe("hello");
+        expect(childrenOf(staticCss.render())).toBe(2);
+    });
+
+    test("defers rendering of a css route until render() is called", () => {
+        let calls = 0;
+        const counted = route({
+            type: "static",
+            path: "/x.html",
+            component: () => {
+                calls++;
+                return createElement("p");
+            },
+        });
+        const [page] = expandTemporaryRoutes([counted], content);
+        expect(calls).toBe(0);
+        if (page?.type !== "css") throw new Error("unexpected page type");
+        page.render();
+        expect(calls).toBe(1);
+    });
+
     test("shares the same expansion of dynamic routes as expandRoutes", () => {
         const html = expandRoutes([dynamicRoute], content).map((p) => `${p.path}.css`);
         const css = expandTemporaryRoutes([dynamicRoute], content)

@@ -8,6 +8,7 @@ import {
     checkLink,
     currentPagePath,
     htmlPagePaths,
+    registerGlobalRuleDesignator,
     registerIcon,
     registerRules,
     registerStyleSample,
@@ -222,6 +223,10 @@ describe("runWithRegistry: context isolation", () => {
 
     test("registerRules throws outside of a render context", () => {
         expect(() => registerRules("x", [])).toThrow(/outside of a render context/);
+    });
+
+    test("registerGlobalRuleDesignator throws outside of a render context", () => {
+        expect(() => registerGlobalRuleDesignator("x")).toThrow(/outside of a render context/);
     });
 });
 

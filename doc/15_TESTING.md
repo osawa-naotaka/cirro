@@ -190,6 +190,106 @@ Playwright 等で実ブラウザに CSP ヘッダ付きで読み込ませ、CSP 
   インラインゼロ保証の対象外だが、ルーティングと full-reload の挙動は検証しうる）。
 - **CI（GitHub Actions）での自動実行**: リリースフロー（タグ打ち）との連携も含めて別途検討。
 
+## 9. カバレッジ計測【層 A 実装済み・層 B 未着手】
+
+### 9.1 なぜ 2 層に分けるのか
+
+カバレッジ計測はテストプロセス**内**でロードされたモジュールしか見ない。しかし本書のテストの
+うち `csp.test.ts` と `build-failure.test.ts` は `cirro build` を**子プロセス**として実行する
+（4.1 / 7.2）。したがって `vitest --coverage` を素直に掛けると、子プロセスでしか走らない
+`runtime/build.ts`・`runtime/dev.ts`・`runtime/cli.ts` が **0%** と表示される。これは
+「テストが無い」ではなく「測れていない」であり、両者を同じ数字の上に並べると数字が嘘になる。
+
+そこで計測を 2 層に分ける。
+
+| 層 | 対象 | 手段 | 状態 |
+| --- | --- | --- | --- |
+| A | テストが直接 import する層（`lib` / `registry` / `server` / `layout` と `runtime` の 7 モジュール・`vite`） | `@vitest/coverage-v8` | 実装済み |
+| B | 子プロセスでしか走らない層（`runtime/build.ts`・`dev.ts`・`cli.ts`） | `NODE_V8_COVERAGE` + `c8` | 未着手（9.4 / 9.5） |
+
+`runtime/` を丸ごと層 B に回さない点に注意する。`router` / `link` / `report` / `icon` /
+`validate` / `setup` / `contentType` と `vite/vite.ts` は 7.1 のユニットテストが直接 import して
+いるため、層 A で正しく測れる。
+
+### 9.2 層 A の構成
+
+`vitest.config.ts`（新設）に `test.coverage` を置き、`pnpm test:coverage` で実行する。
+provider は **v8**。Vitest 4 では AST ベースの remap が既定になり、分岐精度のために istanbul を
+選ぶ理由が無くなったため、計装の要らない v8 を採る。
+
+- `include: ["src/**/*.{ts,tsx}"]` を**明示する**。指定しないと「どのテストからも import されない
+  ファイル」がレポートから消え、最も知りたい穴（0% のファイル）が見えなくなる。
+- `exclude` は次の 3 種のみ。除外の基準は「測っても意味が無い」か「層 B の担当」であり、
+  率を上げるための除外はしない。
+  - `runtime/{build,cli,dev}.ts` — 層 B の担当（9.1）
+  - `lib/fontawesome-{solid,regular,brands}.ts` — `script/genFontAwesomeDefs.ts` の生成物。
+    数千行のアイコン定義が 100% 側に積み上がり、全体の率を無意味に押し上げる
+  - `registry/registry.browser.ts` — package.json の `browser` 条件でしか解決されないエントリ。
+    node 環境のテストからは到達しない
+- レポータは `text` / `html` / `json`。`json`（`coverage/coverage-final.json`）は 9.5 の
+  マージ用に出しておく。`text` は全指標 100% のファイルを省くため、全ファイルの一覧が要る
+  ときは `html` か `json` を見る。
+- 閾値（`thresholds`）は置かない。全体一律の数字は薄い箇所を平均で隠す。置くなら憲章に直結する
+  ファイル（`registry.ts` / `css.ts` / `markdown.tsx` / `vite.ts`）への per-file 指定とする。
+
+数値は Statements 93.66% / Branches 91.55% / Functions 97.95%（導入時点は 92.19% / 89.17% /
+95.91%。レポートを見て埋めた分が 9.3）。最も薄いのは `runtime/setup.ts`（20.83%）で、これは
+同ファイルの大半が build 経路からしか呼ばれず、ユニットテストは `appendClientScriptAndCss` だけを
+見ている（7.1）ことによる。層 B で埋まる。
+
+### 9.3 レポートを見て埋めた穴
+
+カバレッジは「率を上げる」ためではなく「意図せず検証していない振る舞い」を見つけるために使う。
+導入直後のレポートが指した箇所のうち、テストの取りこぼしだったものを埋めた（`layout.tsx` /
+`Ogp.tsx` / `rss.ts` / `css.ts` / `router.ts` / `validate.ts` はこれで全指標 100%）。
+
+| 埋めた振る舞い | 落ちていた理由 |
+| --- | --- |
+| `expandTemporaryRoutes` の css ルートの `render()` | 展開結果の形だけ見て、描画を呼んでいなかった（html 側とは別クロージャ） |
+| `reportRouteErrors` の警告出力 | 収集（`validateRoutes`）だけ検証し、報告側が未検証だった |
+| 出力パスの制御文字・DEL 拒否 | 拒否リストの他項目はあったが制御文字だけ抜けていた |
+| `pageUrl()` の site 無し / pagePath 無し | `absoluteUrl` には同等のテストがあったが `pageUrl` に無かった |
+| `rssXml` の site 無し / items 空 | `sitemapXml` には site 無しのテストがあったが `rssXml` に無かった |
+| `<Ogp>` の description 皆無時 | 既定 site に description があるため、タグを出さない経路を通っていなかった |
+| `center()` の `centerGutters` 既定・`sidebar()` の `auto` 退避 | 組み込み既定が無い／常にある値のため、DI で明示しないと通らない |
+| at-rule プリリュードの長さ上限 | セレクタ側の上限テストはあったがアットルール側に無かった |
+| `children` を持たない手組み `RuleNode` | 公開型では `children` は任意だが、`ss()` 経由では常に付く |
+| 島 props の constructor をたどれないオブジェクト | 報告文字列の `?? "unknown"` 退避が未検証だった |
+
+一方、次は**意図的に埋めていない**。テストのために製品コードへ注入口を作ったり、モジュールを
+差し替えたりするのは、テストの都合で設計を歪めるため採らない。
+
+- `runtime/icon.ts` の防御 throw 2 件（`<svg>` ルート不在・sanitize 後の `style=` 残留）。
+  FA パッケージのフォーマットが変わった場合にだけ起きるため、`node:fs` の差し替えが要る。
+- `registry.ts` / `link.ts` の `URIError` 以外の再 throw。到達には `decodeURI` の差し替えが要る。
+- `server/markdown.tsx` の `defaultSchema.clobber ?? []`。上流（hast-util-sanitize）が
+  `clobber` を持たなくなった場合の退避で、上流の値に依存する。
+
+### 9.4 層 B で必要になる注意点（実装前の調査結果）
+
+`NODE_V8_COVERAGE` を指定して `cli.sh build --node` を走らせると、生の V8 カバレッジが dump
+される。Node の型ストリッピングは型注釈を空白に置換して**文字位置を保存する**ため、
+`file://` で始まる URL のエントリは `.ts` 原本にソースマップ無しで 1:1 対応する。
+
+ただし dump には Vite の `ssrLoadModule` が vm で評価したモジュールも混ざり、こちらは
+**変換後コードのオフセット**を持つ（URL がスキーム無しの絶対パスで区別できる）。同じ
+`lib/css.ts` について両者は別の未カバー行域を報告するため、**混ぜると行の帰属が静かに壊れる**。
+層 B を実装するときは `file://` 以外のエントリを捨てること。捨てても損失は無い（`lib/*` は
+層 A が正面から測る）。
+
+また `NODE_V8_COVERAGE` はテスト内の `execFile` の `env` にだけ渡す。プロセス全体に設定すると
+Vitest 自身のワーカーが変換後コードの dump を大量に書き、上記の問題が再発する。
+
+### 9.5 層 B の実装手順（未着手）
+
+1. `csp.test.ts` / `build-failure.test.ts` の `execFileAsync` に `NODE_V8_COVERAGE` を渡す
+   （`csp.test.ts` は runtime 自動検出を避けるため `--node` を明示する）
+2. dump を `file://` エントリだけに絞り、`c8 report --include='src/{runtime,vite}/**'` に掛ける
+3. 層 A と 1 つの率にまとめるかは要判断。両者は保証の性格が違う（層 A は「なぜインラインゼロが
+   成立するか」を名指しする層、層 B は「CLI 経路が本当に通るか」）ため、統合した 1 つの数字は
+   どちらが薄いのかを隠す。統合するなら双方の istanbul 形式 `coverage-final.json` を
+   `istanbul-lib-coverage` でマージする
+
 ## 付録
 
 ### 関連ドキュメント

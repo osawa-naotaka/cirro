@@ -87,6 +87,11 @@ describe("stringifyCss: output shape", () => {
         expect(out).toMatch(/^\.cirro-[0-9a-f]+ \{ color: red; & > a \{ color: blue; \} \}\n$/);
     });
 
+    test("emits a hand-built rule whose children are omitted (children is optional in RuleNode)", () => {
+        const out = cssOf({ type: "style", selector: "$", declarations: { color: "red" } });
+        expect(out).toMatch(/^\.cirro-[0-9a-f]+ \{ color: red; \}\n$/);
+    });
+
     test("emits at-blocks with their children", () => {
         const out = cssOf(at("@media (width >= 40rem)", ss({ color: "red" })));
         expect(out).toMatch(/^@media \(width >= 40rem\) \{ \.cirro-[0-9a-f]+ \{ color: red; \} \}\n$/);
@@ -201,6 +206,11 @@ describe("injection defense: selectors and at-rules", () => {
 
     test("rejects a selector longer than 512 characters", () => {
         const { registry } = register(() => toStyle(ss({ color: "red" }, { selector: `$${"a".repeat(512)}` })));
+        expect(() => stringifyCss(registry)).toThrow(/too long/);
+    });
+
+    test("rejects an at-rule prelude longer than 512 characters", () => {
+        const { registry } = register(() => toStyle(at(`@media (min-width: ${"0".repeat(512)}px)`, ss({ color: "red" }))));
         expect(() => stringifyCss(registry)).toThrow(/too long/);
     });
 

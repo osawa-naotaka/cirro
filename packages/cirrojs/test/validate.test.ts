@@ -1,8 +1,8 @@
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 import { registerIslandUsage, runWithRegistry } from "../src/registry/registry.ts";
 import type { ResolvedPath } from "../src/runtime/router.ts";
 import { validateCssUrl } from "../src/runtime/setup.ts";
-import { validateRoutes } from "../src/runtime/validate.ts";
+import { reportRouteErrors, validateRoutes } from "../src/runtime/validate.ts";
 
 // ResolvedPath の html / file ページを手軽に作るヘルパー。
 function html(path: string): ResolvedPath {
@@ -25,6 +25,8 @@ describe("validateRoutes: path format (S4)", () => {
         ["dot segment", html("/a/./b.html")],
         ["dotdot segment", html("/a/../b.html")],
         ["empty segment", html("/a//b.html")],
+        ["control character", html("/a\u0000b.html")],
+        ["delete character", html("/a\u007fb.html")],
         ["html route without .html", html("/about")],
         ["file route without extension", file("/search-index")],
     ])("rejects %s", (_name, page) => {
@@ -79,6 +81,34 @@ describe("validateRoutes: public collisions (S3)", () => {
     });
 });
 
+describe("reportRouteErrors", () => {
+    // 報告は「全件を 1 パスで出す」方針（09_LINK_SAFETY.md 4.5）。件数と、
+    // 修正に必要な 3 要素（種別・path・詳細）が 1 行に揃うことを固定する。
+    test("warns once per error with its type, path and detail", () => {
+        const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+        try {
+            reportRouteErrors(validateRoutes([html("/about"), html("/a//b.html")], []));
+            expect(warn).toHaveBeenCalledTimes(2);
+            expect(warn.mock.calls.map((c) => String(c[0]))).toEqual([
+                expect.stringContaining('Route error (malformed-path) at "/about":'),
+                expect.stringContaining('Route error (malformed-path) at "/a//b.html":'),
+            ]);
+        } finally {
+            warn.mockRestore();
+        }
+    });
+
+    test("warns nothing when there is no error", () => {
+        const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+        try {
+            reportRouteErrors([]);
+            expect(warn).not.toHaveBeenCalled();
+        } finally {
+            warn.mockRestore();
+        }
+    });
+});
+
 describe("validateCssUrl (S6)", () => {
     test.each(["assets/styles.css", "//cdn/styles.css", "/a/../styles.css", "/a\\b.css"])("rejects %s", (url) => {
         expect(() => validateCssUrl(url)).toThrow();
@@ -117,6 +147,9 @@ describe("registerIslandUsage (S1 / S1' / S5)", () => {
         ["Date", { date: new Date(0) }, "props.date", "non-plain object (Date)"],
         ["Map", { map: new Map() }, "props.map", "non-plain object (Map)"],
         ["nested in array", { items: [{ fn: () => {} }] }, "props.items[0].fn", "function"],
+        // constructor をたどれないオブジェクト（null プロトタイプを祖先に持つ）でも、
+        // 報告が undefined を晒さず "unknown" に落ちること。
+        ["object with no reachable constructor", { odd: Object.create(Object.create(null)) }, "props.odd", "non-plain object (unknown)"],
     ])("collects island-props for %s", (_name, props, path, kind) => {
         const { errors } = run(() => registerIslandUsage("counter", props), new Set(["counter"]));
         expect(errors).toEqual([{ cause: "island-props", island: "counter", path, kind }]);
