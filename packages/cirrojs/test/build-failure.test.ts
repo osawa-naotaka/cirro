@@ -12,6 +12,12 @@ const fixtures = join(packageRoot, "test", "fixtures");
 
 const BUILD_TIMEOUT = 180_000;
 
+// 層 B のカバレッジ採取（15_TESTING.md 9.4）。script/coverageRuntime.ts から渡されたときだけ、
+// 子プロセスの V8 カバレッジを dump させる。プロセス全体には設定しない（Vitest 自身のワーカーが
+// Vite 変換後コードの dump を書き、行の帰属が壊れるため）。
+const covDir = process.env.CIRRO_COV_DIR;
+const buildEnv = covDir ? { ...process.env, NODE_V8_COVERAGE: covDir } : process.env;
+
 type BuildResult = { code: number; output: string };
 
 // 実際の CLI 経路（cli.sh → runtime）でフィクスチャをビルドする。--node で実行 runtime を
@@ -20,7 +26,7 @@ async function build(fixture: string): Promise<BuildResult> {
     const cwd = join(fixtures, fixture);
     await rm(join(cwd, "dist"), { recursive: true, force: true });
     try {
-        const { stdout, stderr } = await execFileAsync("bash", [cli, "build", "--node"], { cwd });
+        const { stdout, stderr } = await execFileAsync("bash", [cli, "build", "--node"], { cwd, env: buildEnv });
         return { code: 0, output: stdout + stderr };
     } catch (e) {
         const err = e as { code?: number; stdout?: string; stderr?: string };

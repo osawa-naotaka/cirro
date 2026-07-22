@@ -66,7 +66,8 @@
         "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json --noEmit",
         "format": "biome check --write ./src ./script ./test",
         "test": "vitest run",
-        "test:coverage": "vitest run --coverage"
+        "test:coverage": "vitest run --coverage",
+        "test:coverage:runtime": "node script/coverageRuntime.ts"
     },
     "dependencies": {
         "@fortawesome/fontawesome-free": "7.3.0",
@@ -93,6 +94,7 @@
         "@types/react": "19.2.17",
         "@types/react-dom": "19.2.3",
         "@vitest/coverage-v8": "4.1.10",
+        "c8": "^12.0.0",
         "parse5": "^8.0.1",
         "tsdown": "^0.22.4",
         "typescript": "^7.0.2",

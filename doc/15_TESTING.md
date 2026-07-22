@@ -190,7 +190,7 @@ Playwright 等で実ブラウザに CSP ヘッダ付きで読み込ませ、CSP 
   インラインゼロ保証の対象外だが、ルーティングと full-reload の挙動は検証しうる）。
 - **CI（GitHub Actions）での自動実行**: リリースフロー（タグ打ち）との連携も含めて別途検討。
 
-## 9. カバレッジ計測【層 A 実装済み・層 B 未着手】
+## 9. カバレッジ計測【実装済み】
 
 ### 9.1 なぜ 2 層に分けるのか
 
@@ -205,7 +205,7 @@ Playwright 等で実ブラウザに CSP ヘッダ付きで読み込ませ、CSP 
 | 層 | 対象 | 手段 | 状態 |
 | --- | --- | --- | --- |
 | A | テストが直接 import する層（`lib` / `registry` / `server` / `layout` と `runtime` の 7 モジュール・`vite`） | `@vitest/coverage-v8` | 実装済み |
-| B | 子プロセスでしか走らない層（`runtime/build.ts`・`dev.ts`・`cli.ts`） | `NODE_V8_COVERAGE` + `c8` | 未着手（9.4 / 9.5） |
+| B | 子プロセスでしか走らない層（`runtime/build.ts`・`dev.ts`・`cli.ts`） | `NODE_V8_COVERAGE` + `c8` | 実装済み（9.4 / 9.5） |
 
 `runtime/` を丸ごと層 B に回さない点に注意する。`router` / `link` / `report` / `icon` /
 `validate` / `setup` / `contentType` と `vite/vite.ts` は 7.1 のユニットテストが直接 import して
@@ -226,7 +226,7 @@ provider は **v8**。Vitest 4 では AST ベースの remap が既定になり�
     数千行のアイコン定義が 100% 側に積み上がり、全体の率を無意味に押し上げる
   - `registry/registry.browser.ts` — package.json の `browser` 条件でしか解決されないエントリ。
     node 環境のテストからは到達しない
-- レポータは `text` / `html` / `json`。`json`（`coverage/coverage-final.json`）は 9.5 の
+- レポータは `text` / `html` / `json`。`json`（`coverage/coverage-final.json`）は 9.6 の
   マージ用に出しておく。`text` は全指標 100% のファイルを省くため、全ファイルの一覧が要る
   ときは `html` か `json` を見る。
 - 閾値（`thresholds`）は置かない。全体一律の数字は薄い箇所を平均で隠す。置くなら憲章に直結する
@@ -235,7 +235,7 @@ provider は **v8**。Vitest 4 では AST ベースの remap が既定になり�
 数値は Statements 93.66% / Branches 91.55% / Functions 97.95%（導入時点は 92.19% / 89.17% /
 95.91%。レポートを見て埋めた分が 9.3）。最も薄いのは `runtime/setup.ts`（20.83%）で、これは
 同ファイルの大半が build 経路からしか呼ばれず、ユニットテストは `appendClientScriptAndCss` だけを
-見ている（7.1）ことによる。層 B で埋まる。
+見ている（7.1）ことによる。層 B では 90.51%（9.5）。
 
 ### 9.3 レポートを見て埋めた穴
 
@@ -265,7 +265,7 @@ provider は **v8**。Vitest 4 では AST ベースの remap が既定になり�
 - `server/markdown.tsx` の `defaultSchema.clobber ?? []`。上流（hast-util-sanitize）が
   `clobber` を持たなくなった場合の退避で、上流の値に依存する。
 
-### 9.4 層 B で必要になる注意点（実装前の調査結果）
+### 9.4 層 B が踏むべき注意点
 
 `NODE_V8_COVERAGE` を指定して `cli.sh build --node` を走らせると、生の V8 カバレッジが dump
 される。Node の型ストリッピングは型注釈を空白に置換して**文字位置を保存する**ため、
@@ -274,21 +274,59 @@ provider は **v8**。Vitest 4 では AST ベースの remap が既定になり�
 ただし dump には Vite の `ssrLoadModule` が vm で評価したモジュールも混ざり、こちらは
 **変換後コードのオフセット**を持つ（URL がスキーム無しの絶対パスで区別できる）。同じ
 `lib/css.ts` について両者は別の未カバー行域を報告するため、**混ぜると行の帰属が静かに壊れる**。
-層 B を実装するときは `file://` 以外のエントリを捨てること。捨てても損失は無い（`lib/*` は
-層 A が正面から測る）。
+そのため `file://` 以外のエントリは捨てる。捨てても損失は無い（`lib/*` は層 A が正面から測る）。
+実測では 1 回の採取で 109 件を採用し、Vite が変換した 3062 件を捨てている。
 
 また `NODE_V8_COVERAGE` はテスト内の `execFile` の `env` にだけ渡す。プロセス全体に設定すると
 Vitest 自身のワーカーが変換後コードの dump を大量に書き、上記の問題が再発する。
 
-### 9.5 層 B の実装手順（未着手）
+### 9.5 層 B の構成
 
-1. `csp.test.ts` / `build-failure.test.ts` の `execFileAsync` に `NODE_V8_COVERAGE` を渡す
-   （`csp.test.ts` は runtime 自動検出を避けるため `--node` を明示する）
-2. dump を `file://` エントリだけに絞り、`c8 report --include='src/{runtime,vite}/**'` に掛ける
-3. 層 A と 1 つの率にまとめるかは要判断。両者は保証の性格が違う（層 A は「なぜインラインゼロが
-   成立するか」を名指しする層、層 B は「CLI 経路が本当に通るか」）ため、統合した 1 つの数字は
-   どちらが薄いのかを隠す。統合するなら双方の istanbul 形式 `coverage-final.json` を
-   `istanbul-lib-coverage` でマージする
+`script/coverageRuntime.ts` が採取からレポートまでを行う。`pnpm test:coverage:runtime` で実行し、
+出力は `coverage-runtime/`（層 A の `coverage/` とは別。層 A は毎回 `coverage/` を消すため）。
+
+1. 子プロセスを走らせるテスト（`csp.test.ts` / `build-failure.test.ts`）だけを `vitest run` で
+   実行する。このとき環境変数 `CIRRO_COV_DIR` に dump 先を渡す
+2. 各テストは `CIRRO_COV_DIR` があるときだけ、`execFile` の `env` に `NODE_V8_COVERAGE` を
+   足して子プロセスを起動する（9.4 のとおりプロセス全体には設定しない）
+3. dump から `file://` 以外と `node_modules` 配下を捨てる（9.4）
+4. 残りを `c8 report --include='src/runtime/**' --include='src/vite/**'` に掛ける
+
+`csp.test.ts` の `cirro build` にも `--node` を渡すようにした。`build-failure.test.ts` と揃えて
+実行 runtime を固定し、bun の有無で結果が変わらないようにするため（dump は node の経路でしか
+出ない）。空振り防止として、使えるエントリが 0 件なら「採取できていない」と見なして throw する。
+
+導入時点の数値。`vite/vite.ts` が 100%、層 A では 20.83% だった `runtime/setup.ts` が 90.51%、
+層 A の対象外だった `runtime/build.ts` が 88.09%。
+
+| ファイル | Stmts | 備考 |
+| --- | --- | --- |
+| `vite/vite.ts` | 100% | |
+| `validate.ts` | 95.50% | |
+| `icon.ts` | 95.23% | |
+| `setup.ts` | 90.51% | 層 A では 20.83% |
+| `report.ts` | 90.90% | |
+| `link.ts` | 90.76% | |
+| `build.ts` | 88.09% | 層 A の対象外 |
+| `cli.ts` | 75% | 未カバーは usage 表示と非ゼロ終了 |
+| `router.ts` | 67.27% | 未カバーは `expandTemporaryRoutes`（dev 専用） |
+| `dev.ts` | 10.59% | dev サーバのテストが無い（8 章） |
+
+### 9.6 2 つのレポートを統合しない理由
+
+層 A と層 B は**別の問いに答える**ため、1 つの率にまとめない。
+
+- 層 A は「その振る舞いにテストがあるか」。低ければテストを足すべきである
+- 層 B は「実際の build 経路が何を実行するか」。低いことが必ずしも欠陥を意味しない
+
+同じファイルが両方に出て数字が食い違うのは正常である。例えば `runtime/router.ts` は層 A で
+100%、層 B で 67.27%。差分の `expandTemporaryRoutes` は dev 専用で build からは呼ばれないため、
+**この食い違い自体が行の帰属が正しいことの裏付け**になっている。これを平均すると、どちらの
+問いにも答えない数字になる。
+
+統合が必要になった場合は、双方が istanbul 形式の `coverage-final.json`（`coverage/` と
+`coverage-runtime/`）を出しているため、`istanbul-lib-coverage` の `createCoverageMap` で
+マージできる。
 
 ## 付録
 

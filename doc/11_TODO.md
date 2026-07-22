@@ -78,10 +78,12 @@
   `report.test.ts` の cause 網羅表（Record 型）が、`ErrorInfo` に variant を足したときに
   型エラーとして効くようにするため。
 
-- **カバレッジ計測（層 A）**: `vitest.config.ts` を新設し `pnpm test:coverage` を追加
-  （`15_TESTING.md` 9 章）。子プロセスでしか走らない `runtime/{build,cli,dev}.ts` は
-  「測れていない」だけなので層 A の対象から外し、`NODE_V8_COVERAGE` を使う層 B に委ねる
-  （層 B は未着手・9.4 / 9.5）。
+- **カバレッジ計測**: 2 層構成（`15_TESTING.md` 9 章）。層 A は `vitest.config.ts` +
+  `@vitest/coverage-v8`（`pnpm test:coverage`）。子プロセスでしか走らない
+  `runtime/{build,cli,dev}.ts` は「測れていない」だけなので層 A から外し、層 B が
+  `NODE_V8_COVERAGE` + `c8` で測る（`script/coverageRuntime.ts` / `pnpm test:coverage:runtime`）。
+  dump のうち Vite が変換したエントリを捨てないと行の帰属が壊れる点が要点（9.4）。
+  2 つのレポートは統合しない。別の問いに答えるものだから（9.6）。
 
 計 17 ファイル・507 ケース。残る候補（E2E・dev サーバ・CI）は `15_TESTING.md` 8 章。
 

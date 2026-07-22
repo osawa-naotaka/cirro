@@ -12,6 +12,12 @@ const repoRoot = fileURLToPath(new URL("../../..", import.meta.url));
 // example ごとに実際の CLI 経路で build し、成果物を走査する（15_TESTING.md 4.1）。
 const BUILD_TIMEOUT = 180_000;
 
+// 層 B のカバレッジ採取（15_TESTING.md 9.4）。script/coverageRuntime.ts から渡されたときだけ、
+// 子プロセスの V8 カバレッジを dump させる。プロセス全体には設定しない（Vitest 自身のワーカーが
+// Vite 変換後コードの dump を書き、行の帰属が壊れるため）。
+const covDir = process.env.CIRRO_COV_DIR;
+const buildEnv = covDir ? { ...process.env, NODE_V8_COVERAGE: covDir } : process.env;
+
 // 検出器の自己検証: V1〜V5 の各違反を仕込んだマークアップが実際に検出されること。
 // これが通らない限り「違反ゼロ」の緑に意味はない。
 describe("scanMarkup detector", () => {
@@ -57,7 +63,9 @@ for (const example of ["basic", "blog"]) {
 
         beforeAll(async () => {
             await rm(distDir, { recursive: true, force: true });
-            await execFileAsync("pnpm", ["exec", "cirro", "build"], { cwd: exampleDir });
+            // --node で実行 runtime を固定する（build-failure.test.ts と揃える。bun の有無で
+            // 結果が変わらないようにし、層 B のカバレッジ採取も node の dump 経路に乗せる）。
+            await execFileAsync("pnpm", ["exec", "cirro", "build", "--node"], { cwd: exampleDir, env: buildEnv });
             const entries = await readdir(distDir, { recursive: true, withFileTypes: true });
             files = entries.filter((e) => e.isFile()).map((e) => join(e.parentPath, e.name));
         }, BUILD_TIMEOUT);

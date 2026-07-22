@@ -6,6 +6,7 @@ examples/*/public/styles.css
 .dev.vars*
 dist
 coverage
+coverage-runtime
 wrangler.jsonc
 .claude/agent-memory
 cirrojs-*.tgz
