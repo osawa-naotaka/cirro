@@ -1,12 +1,20 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, test } from "vitest";
 import { createProject } from "../src/create.js";
 
 const templateDir = fileURLToPath(new URL("../template", import.meta.url));
+const exampleSrcDir = fileURLToPath(new URL("../../../examples/basic/src", import.meta.url));
 const cleanups: string[] = [];
+
+// dir 以下の全ファイルを、dir からの相対パスでソートして返す（再帰）。
+function listFiles(dir: string, base: string = dir): string[] {
+    const entries = readdirSync(dir, { withFileTypes: true });
+    const files = entries.flatMap((e) => (e.isDirectory() ? listFiles(join(dir, e.name), base) : [relative(base, join(dir, e.name))]));
+    return files.sort();
+}
 
 function tmpBase(): string {
     const dir = mkdtempSync(join(tmpdir(), "create-cirro-test-"));
@@ -54,5 +62,31 @@ describe("createProject", () => {
     test("rejects invalid project names", () => {
         const target = join(tmpBase(), "My Site!");
         expect(() => createProject(target, templateDir)).toThrow(/invalid project name/);
+    });
+});
+
+// テンプレートは examples/basic を出発点とし、examples を直せば雛形も直る形を狙っている
+// （16_SCAFFOLDING.md 2 / 4.1）。その狙いは「両者の src が同一である」ことでしか成立しないため、
+// 規約を文章ではなくテストで固定する。差分が出たらどちらか一方だけを編集したということ。
+describe("template/src stays in sync with examples/basic/src", () => {
+    const templateSrcDir = join(templateDir, "src");
+
+    // 空振り防止: 比較対象が消えた状態で緑にならないことを確認する。
+    test("both source trees exist and are non-empty", () => {
+        expect(listFiles(exampleSrcDir).length).toBeGreaterThan(0);
+        expect(listFiles(templateSrcDir).length).toBeGreaterThan(0);
+    });
+
+    test("has the same file list", () => {
+        expect(listFiles(templateSrcDir)).toEqual(listFiles(exampleSrcDir));
+    });
+
+    test("every file has identical content", () => {
+        for (const file of listFiles(exampleSrcDir)) {
+            const example = readFileSync(join(exampleSrcDir, file), "utf-8");
+            const template = readFileSync(join(templateSrcDir, file), "utf-8");
+            // ファイル名を assert のラベルに入れ、どれがずれたかがそのまま出るようにする。
+            expect(template, `src/${file} differs between examples/basic and packages/create-cirro/template`).toBe(example);
+        }
     });
 });
