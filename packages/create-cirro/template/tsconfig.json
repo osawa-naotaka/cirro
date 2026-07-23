@@ -9,7 +9,9 @@
         "skipLibCheck": true,
         "noEmit": true,
         "lib": ["ESNext", "DOM", "DOM.Iterable"],
-        "types": ["vite/client"]
+        // ページの SSR 描画は Node 上で走る。CSP meta の出し分けで参照する
+        // process.env.CIRRO_COMMAND のために node の型を入れる（04_USAGE.md 9.1）。
+        "types": ["vite/client", "node"]
     },
     "include": ["src", "vite.config.ts"]
 }
