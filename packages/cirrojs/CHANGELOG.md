@@ -13,7 +13,16 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [0.0.31] - 2026-09-29
+
+### Changed
+- The `RenderSiteContext` type exported from `cirrojs/registry` is renamed to `RenderContext`.
+- `cirro()` no longer throws when `@vitejs/plugin-react` is missing from the Vite plugins while `islands` is configured.
+- Peer dependency ranges are raised: `react` and `react-dom` to `^19.2.8`, `vite` to `^8.2.2`.
+- The bundled `@fortawesome/fontawesome-free` is updated to `7.3.1`.
+
 ### Fixed
+- `absoluteUrl()`, `pageUrl()`, `<Ogp>`, and the RSS and sitemap helpers now join `site.origin` and a path without producing a doubled or missing slash.
 - Global rule detection no longer mistakes the attribute suffix matcher `$=` for a self-class reference. A selector such as `a[href$=".pdf"]` is scoped to no generated class and is now correctly classified as a global rule, so `cirro build` warns when it is not registered on every page (dev and build styles would otherwise differ silently).
 
 ## [0.0.30] - 2026-07-20
@@ -289,7 +298,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## 0.0.1 - 2026-06-15
 - initial release
 
-[Unreleased]: https://github.com/osawa-naotaka/cirro/compare/v0.0.30...HEAD
+[Unreleased]: https://github.com/osawa-naotaka/cirro/compare/v0.0.31...HEAD
+[0.0.31]: https://github.com/osawa-naotaka/cirro/compare/v0.0.30...v0.0.31
 [0.0.30]: https://github.com/osawa-naotaka/cirro/compare/v0.0.29...v0.0.30
 [0.0.29]: https://github.com/osawa-naotaka/cirro/compare/v0.0.28...v0.0.29
 [0.0.28]: https://github.com/osawa-naotaka/cirro/compare/v0.0.27...v0.0.28
