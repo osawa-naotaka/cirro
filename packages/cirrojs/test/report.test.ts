@@ -64,13 +64,14 @@ describe("reportErrors", () => {
         expect(log).not.toHaveBeenCalled();
     });
 
-    test.each(
-        all.map((e) => [`${e.cause}/${"type" in e ? e.type : "-"}${"attr" in e ? ` (${e.attr})` : ""}`, e] as const),
-    )("prints a message naming the subject for %s", (_name, error) => {
-        reportErrors([error]);
-        expect(log).toHaveBeenCalledTimes(1);
-        expect(String(log.mock.calls[0]?.[0])).toContain(subject(error));
-    });
+    test.each(all.map((e) => [`${e.cause}/${"type" in e ? e.type : "-"}${"attr" in e ? ` (${e.attr})` : ""}`, e] as const))(
+        "prints a message naming the subject for %s",
+        (_name, error) => {
+            reportErrors([error]);
+            expect(log).toHaveBeenCalledTimes(1);
+            expect(String(log.mock.calls[0]?.[0])).toContain(subject(error));
+        },
+    );
 
     test("prints one line per error and reports them all in one pass", () => {
         reportErrors(all);
