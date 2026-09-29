@@ -6,7 +6,7 @@ import { createRegistry } from "../registry/registry.common.ts";
 import { contentType } from "./contentType.ts";
 import { cleanUrlPath, collectSiteLinks, listPublicFiles } from "./link.ts";
 import { reportErrors } from "./report.ts";
-import { expandRoutes } from "./router.ts";
+import { expandRoutes, expandTemporaryRoutes } from "./router.ts";
 import { appendClientScriptAndCss, setupCirro } from "./setup.ts";
 import { reportRouteErrors, validateRoutes } from "./validate.ts";
 
@@ -80,12 +80,14 @@ export async function runDev(port = 5173) {
                 contentPromise ??= contentHandler?.loader() || null;
                 const content = await contentPromise;
                 const pages = expandRoutes(routes, content);
+                const temporaryPages = expandTemporaryRoutes(routes, content);
+                const allPages = [...pages, ...temporaryPages];
 
                 // ルート展開後の検査（重複・パス形式・public 衝突）。dev は警告のみで描画は続ける
                 // （14_CONFIG_VALIDATION.md 4.2）。
                 reportRouteErrors(validateRoutes(pages, listPublicFiles(vite.config.publicDir)));
 
-                const page = pages.find((p) => candidate.has(p.path));
+                const page = allPages.find((p) => candidate.has(p.path));
                 if (page === undefined) {
                     errorResp(".html", `no route found for the requested path: ${rawUrl}`);
                     return;
@@ -97,10 +99,7 @@ export async function runDev(port = 5173) {
 
                 switch (page.type) {
                     case "html": {
-                        const links = collectSiteLinks(
-                            pages.filter((p) => p.type !== "css" && p.type !== "fontawesome"),
-                            vite.config.publicDir,
-                        );
+                        const links = collectSiteLinks(pages, vite.config.publicDir);
 
                         const { result: html, errors } = runWithRegistry(
                             () => {
@@ -132,10 +131,7 @@ export async function runDev(port = 5173) {
                         break;
                     }
                     case "file": {
-                        const links = collectSiteLinks(
-                            pages.filter((p) => p.type !== "css" && p.type !== "fontawesome"),
-                            vite.config.publicDir,
-                        );
+                        const links = collectSiteLinks(pages, vite.config.publicDir);
 
                         const { result: file, errors } = runWithRegistry(() => page.render(), createRegistry(), links, {
                             site,

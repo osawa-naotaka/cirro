@@ -1,0 +1,65 @@
+# main へ入れる前のゲート。
+#
+# publish は main への push で走る（publish-main.yml / publish-create-cirro.yml）ため、
+# main にマージされた時点でもう公開処理が始まる。したがって実質的な検査点は PR の 1 箇所しかない。
+# ここで lint / typecheck / test を通し、壊れたものが main に入らないようにする。
+#
+# work ブランチへの push では走らせない。作業ブランチは部分的に壊れた状態を置ける場所として
+# 使うため（CI が守るべきは main の中身であって、作業中のコミットではない）。
+#
+# カバレッジは CI で取らない。閾値を置いていないので合否の信号にならず、必要なときに手元で
+# `pnpm test:coverage`（層 A）/ `pnpm test:coverage:runtime`（層 B）を実行する方針
+# （15_TESTING.md 9 章）。特に層 B は csp / build-failure と同じビルドを再実行するため、
+# CI に入れるとテスト時間がほぼ二重になる。
+
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+# 同一 PR で新しい push があれば古い実行は打ち切る。
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.5.2
+
+      # テストは examples / test/fixtures を実際に `cirro build` するため、Node が
+      # src/*.ts を直接読める必要がある（型ストリッピング。22.18 以上）。24 で満たす。
+      # 公開パッケージは dist を指すため、これは開発時のみの要件（15_TESTING.md 9 章）。
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: pnpm
+
+      # examples も含めたワークスペース全体を入れる。テストが examples/basic と
+      # examples/blog を実際にビルドするため、packages だけでは足りない。
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm --filter cirrojs run lint
+
+      - name: Type check
+        run: pnpm --filter cirrojs run typecheck
+
+      # ルートの test は pnpm -r test（cirrojs と create-cirro の両方）。
+      - name: Test
+        run: pnpm test

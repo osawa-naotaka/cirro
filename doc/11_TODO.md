@@ -60,35 +60,42 @@
 
 ---
 
-## 5. テスト整備【仕様確定・実装待ち】
+## 5. テスト整備【完了 2026-07-21】
 
-### 背景
+完了済み。仕様と実装内容は `15_TESTING.md`（保証テストの設計判断は 1〜6 章、機能別テストと
+結合テストの一覧は 7 章）。
 
-現状テストが存在しない。Cirro の存在意義は「生成物にインラインスクリプト・インライン
-スタイルが一切ない」ことであり、これが回帰で壊れると製品価値の根幹が崩れる。
-機能追加よりも優先度の高い投資である。
+- **インラインゼロ保証テスト**: 3 つの examples を実際に `cirro build` し、`dist/` の全
+  HTML / SVG を parse5 で走査（`test/csp.test.ts`）。初回実行で FA スプライトのルート
+  `style="display: none;"` を検出し、配信時に除去するよう修正した（`runtime/icon.ts` の
+  `loadSprite`・`10_IMAGE_ASSETS.md` 5.7 に反映）。
+- **機能別ユニットテスト**: 12 ファイル。「憲章の裏口になりうるか」「壊れても静かに間違うか」
+  の 2 軸で優先順位を決めた（`15_TESTING.md` 7.1）。`hasGlobalRule` が属性後方一致マッチャー
+  `$=` を自クラス参照と誤認するバグを、テスト作成中に発見して修正済み（CHANGELOG 記載）。
+- **ビルド失敗系の結合テスト**: `test/fixtures/` の 3 フィクスチャを実際の CLI 経路でビルドし、
+  終了コードと報告内容を検証（`15_TESTING.md` 7.2）。違反ゼロの対照群を同時に置いて空振りを防ぐ。
+- **型検査の拡張**: `tsconfig.test.json` を追加し `pnpm typecheck` が `test/` も検査する。
+  `report.test.ts` の cause 網羅表（Record 型）が、`ErrorInfo` に variant を足したときに
+  型エラーとして効くようにするため。
+- **カバレッジ計測**: 2 層構成（`15_TESTING.md` 9 章）。層 A は `vitest.config.ts` +
+  `@vitest/coverage-v8`（`pnpm test:coverage`）。子プロセスでしか走らない
+  `runtime/{build,cli,dev}.ts` は「測れていない」だけなので層 A から外し、層 B が
+  `NODE_V8_COVERAGE` + `c8` で測る（`script/coverageRuntime.ts` / `pnpm test:coverage:runtime`）。
+  dump のうち Vite が変換したエントリを捨てないと行の帰属が壊れる点が要点（9.4）。
+  2 つのレポートは統合しない。別の問いに答えるものだから（9.6）。
+- **CI（GitHub Actions）**: `ci.yml` を追加（`15_TESTING.md` 10 章）。publish が main への
+  push で走る以上、実質的な検査点は PR しかないため、`pull_request`（main 宛）でのみ
+  install → lint → typecheck → test を通す。work ブランチへの push では走らせない
+  （作業ブランチは壊れた状態を置ける場所として使う）。`publish-main.yml` にもテストを
+  1 段追加し、手動 publish と PR を経ない main への push を受ける。
 
-### 仕様
-
-**`15_TESTING.md` として確定済み**。要点: ランナーは Vitest。3 つの examples を実際に
-`cirro build` し、`dist/` の全 HTML / SVG を parse5 で走査して、CSP の意味論に立脚した
-5 種の違反（src なし script・`on*` 属性・`javascript:` URL・style 要素・style 属性）が
-ゼロであることを検証する。空振り防止のメタ検証（html が 1 件以上・島マウンタ script の
-存在等）を同時に行う。
-
-### 作業項目
-
-- [x] テストランナーの選定と保証テストの仕様確定（→ `15_TESTING.md`）
-- [x] インラインゼロ保証テストの実装（`packages/cirrojs/test/`。ルート `pnpm test` で実行）。
-      初回実行で FA スプライトのルート `style="display: none;"` を検出し、配信時に除去する
-      よう修正した（`runtime/icon.ts` の `loadSprite`・`10_IMAGE_ASSETS.md` 5.7 に反映）
-- [ ] 各機能のテストの段階的追加（`15_TESTING.md` 7 章の候補から）
+計 17 ファイル・507 ケース。残る候補（E2E・dev サーバの結合テスト）は `15_TESTING.md` 8 章。
 
 ---
 
 ## 6. 保留中の小粒課題【未決定】
 
-以下は検討済みだが実施判断をしていないもの。上記 1〜5 の後に再検討する。
+以下は検討済みだが実施判断をしていないもの。上記 1〜5 が完了したため、次はここから選ぶ。
 
 | 課題 | 概要 |
 | --- | --- |
@@ -96,7 +103,7 @@
 | `_headers` の CSP 自動生成 | 現状は利用者が meta タグを手書き。ビルドが推奨 CSP ヘッダを出力するところまで面倒を見るか |
 | `aria-current="page"` の自動付与 | `09_LINK_SAFETY.md` 6 章の将来候補。ナビの現在地表示が JS ゼロで正しくなる |
 | 画像 width / height の自動付与 | `10_IMAGE_ASSETS.md` 7 章の将来候補。CLS をビルド時に潰せる |
-| コンポーネントライブラリ | スタイリング API のドッグフーディングとして有望。本体の土台（特に 1・5）を固めてから着手 |
+| コンポーネントライブラリ | スタイリング API のドッグフーディングとして有望。本体の土台（1〜5）が固まったので着手可能 |
 
 ---
 

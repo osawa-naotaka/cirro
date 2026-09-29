@@ -1,5 +1,5 @@
 import { checkLink, reportMissingSiteConfig, requireSite } from "cirrojs/registry";
-import { escapeXml } from "./xml.ts";
+import { escapeXml, join } from "./misc.ts";
 
 export type RssItem = {
     title: string;
@@ -58,7 +58,7 @@ export function rssXml(opt: RssOpt): string {
     if (lastBuild !== undefined) channel.push(`    <lastBuildDate>${escapeXml(lastBuild.toUTCString())}</lastBuildDate>`);
 
     const items = opt.items.flatMap((item) => {
-        const url = site.origin + item.path;
+        const url = join(site.origin, item.path);
         const lines = [
             `    <item>`,
             `      <title>${escapeXml(item.title)}</title>`,

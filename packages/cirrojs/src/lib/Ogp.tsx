@@ -1,5 +1,6 @@
 import { checkImage, currentPagePath, requireSite } from "cirrojs/registry";
 import type { ReactNode } from "react";
+import { join } from "./misc";
 
 export type OgpProps = {
     // og:title
@@ -24,7 +25,7 @@ export function Ogp({ title, type = "website", description, image, twitterCard }
         return null;
     }
 
-    const url = site.origin + (currentPagePath() ?? "");
+    const url = join(site.origin, currentPagePath());
     const desc = description ?? site.description;
     // og:image は Image と同じレールで検証する（存在しなければ brokenImageSrc に収集され出力しない）。
     const imageSrc = image !== undefined ? checkImage(image) : null;

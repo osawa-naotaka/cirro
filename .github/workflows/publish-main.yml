@@ -65,6 +65,11 @@ jobs:
       - name: Type check
         run: pnpm --filter cirrojs run typecheck
 
+      # 最後の砦。通常は ci.yml が PR の時点で通しているが、workflow_dispatch での手動 publish と
+      # PR を経ずに main へ入ったコミットはここでしか止められない（create-cirro 側と対称）。
+      - name: Test
+        run: pnpm --filter cirrojs run test
+
       - name: Build
         run: pnpm --filter cirrojs run build
 

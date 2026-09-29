@@ -39,11 +39,6 @@ export function expandRoutes<T>(routes: AnyRoute<T>[], content: T): ResolvedPath
                     path: r.path,
                     render: () => r.component({ params: {}, content }),
                 });
-                pages.push({
-                    type: "css",
-                    path: `${r.path}.css`,
-                    render: () => r.component({ params: {}, content }),
-                });
                 break;
             case "dynamic":
                 for (const params of r.getStaticPaths(content)) {
@@ -51,11 +46,6 @@ export function expandRoutes<T>(routes: AnyRoute<T>[], content: T): ResolvedPath
                     pages.push({
                         type: "html",
                         path,
-                        render: () => r.component({ params, content }),
-                    });
-                    pages.push({
-                        type: "css",
-                        path: `${path}.css`,
                         render: () => r.component({ params, content }),
                     });
                 }
@@ -67,6 +57,35 @@ export function expandRoutes<T>(routes: AnyRoute<T>[], content: T): ResolvedPath
                     ext: extname(r.path),
                     render: () => r.component({ params: {}, content }),
                 });
+                break;
+        }
+    }
+
+    return pages;
+}
+
+export function expandTemporaryRoutes<T>(routes: AnyRoute<T>[], content: T): ResolvedPath[] {
+    const pages: ResolvedPath[] = [];
+    for (const r of routes) {
+        switch (r.type) {
+            case "static":
+                pages.push({
+                    type: "css",
+                    path: `${r.path}.css`,
+                    render: () => r.component({ params: {}, content }),
+                });
+                break;
+            case "dynamic":
+                for (const params of r.getStaticPaths(content)) {
+                    const path = r.path(params);
+                    pages.push({
+                        type: "css",
+                        path: `${path}.css`,
+                        render: () => r.component({ params, content }),
+                    });
+                }
+                break;
+            case "file":
                 break;
         }
     }

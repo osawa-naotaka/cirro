@@ -71,6 +71,20 @@ describe("absoluteUrl / pageUrl", () => {
         expect(errors).toEqual([]);
     });
 
+    test("pageUrl without site collects missingSite and returns the page path as-is", () => {
+        const { result, errors } = inContext(() => pageUrl(), { noSite: true, pagePath: "/blog/hello" });
+        expect(result).toBe("/blog/hello");
+        expect(errors).toEqual([{ cause: "missing-site", feature: "pageUrl()" }]);
+    });
+
+    test("pageUrl without a page path falls back to the empty path", () => {
+        // CSS 併走ルートのように renderContext を伴わない描画でも throw せず、
+        // 違反として収集されるだけであること。
+        const { result, errors } = runWithRegistry(() => pageUrl());
+        expect(result).toBe("");
+        expect(errors).toEqual([{ cause: "missing-site", feature: "pageUrl()" }]);
+    });
+
     test("helpers throw outside of a render context", () => {
         expect(() => absoluteUrl("/about")).toThrow(/outside of a render context/);
         expect(() => pageUrl()).toThrow(/outside of a render context/);
@@ -130,6 +144,27 @@ describe("rssXml", () => {
         expect(errors).toEqual([{ cause: "broken-link", type: "not-found", link: "/nope" }]);
     });
 
+    test("without site emits nothing but still validates the item paths", () => {
+        // site が無くても item の path は検証する（違反の取りこぼしを作らないため）。
+        const { result, errors } = inContext(() => rssXml({ items: [{ title: "x", path: "/nope", date: new Date(0) }] }), {
+            links,
+            noSite: true,
+        });
+        expect(result).toBe("");
+        expect(errors).toEqual([
+            { cause: "missing-site", feature: "rssXml()" },
+            { cause: "broken-link", type: "not-found", link: "/nope" },
+        ]);
+    });
+
+    test("omits lastBuildDate when the feed has no item", () => {
+        // lastBuildDate は items の date の最大値。items が空なら基準が無いので出力しない
+        // （現在時刻で埋めるとビルドが非決定的になる）。
+        const { result } = inContext(() => rssXml({ items: [] }), { links });
+        expect(result).not.toContain("<lastBuildDate>");
+        expect(result).toContain("<title>Example Site</title>");
+    });
+
     test("missing channel description is reported on the missingSite rail", () => {
         const bare = defineSite({
             origin: "https://example.com",
@@ -173,6 +208,18 @@ describe("Ogp", () => {
         });
         expect(result).not.toContain("og:image");
         expect(errors).toEqual([{ cause: "broken-image-src", type: "not-found", from: "/images/nope.png" }]);
+    });
+
+    test("omits og:description when neither the page nor the site provides one", () => {
+        // description は任意。既定の site.description も無い場合はタグごと出さない
+        // （空の og:description を出すとクローラに空の説明を渡すことになる）。
+        const bare = defineSite({ origin: "https://example.com", title: "t" });
+        const { result } = runWithRegistry(() => renderToStaticMarkup(createElement(Ogp, { title: "Post Title" })), undefined, undefined, {
+            site: bare,
+            pagePath: "/",
+        });
+        expect(result).toContain('<meta property="og:title" content="Post Title"/>');
+        expect(result).not.toContain("og:description");
     });
 
     test("without site renders nothing and collects missingSite", () => {

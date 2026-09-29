@@ -65,8 +65,21 @@ packages/create-cirro/
    ├─ _gitignore         # → .gitignore
    ├─ tsconfig.json      # スタンドアロン用（ワークスペース固有設定なし）
    ├─ vite.config.ts
-   └─ src/               # routes / pages / islands（examples/basic と同型）
+   └─ src/               # routes / pages / islands / components / styles（examples/basic と同型）
+      ├─ styles.ts       # トークン・css ヘルパー・レイアウト・レシピを 1 ファイルにまとめたもの
+      └─ components/     # 全ページ共通のシェル（Layout.tsx）
 ```
+
+- **`src/` は `examples/basic/src/` とバイト単位で同一に保つ**。examples を直すとテンプレートも直る、
+  という 2 節の狙いを実際に成立させるための規律であり、片方だけを編集しない。差が出てよいのは
+  `tsconfig.json` と `_package.json` だけで、理由は次の 2 つ。
+  - examples はワークスペースのソース（`.ts`）を直接解決するため `allowImportingTsExtensions` を持つ。
+  - テンプレートは `@types/node` を devDependency に持ち、`types` に `"node"` を加える。`Layout.tsx` が
+    CSP meta の出し分けで `process.env.CIRRO_COMMAND` を読むため（`04_USAGE.md` 9.1）。examples 側は
+    ワークスペースの cirrojs ソース経由で node の型が入るので明示していない。
+- 雛形は無スタイルではなく、`05_STYLING.md` の作法（トークン → css ヘルパー → レイアウト
+  プリミティブ → レシピの 3 層）に沿った最小のデザインシステムを同梱する。生成直後から見栄えのする
+  ページが出ることに加えて、スタイルの書き方の実例を兼ねる。
 
 - **`_` プレフィックス規約**: npm publish は同梱物の `package.json` を特別扱いし
   `.gitignore` を除外するため、`_package.json` / `_gitignore` として持ち、コピー時に

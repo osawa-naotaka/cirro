@@ -91,7 +91,7 @@ export type ErrorInfo = BrokenLink | BrokenImageSrc | MissingSite | IslandError 
 // pagePath は現在レンダリング中ページのクリーン URL 正規形、htmlPaths は全 html ページの
 // クリーン URL 一覧（sitemap 生成用）。islandNames は設定された島レジストリのキー集合
 // （islands オプション未設定なら undefined。島の使用照合に使う）。
-export type RenderSiteContext = {
+export type RenderContext = {
     site?: Site;
     pagePath?: string;
     htmlPaths?: string[];
@@ -102,7 +102,7 @@ export type RunWithRegistry<T> = (
     fn: () => T,
     init?: Registry,
     links?: Set<string>,
-    siteContext?: RenderSiteContext,
+    siteContext?: RenderContext,
 ) => {
     result: T;
     registry: Registry;
