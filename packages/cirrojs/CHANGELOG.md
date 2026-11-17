@@ -13,6 +13,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [0.0.32] - 2026-11-17
+
+### Changed
+- The `mdast-util-from-markdown` dependency range is raised to `^2.1.0`.
+
 ## [0.0.31] - 2026-09-29
 
 ### Changed
@@ -298,7 +303,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## 0.0.1 - 2026-06-15
 - initial release
 
-[Unreleased]: https://github.com/osawa-naotaka/cirro/compare/v0.0.31...HEAD
+[Unreleased]: https://github.com/osawa-naotaka/cirro/compare/v0.0.32...HEAD
+[0.0.32]: https://github.com/osawa-naotaka/cirro/compare/v0.0.31...v0.0.32
 [0.0.31]: https://github.com/osawa-naotaka/cirro/compare/v0.0.30...v0.0.31
 [0.0.30]: https://github.com/osawa-naotaka/cirro/compare/v0.0.29...v0.0.30
 [0.0.29]: https://github.com/osawa-naotaka/cirro/compare/v0.0.28...v0.0.29
